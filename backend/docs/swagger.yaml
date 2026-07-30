@@ -1,0 +1,1407 @@
+basePath: /
+definitions:
+  domain.AdminStats:
+    properties:
+      active_exams:
+        type: integer
+      total_creators:
+        type: integer
+      total_forms:
+        type: integer
+      total_responses:
+        type: integer
+      total_users:
+        type: integer
+    type: object
+  domain.ExamSettings:
+    properties:
+      duration_minutes:
+        type: integer
+      end_time:
+        type: string
+      form_id:
+        type: string
+      id:
+        type: string
+      max_submissions:
+        type: integer
+      passcode:
+        type: string
+      randomize_options:
+        type: boolean
+      randomize_questions:
+        type: boolean
+      start_time:
+        type: string
+    type: object
+  domain.FormAnalytics:
+    properties:
+      average_score:
+        type: number
+      highest_score:
+        type: number
+      lowest_score:
+        type: number
+      question_breakdown:
+        additionalProperties:
+          $ref: '#/definitions/domain.QuestionAnalytics'
+        type: object
+      total_responses:
+        type: integer
+    type: object
+  domain.FormStatus:
+    enum:
+    - DRAFT
+    - ACTIVE
+    - CLOSED
+    type: string
+    x-enum-varnames:
+    - StatusDraft
+    - StatusActive
+    - StatusClosed
+  domain.FormType:
+    enum:
+    - SURVEY
+    - EXAM
+    type: string
+    x-enum-varnames:
+    - TypeSurvey
+    - TypeExam
+  domain.QuestionAnalytics:
+    properties:
+      accuracy_rate:
+        type: number
+      correct_count:
+        type: integer
+      option_counts:
+        additionalProperties:
+          type: integer
+        description: Option ID -> count
+        type: object
+      question_id:
+        type: string
+      question_text:
+        type: string
+      total_answered:
+        type: integer
+    type: object
+  domain.QuestionType:
+    enum:
+    - SHORT_TEXT
+    - PARAGRAPH
+    - MULTIPLE_CHOICE
+    - CHECKBOXES
+    - DROPDOWN
+    - DATE_TIME
+    - FILE_UPLOAD
+    - RATING_SCALE
+    - MATH
+    - CODE
+    type: string
+    x-enum-varnames:
+    - TypeShortText
+    - TypeParagraph
+    - TypeMultipleChoice
+    - TypeCheckboxes
+    - TypeDropdown
+    - TypeDateTime
+    - TypeFileUpload
+    - TypeRatingScale
+    - TypeMath
+    - TypeCode
+  domain.UserRole:
+    enum:
+    - admin
+    - user
+    type: string
+    x-enum-varnames:
+    - RoleAdmin
+    - RoleUser
+  dto.AnswerDetailDTO:
+    properties:
+      answer_text:
+        type: string
+      id:
+        type: string
+      is_correct:
+        type: boolean
+      points_earned:
+        type: number
+      question_id:
+        type: string
+      question_text:
+        type: string
+      selected_option_id:
+        type: string
+      selected_option_text:
+        type: string
+    type: object
+  dto.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.CreateFormRequest:
+    properties:
+      custom_url:
+        type: string
+      description:
+        type: string
+      title:
+        maxLength: 255
+        minLength: 2
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/domain.FormType'
+        enum:
+        - SURVEY
+        - EXAM
+    required:
+    - title
+    - type
+    type: object
+  dto.CreateOptionRequest:
+    properties:
+      is_correct:
+        type: boolean
+      option_text:
+        type: string
+      order_index:
+        type: integer
+    required:
+    - option_text
+    type: object
+  dto.CreateQuestionRequest:
+    properties:
+      code_language:
+        type: string
+      is_required:
+        type: boolean
+      options:
+        items:
+          $ref: '#/definitions/dto.CreateOptionRequest'
+        type: array
+      order_index:
+        type: integer
+      points:
+        minimum: 0
+        type: integer
+      question_text:
+        type: string
+      question_type:
+        $ref: '#/definitions/domain.QuestionType'
+    required:
+    - question_text
+    - question_type
+    type: object
+  dto.CreatorResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+    type: object
+  dto.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  dto.FormResponseDTO:
+    properties:
+      created_at:
+        type: string
+      custom_url:
+        type: string
+      description:
+        type: string
+      exam_settings:
+        $ref: '#/definitions/domain.ExamSettings'
+      id:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/dto.QuestionDTO'
+        type: array
+      response_count:
+        type: integer
+      status:
+        $ref: '#/definitions/domain.FormStatus'
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/domain.FormType'
+      user_id:
+        type: string
+    type: object
+  dto.GradeResponseRequest:
+    properties:
+      total_score:
+        minimum: 0
+        type: number
+    type: object
+  dto.ImportStudentsRequest:
+    properties:
+      students:
+        items:
+          $ref: '#/definitions/dto.RegisterRequest'
+        type: array
+    required:
+    - students
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.OptionDTO:
+    properties:
+      id:
+        type: string
+      is_correct:
+        type: boolean
+      option_text:
+        type: string
+      order_index:
+        type: integer
+      question_id:
+        type: string
+    type: object
+  dto.PublicExamSettings:
+    properties:
+      duration_minutes:
+        type: integer
+      end_time:
+        type: string
+      has_passcode:
+        type: boolean
+      max_submissions:
+        type: integer
+      randomize_options:
+        type: boolean
+      randomize_questions:
+        type: boolean
+      start_time:
+        type: string
+    type: object
+  dto.PublicFormDTO:
+    properties:
+      custom_url:
+        type: string
+      description:
+        type: string
+      exam_settings:
+        $ref: '#/definitions/dto.PublicExamSettings'
+      id:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/dto.PublicQuestionDTO'
+        type: array
+      status:
+        $ref: '#/definitions/domain.FormStatus'
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/domain.FormType'
+    type: object
+  dto.PublicOptionDTO:
+    properties:
+      id:
+        type: string
+      option_text:
+        type: string
+      order_index:
+        type: integer
+    type: object
+  dto.PublicQuestionDTO:
+    properties:
+      code_language:
+        type: string
+      id:
+        type: string
+      is_required:
+        type: boolean
+      options:
+        items:
+          $ref: '#/definitions/dto.PublicOptionDTO'
+        type: array
+      order_index:
+        type: integer
+      points:
+        type: integer
+      question_text:
+        type: string
+      question_type:
+        $ref: '#/definitions/domain.QuestionType'
+    type: object
+  dto.QuestionDTO:
+    properties:
+      code_language:
+        type: string
+      form_id:
+        type: string
+      id:
+        type: string
+      is_required:
+        type: boolean
+      options:
+        items:
+          $ref: '#/definitions/dto.OptionDTO'
+        type: array
+      order_index:
+        type: integer
+      points:
+        type: integer
+      question_text:
+        type: string
+      question_type:
+        $ref: '#/definitions/domain.QuestionType'
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  dto.ResetPasswordRequest:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
+  dto.ResponseDetailDTO:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/dto.AnswerDetailDTO'
+        type: array
+      form_id:
+        type: string
+      id:
+        type: string
+      respondent_email:
+        type: string
+      submitted_at:
+        type: string
+      total_score:
+        type: number
+    type: object
+  dto.SubmitAnswerDetail:
+    properties:
+      answer_text:
+        type: string
+      question_id:
+        type: string
+      selected_option_id:
+        type: string
+    required:
+    - question_id
+    type: object
+  dto.SubmitFormRequest:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/dto.SubmitAnswerDetail'
+        type: array
+      passcode:
+        type: string
+      respondent_email:
+        type: string
+    required:
+    - answers
+    - respondent_email
+    type: object
+  dto.SubmitResponseResult:
+    properties:
+      message:
+        type: string
+      response_id:
+        type: string
+      submitted_at:
+        type: string
+      total_score:
+        type: number
+    type: object
+  dto.UpdateCreatorStatusRequest:
+    properties:
+      is_active:
+        type: boolean
+    type: object
+  dto.UpdateExamSettingsRequest:
+    properties:
+      duration_minutes:
+        minimum: 0
+        type: integer
+      end_time:
+        type: string
+      max_submissions:
+        minimum: 0
+        type: integer
+      passcode:
+        type: string
+      randomize_options:
+        type: boolean
+      randomize_questions:
+        type: boolean
+      start_time:
+        type: string
+    type: object
+  dto.UpdateFormRequest:
+    properties:
+      custom_url:
+        type: string
+      description:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/domain.FormStatus'
+        enum:
+        - DRAFT
+        - ACTIVE
+        - CLOSED
+      title:
+        maxLength: 255
+        minLength: 2
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/domain.FormType'
+        enum:
+        - SURVEY
+        - EXAM
+    required:
+    - status
+    - title
+    - type
+    type: object
+  dto.UpdateProfileRequest:
+    properties:
+      avatar_url:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - name
+    type: object
+  dto.UpdateQuestionRequest:
+    properties:
+      code_language:
+        type: string
+      is_required:
+        type: boolean
+      options:
+        items:
+          $ref: '#/definitions/dto.CreateOptionRequest'
+        type: array
+      order_index:
+        type: integer
+      points:
+        minimum: 0
+        type: integer
+      question_text:
+        type: string
+      question_type:
+        $ref: '#/definitions/domain.QuestionType'
+    required:
+    - question_text
+    - question_type
+    type: object
+  dto.UserResponse:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      role:
+        $ref: '#/definitions/domain.UserRole'
+    type: object
+  response.APIResponse:
+    properties:
+      data: {}
+      errors: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@hidocs.id
+    name: HiDocs Support
+  description: High-performance backend API for HiDocs Form & Exam Maker application
+    using Golang and Domain-Driven Design (DDD).
+  termsOfService: http://swagger.io/terms/
+  title: HiDocs Backend API (Form & Exam Maker)
+  version: "1.0"
+paths:
+  /api/v1/admin/creators:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.CreatorResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List form creators/users
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create Creator Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new form creator account
+      tags:
+      - Admin
+  /api/v1/admin/creators/{creator_id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Creator ID
+        in: path
+        name: creator_id
+        required: true
+        type: string
+      - description: Status Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCreatorStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update creator active/inactive status
+      tags:
+      - Admin
+  /api/v1/admin/dashboard/stats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.AdminStats'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get admin dashboard global statistics
+      tags:
+      - Admin
+  /api/v1/admin/forms:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.FormResponseDTO'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List all system forms
+      tags:
+      - Admin
+  /api/v1/admin/forms/{form_id}:
+    delete:
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete form as admin
+      tags:
+      - Admin
+  /api/v1/auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Generate password reset token
+      parameters:
+      - description: Forgot Password Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Request password reset
+      tags:
+      - Auth
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: Login Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: Register Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Register user
+      tags:
+      - Auth
+  /api/v1/auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using token
+      parameters:
+      - description: Reset Password Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Reset password
+      tags:
+      - Auth
+  /api/v1/forms:
+    get:
+      parameters:
+      - description: Filter by status (DRAFT, ACTIVE, CLOSED)
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.FormResponseDTO'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List user forms ('My Forms')
+      tags:
+      - Forms
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create Form Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateFormRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FormResponseDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new form
+      tags:
+      - Forms
+  /api/v1/forms/{form_id}:
+    delete:
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a form
+      tags:
+      - Forms
+    get:
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FormResponseDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get form details
+      tags:
+      - Forms
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      - description: Update Form Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateFormRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FormResponseDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update form details
+      tags:
+      - Forms
+  /api/v1/forms/{form_id}/analytics:
+    get:
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.FormAnalytics'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get real-time analytics for charts (Pie Chart score distribution, Question
+        accuracy bar charts)
+      tags:
+      - Analytics
+  /api/v1/forms/{form_id}/export:
+    get:
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      - description: 'Export format (''xlsx'' or ''csv'', default: ''xlsx'')'
+        in: query
+        name: format
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: Export form responses to Excel or CSV
+      tags:
+      - Responses
+  /api/v1/forms/{form_id}/questions:
+    get:
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.QuestionDTO'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List questions for a form
+      tags:
+      - Questions
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      - description: Create Question Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.QuestionDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Add a question to a form
+      tags:
+      - Questions
+  /api/v1/forms/{form_id}/responses:
+    get:
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.ResponseDetailDTO'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get all responses for a form
+      tags:
+      - Responses
+  /api/v1/forms/{form_id}/settings:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      - description: Exam Settings Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateExamSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ExamSettings'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update exam settings for a form
+      tags:
+      - Forms
+  /api/v1/forms/{form_id}/submit:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Form ID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      - description: Submit Form Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubmitFormRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SubmitResponseResult'
+              type: object
+      summary: Submit form / exam answers
+      tags:
+      - Responses
+  /api/v1/forms/import-docx:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Word Document (.docx)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FormResponseDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Import form from Word .docx file
+      tags:
+      - Forms
+  /api/v1/options/{option_id}:
+    delete:
+      parameters:
+      - description: Option ID
+        in: path
+        name: option_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a question option
+      tags:
+      - Questions
+  /api/v1/public/forms/{short_code}:
+    get:
+      parameters:
+      - description: Custom URL Slug or Form ID
+        in: path
+        name: short_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PublicFormDTO'
+              type: object
+      summary: Access public form by custom URL slug or short code
+      tags:
+      - Public
+  /api/v1/public/forms/{short_code}/qr:
+    get:
+      parameters:
+      - description: Custom URL Slug or Form ID
+        in: path
+        name: short_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Generate QR Code URL for public form access
+      tags:
+      - Public
+  /api/v1/questions/{question_id}:
+    delete:
+      parameters:
+      - description: Question ID
+        in: path
+        name: question_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a question
+      tags:
+      - Questions
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Question ID
+        in: path
+        name: question_id
+        required: true
+        type: string
+      - description: Update Question Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.QuestionDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update a question
+      tags:
+      - Questions
+  /api/v1/responses/{response_id}:
+    get:
+      parameters:
+      - description: Response ID
+        in: path
+        name: response_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ResponseDetailDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get individual response details
+      tags:
+      - Responses
+  /api/v1/responses/{response_id}/grade:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Response ID
+        in: path
+        name: response_id
+        required: true
+        type: string
+      - description: Grade Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GradeResponseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Adjust score/grade manually for a response
+      tags:
+      - Responses
+  /api/v1/users/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Update Profile Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update profile
+      tags:
+      - Users
+  /api/v1/users/students/import:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Import Students Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ImportStudentsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Batch import students/users
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
