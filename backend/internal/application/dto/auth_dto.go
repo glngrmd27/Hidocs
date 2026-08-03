@@ -6,13 +6,22 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
+type VerifyOTPRequest struct {
+	Email   string `json:"email" binding:"required,email"`
+	OTPCode string `json:"otp_code" binding:"required,len=6"`
+}
+
+type ResendOTPRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
 type AuthResponse struct {
-	Token string      `json:"token"`
+	Token string       `json:"token"`
 	User  UserResponse `json:"user"`
 }
 

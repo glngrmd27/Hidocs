@@ -90,22 +90,37 @@ func (r *responseRepository) GetAnalyticsByFormID(ctx context.Context, formID uu
 	}
 
 	var sumScore float64
-	highest := responses[0].TotalScore
-	lowest := responses[0].TotalScore
+	var countWithScore float64
+	var highest float64
+	var lowest float64
+	first := true
 
 	for _, resp := range responses {
-		sumScore += resp.TotalScore
-		if resp.TotalScore > highest {
-			highest = resp.TotalScore
-		}
-		if resp.TotalScore < lowest {
-			lowest = resp.TotalScore
+		if resp.TotalScore != nil {
+			score := *resp.TotalScore
+			sumScore += score
+			countWithScore++
+
+			if first {
+				highest = score
+				lowest = score
+				first = false
+			} else {
+				if score > highest {
+					highest = score
+				}
+				if score < lowest {
+					lowest = score
+				}
+			}
 		}
 	}
 
-	analytics.AverageScore = sumScore / float64(len(responses))
-	analytics.HighestScore = highest
-	analytics.LowestScore = lowest
+	if countWithScore > 0 {
+		analytics.AverageScore = sumScore / countWithScore
+		analytics.HighestScore = highest
+		analytics.LowestScore = lowest
+	}
 
 	// Fetch all questions for this form
 	var questions []domain.Question

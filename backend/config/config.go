@@ -9,16 +9,26 @@ import (
 )
 
 type Config struct {
-	AppPort     string
-	AppEnv      string
-	DBHost      string
-	DBPort      string
-	DBUser      string
-	DBPassword  string
-	DBName      string
-	DBSSLMode   string
-	JWTSecret   string
-	JWTExpireHr int
+	AppPort       string
+	AppEnv        string
+	DBHost        string
+	DBPort        string
+	DBUser        string
+	DBPassword    string
+	DBName        string
+	DBSSLMode     string
+	DBLogLevel    string
+	AutoMigrate   bool
+	RedisHost     string
+	RedisPort     string
+	RedisPassword string
+	RedisDB       int
+	SMTPHost      string
+	SMTPPort      string
+	SMTPUser      string
+	SMTPPassword  string
+	JWTSecret     string
+	JWTExpireHr   int
 }
 
 func LoadConfig() *Config {
@@ -27,18 +37,29 @@ func LoadConfig() *Config {
 	}
 
 	jwtExpire, _ := strconv.Atoi(getEnv("JWT_EXPIRE_HOURS", "24"))
+	autoMigrate, _ := strconv.ParseBool(getEnv("AUTO_MIGRATE", "true"))
+	redisDB, _ := strconv.Atoi(getEnv("REDIS_DB", "0"))
 
 	return &Config{
-		AppPort:     getEnv("APP_PORT", "8080"),
-		AppEnv:      getEnv("APP_ENV", "development"),
-		DBHost:      getEnv("DB_HOST", "localhost"),
-		DBPort:      getEnv("DB_PORT", "5432"),
-		DBUser:      getEnv("DB_USER", "postgres"),
-		DBPassword:  getEnv("DB_PASSWORD", "postgres"),
-		DBName:      getEnv("DB_NAME", "hidocs_db"),
-		DBSSLMode:   getEnv("DB_SSLMODE", "disable"),
-		JWTSecret:   getEnv("JWT_SECRET", "super-secret-key-hidocs-2026"),
-		JWTExpireHr: jwtExpire,
+		AppPort:       getEnv("APP_PORT", "8080"),
+		AppEnv:        getEnv("APP_ENV", "development"),
+		DBHost:        getEnv("DB_HOST", "127.0.0.1"),
+		DBPort:        getEnv("DB_PORT", "5432"),
+		DBUser:        getEnv("DB_USER", "postgres"),
+		DBPassword:    getEnv("DB_PASSWORD", "postgres"),
+		DBName:        getEnv("DB_NAME", "hidocs_db"),
+		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
+		DBLogLevel:    getEnv("DB_LOG_LEVEL", "warn"),
+		AutoMigrate:   autoMigrate,
+		RedisHost:     getEnv("REDIS_HOST", "127.0.0.1"),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
+		RedisDB:       redisDB,
+		SMTPHost:      getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:      getEnv("SMTP_PORT", "587"),
+		SMTPUser:      getEnv("SMTP_USER", ""),
+		SMTPPassword:  getEnv("SMTP_PASSWORD", ""),
+		JWTSecret:     getEnv("JWT_SECRET", "super-secret-key-hidocs-2026"),
+		JWTExpireHr:   jwtExpire,
 	}
 }
 

@@ -9,7 +9,9 @@ import (
 	_ "backend/docs"
 	"backend/internal/application/service"
 	"backend/internal/domain"
+	"backend/internal/infrastructure/cache"
 	"backend/internal/infrastructure/database"
+	"backend/internal/infrastructure/email"
 	"backend/internal/infrastructure/parser"
 	"backend/internal/infrastructure/repository"
 	"backend/internal/infrastructure/security"
@@ -41,11 +43,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
- 
-	// Security components
+
+	// Security & External Infrastructure Components
 	hasher := security.NewBcryptHasher()
 	jwtManager := security.NewJWTManager(cfg.JWTSecret, cfg.JWTExpireHr)
 	docxParser := parser.NewDocxParser()
+	redisClient := cache.NewRedisClient(cfg)
+	emailSender := email.NewSMTPEmailSender(cfg)
 
 	// Seed Admin User if not existing
 	seedAdmin(db, hasher)
@@ -58,7 +62,7 @@ func main() {
 	adminRepo := repository.NewAdminRepository(db)
 
 	// Services
-	authService := service.NewAuthService(userRepo, hasher, jwtManager)
+	authService := service.NewAuthService(userRepo, hasher, jwtManager, redisClient, emailSender)
 	userService := service.NewUserService(userRepo, hasher)
 	formService := service.NewFormService(formRepo)
 	questionService := service.NewQuestionService(questionRepo, formRepo)

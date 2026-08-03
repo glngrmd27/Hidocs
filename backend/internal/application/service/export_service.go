@@ -70,9 +70,13 @@ func (s *exportService) ExportExcel(ctx context.Context, userID uuid.UUID, formI
 	// Data rows
 	for rowIdx, resp := range responses {
 		rowNum := rowIdx + 2
+		scoreVal := float64(0)
+		if resp.TotalScore != nil {
+			scoreVal = *resp.TotalScore
+		}
 		f.SetCellValue(sheet, fmt.Sprintf("A%d", rowNum), rowIdx+1)
 		f.SetCellValue(sheet, fmt.Sprintf("B%d", rowNum), resp.RespondentEmail)
-		f.SetCellValue(sheet, fmt.Sprintf("C%d", rowNum), resp.TotalScore)
+		f.SetCellValue(sheet, fmt.Sprintf("C%d", rowNum), scoreVal)
 		f.SetCellValue(sheet, fmt.Sprintf("D%d", rowNum), resp.SubmittedAt.Format(time.RFC3339))
 
 		// Map answers by QuestionID
@@ -132,10 +136,14 @@ func (s *exportService) ExportCSV(ctx context.Context, userID uuid.UUID, formID 
 	_ = writer.Write(headers)
 
 	for rowIdx, resp := range responses {
+		scoreStr := "0.0"
+		if resp.TotalScore != nil {
+			scoreStr = strconv.FormatFloat(*resp.TotalScore, 'f', 2, 64)
+		}
 		row := []string{
 			strconv.Itoa(rowIdx + 1),
 			resp.RespondentEmail,
-			strconv.FormatFloat(resp.TotalScore, 'f', 2, 64),
+			scoreStr,
 			resp.SubmittedAt.Format(time.RFC3339),
 		}
 

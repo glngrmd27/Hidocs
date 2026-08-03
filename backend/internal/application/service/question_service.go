@@ -2,6 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"os"
+	"path/filepath"
+	"time"
 
 	"backend/internal/application/dto"
 	"backend/internal/domain"
@@ -13,6 +19,7 @@ type QuestionService interface {
 	UpdateQuestion(ctx context.Context, userID uuid.UUID, questionID uuid.UUID, req dto.UpdateQuestionRequest) (*dto.QuestionDTO, error)
 	DeleteQuestion(ctx context.Context, userID uuid.UUID, questionID uuid.UUID) error
 	DeleteOption(ctx context.Context, userID uuid.UUID, optionID uuid.UUID) error
+	UploadQuestionImage(ctx context.Context, fileHeader *multipart.FileHeader) (*dto.UploadImageResponse, error)
 }
 
 type questionService struct {
@@ -53,16 +60,20 @@ func (s *questionService) AddQuestion(ctx context.Context, userID uuid.UUID, for
 		})
 	}
 
+	now := time.Now()
 	question := &domain.Question{
-		ID:           qID,
-		FormID:       formID,
-		QuestionText: req.QuestionText,
-		QuestionType: req.QuestionType,
-		CodeLanguage: req.CodeLanguage,
-		Points:       req.Points,
-		OrderIndex:   req.OrderIndex,
-		IsRequired:   req.IsRequired,
-		Options:      options,
+		ID:            qID,
+		FormID:        formID,
+		QuestionText:  req.QuestionText,
+		QuestionType:  req.QuestionType,
+		CodeLanguage:  req.CodeLanguage,
+		ImgURL:        req.ImgURL,
+		IsAutoScored:  req.IsAutoScored,
+		Points:        req.Points,
+		OrderIndex:    req.OrderIndex,
+		IsRequired:    req.IsRequired,
+		IsAutosavedAt: &now,
+		Options:       options,
 	}
 
 	if err := s.questionRepo.CreateQuestion(ctx, question); err != nil {
@@ -90,9 +101,13 @@ func (s *questionService) UpdateQuestion(ctx context.Context, userID uuid.UUID, 
 	q.QuestionText = req.QuestionText
 	q.QuestionType = req.QuestionType
 	q.CodeLanguage = req.CodeLanguage
+	q.ImgURL = req.ImgURL
+	q.IsAutoScored = req.IsAutoScored
 	q.Points = req.Points
 	q.OrderIndex = req.OrderIndex
 	q.IsRequired = req.IsRequired
+	now := time.Now()
+	q.IsAutosavedAt = &now
 
 	var options []domain.QuestionOption
 	for i, optReq := range req.Options {
@@ -158,6 +173,39 @@ func (s *questionService) DeleteOption(ctx context.Context, userID uuid.UUID, op
 	return s.questionRepo.DeleteOption(ctx, optionID)
 }
 
+func (s *questionService) UploadQuestionImage(ctx context.Context, fileHeader *multipart.FileHeader) (*dto.UploadImageResponse, error) {
+	uploadDir := "./uploads"
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create upload directory: %w", err)
+	}
+
+	ext := filepath.Ext(fileHeader.Filename)
+	if ext == "" {
+		ext = ".png"
+	}
+	filename := fmt.Sprintf("%s_%s%s", time.Now().Format("20060102_150405"), uuid.New().String()[:8], ext)
+	dstPath := filepath.Join(uploadDir, filename)
+
+	src, err := fileHeader.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer src.Close()
+
+	out, err := os.Create(dstPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save file: %w", err)
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, src); err != nil {
+		return nil, fmt.Errorf("failed to write file to storage: %w", err)
+	}
+
+	imageURL := fmt.Sprintf("/uploads/%s", filename)
+	return &dto.UploadImageResponse{ImgURL: imageURL}, nil
+}
+
 func (s *questionService) mapQuestionToDTO(q *domain.Question) *dto.QuestionDTO {
 	var optDTOs []dto.OptionDTO
 	for _, opt := range q.Options {
@@ -176,6 +224,8 @@ func (s *questionService) mapQuestionToDTO(q *domain.Question) *dto.QuestionDTO 
 		QuestionText: q.QuestionText,
 		QuestionType: q.QuestionType,
 		CodeLanguage: q.CodeLanguage,
+		ImgURL:       q.ImgURL,
+		IsAutoScored: q.IsAutoScored,
 		Points:       q.Points,
 		OrderIndex:   q.OrderIndex,
 		IsRequired:   q.IsRequired,

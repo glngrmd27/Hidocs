@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"backend/config"
@@ -13,30 +14,32 @@ import (
 )
 
 func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
-	// 1. First connect to default 'postgres' database to verify/create target database
-	defaultDSN := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=postgres port=%s sslmode=%s TimeZone=Asia/Jakarta",
-		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBPort, cfg.DBSSLMode,
-	)
+	// 1. First connect to default 'postgres' database to verify/create target database if AutoMigrate is enabled
+	if cfg.AutoMigrate {
+		defaultDSN := fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=postgres port=%s sslmode=%s TimeZone=Asia/Jakarta",
+			cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBPort, cfg.DBSSLMode,
+		)
 
-	defaultDB, err := gorm.Open(postgres.Open(defaultDSN), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	if err == nil {
-		var count int
-		checkQuery := fmt.Sprintf("SELECT count(*) FROM pg_database WHERE datname = '%s'", cfg.DBName)
-		defaultDB.Raw(checkQuery).Scan(&count)
-		if count == 0 {
-			createDBQuery := fmt.Sprintf("CREATE DATABASE %s", cfg.DBName)
-			if createErr := defaultDB.Exec(createDBQuery).Error; createErr != nil {
-				log.Printf("Warning: failed to auto-create database %s: %v", cfg.DBName, createErr)
-			} else {
-				log.Printf("Database '%s' created successfully!", cfg.DBName)
+		defaultDB, err := gorm.Open(postgres.Open(defaultDSN), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Silent),
+		})
+		if err == nil {
+			var count int
+			checkQuery := fmt.Sprintf("SELECT count(*) FROM pg_database WHERE datname = '%s'", cfg.DBName)
+			defaultDB.Raw(checkQuery).Scan(&count)
+			if count == 0 {
+				createDBQuery := fmt.Sprintf("CREATE DATABASE %s", cfg.DBName)
+				if createErr := defaultDB.Exec(createDBQuery).Error; createErr != nil {
+					log.Printf("Warning: failed to auto-create database %s: %v", cfg.DBName, createErr)
+				} else {
+					log.Printf("Database '%s' created successfully!", cfg.DBName)
+				}
 			}
-		}
-		sqlDB, _ := defaultDB.DB()
-		if sqlDB != nil {
-			sqlDB.Close()
+			sqlDB, _ := defaultDB.DB()
+			if sqlDB != nil {
+				sqlDB.Close()
+			}
 		}
 	}
 
@@ -47,10 +50,15 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 	)
 
 	gormConfig := &gorm.Config{}
-	if cfg.AppEnv == "development" {
+	switch strings.ToLower(cfg.DBLogLevel) {
+	case "silent":
+		gormConfig.Logger = logger.Default.LogMode(logger.Silent)
+	case "info":
 		gormConfig.Logger = logger.Default.LogMode(logger.Info)
-	} else {
+	case "error":
 		gormConfig.Logger = logger.Default.LogMode(logger.Error)
+	default: // "warn"
+		gormConfig.Logger = logger.Default.LogMode(logger.Warn)
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), gormConfig)
@@ -71,22 +79,25 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 
 	log.Println("PostgreSQL connected successfully with high-concurrency pool settings")
 
-	// Enable uuid extension in postgres if needed
-	db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+	// Run Auto Migration only if AUTO_MIGRATE is true
+	if cfg.AutoMigrate {
+		log.Println("Running AutoMigration...")
+		db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
 
-	// Auto Migration
-	err = db.AutoMigrate(
-		&domain.User{},
-		&domain.PasswordReset{},
-		&domain.Form{},
-		&domain.ExamSettings{},
-		&domain.Question{},
-		&domain.QuestionOption{},
-		&domain.FormResponse{},
-		&domain.ResponseAnswer{},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("auto migration failed: %w", err)
+		err = db.AutoMigrate(
+			&domain.User{},
+			&domain.PasswordReset{},
+			&domain.Form{},
+			&domain.FormSettings{},
+			&domain.Question{},
+			&domain.QuestionOption{},
+			&domain.FormResponse{},
+			&domain.ResponseAnswer{},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("auto migration failed: %w", err)
+		}
+		log.Println("AutoMigration completed successfully")
 	}
 
 	return db, nil

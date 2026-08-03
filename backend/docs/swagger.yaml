@@ -13,27 +13,6 @@ definitions:
       total_users:
         type: integer
     type: object
-  domain.ExamSettings:
-    properties:
-      duration_minutes:
-        type: integer
-      end_time:
-        type: string
-      form_id:
-        type: string
-      id:
-        type: string
-      max_submissions:
-        type: integer
-      passcode:
-        type: string
-      randomize_options:
-        type: boolean
-      randomize_questions:
-        type: boolean
-      start_time:
-        type: string
-    type: object
   domain.FormAnalytics:
     properties:
       average_score:
@@ -48,6 +27,29 @@ definitions:
         type: object
       total_responses:
         type: integer
+    type: object
+  domain.FormSettings:
+    properties:
+      auto_active_days:
+        type: integer
+      duration_minutes:
+        type: integer
+      end_time:
+        type: string
+      form_id:
+        type: string
+      id:
+        type: string
+      is_active_immediately:
+        type: boolean
+      is_one_time_submission:
+        type: boolean
+      randomize_options:
+        type: boolean
+      randomize_questions:
+        type: boolean
+      start_time:
+        type: string
     type: object
   domain.FormStatus:
     enum:
@@ -88,27 +90,27 @@ definitions:
   domain.QuestionType:
     enum:
     - SHORT_TEXT
-    - PARAGRAPH
+    - LONG_TEXT
     - MULTIPLE_CHOICE
     - CHECKBOXES
     - DROPDOWN
-    - DATE_TIME
-    - FILE_UPLOAD
-    - RATING_SCALE
+    - RATING
+    - YES_NO
     - MATH
     - CODE
+    - IMAGE
     type: string
     x-enum-varnames:
     - TypeShortText
-    - TypeParagraph
+    - TypeLongText
     - TypeMultipleChoice
     - TypeCheckboxes
     - TypeDropdown
-    - TypeDateTime
-    - TypeFileUpload
-    - TypeRatingScale
+    - TypeRating
+    - TypeYesNo
     - TypeMath
     - TypeCode
+    - TypeImage
   domain.UserRole:
     enum:
     - admin
@@ -131,6 +133,8 @@ definitions:
         type: string
       question_text:
         type: string
+      score_given:
+        type: number
       selected_option_id:
         type: string
       selected_option_text:
@@ -149,6 +153,8 @@ definitions:
         type: string
       description:
         type: string
+      is_template:
+        type: boolean
       title:
         maxLength: 255
         minLength: 2
@@ -178,6 +184,10 @@ definitions:
     properties:
       code_language:
         type: string
+      img_url:
+        type: string
+      is_auto_scored:
+        type: boolean
       is_required:
         type: boolean
       options:
@@ -225,10 +235,12 @@ definitions:
         type: string
       description:
         type: string
-      exam_settings:
-        $ref: '#/definitions/domain.ExamSettings'
+      form_settings:
+        $ref: '#/definitions/domain.FormSettings'
       id:
         type: string
+      is_template:
+        type: boolean
       questions:
         items:
           $ref: '#/definitions/dto.QuestionDTO'
@@ -282,33 +294,18 @@ definitions:
       question_id:
         type: string
     type: object
-  dto.PublicExamSettings:
-    properties:
-      duration_minutes:
-        type: integer
-      end_time:
-        type: string
-      has_passcode:
-        type: boolean
-      max_submissions:
-        type: integer
-      randomize_options:
-        type: boolean
-      randomize_questions:
-        type: boolean
-      start_time:
-        type: string
-    type: object
   dto.PublicFormDTO:
     properties:
       custom_url:
         type: string
       description:
         type: string
-      exam_settings:
-        $ref: '#/definitions/dto.PublicExamSettings'
+      form_settings:
+        $ref: '#/definitions/dto.PublicFormSettings'
       id:
         type: string
+      is_template:
+        type: boolean
       questions:
         items:
           $ref: '#/definitions/dto.PublicQuestionDTO'
@@ -319,6 +316,25 @@ definitions:
         type: string
       type:
         $ref: '#/definitions/domain.FormType'
+    type: object
+  dto.PublicFormSettings:
+    properties:
+      auto_active_days:
+        type: integer
+      duration_minutes:
+        type: integer
+      end_time:
+        type: string
+      is_active_immediately:
+        type: boolean
+      is_one_time_submission:
+        type: boolean
+      randomize_options:
+        type: boolean
+      randomize_questions:
+        type: boolean
+      start_time:
+        type: string
     type: object
   dto.PublicOptionDTO:
     properties:
@@ -335,6 +351,10 @@ definitions:
         type: string
       id:
         type: string
+      img_url:
+        type: string
+      is_auto_scored:
+        type: boolean
       is_required:
         type: boolean
       options:
@@ -358,6 +378,10 @@ definitions:
         type: string
       id:
         type: string
+      img_url:
+        type: string
+      is_auto_scored:
+        type: boolean
       is_required:
         type: boolean
       options:
@@ -389,6 +413,13 @@ definitions:
     - name
     - password
     type: object
+  dto.ResendOTPRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   dto.ResetPasswordRequest:
     properties:
       new_password:
@@ -410,6 +441,8 @@ definitions:
         type: string
       id:
         type: string
+      is_auto_submitted:
+        type: boolean
       respondent_email:
         type: string
       submitted_at:
@@ -434,6 +467,8 @@ definitions:
         items:
           $ref: '#/definitions/dto.SubmitAnswerDetail'
         type: array
+      is_auto_submitted:
+        type: boolean
       passcode:
         type: string
       respondent_email:
@@ -444,6 +479,8 @@ definitions:
     type: object
   dto.SubmitResponseResult:
     properties:
+      is_auto_submitted:
+        type: boolean
       message:
         type: string
       response_id:
@@ -458,31 +495,14 @@ definitions:
       is_active:
         type: boolean
     type: object
-  dto.UpdateExamSettingsRequest:
-    properties:
-      duration_minutes:
-        minimum: 0
-        type: integer
-      end_time:
-        type: string
-      max_submissions:
-        minimum: 0
-        type: integer
-      passcode:
-        type: string
-      randomize_options:
-        type: boolean
-      randomize_questions:
-        type: boolean
-      start_time:
-        type: string
-    type: object
   dto.UpdateFormRequest:
     properties:
       custom_url:
         type: string
       description:
         type: string
+      is_template:
+        type: boolean
       status:
         allOf:
         - $ref: '#/definitions/domain.FormStatus'
@@ -505,6 +525,25 @@ definitions:
     - title
     - type
     type: object
+  dto.UpdateFormSettingsRequest:
+    properties:
+      auto_active_days:
+        type: integer
+      duration_minutes:
+        type: integer
+      end_time:
+        type: string
+      is_active_immediately:
+        type: boolean
+      is_one_time_submission:
+        type: boolean
+      randomize_options:
+        type: boolean
+      randomize_questions:
+        type: boolean
+      start_time:
+        type: string
+    type: object
   dto.UpdateProfileRequest:
     properties:
       avatar_url:
@@ -520,6 +559,10 @@ definitions:
     properties:
       code_language:
         type: string
+      img_url:
+        type: string
+      is_auto_scored:
+        type: boolean
       is_required:
         type: boolean
       options:
@@ -539,6 +582,11 @@ definitions:
     - question_text
     - question_type
     type: object
+  dto.UploadImageResponse:
+    properties:
+      img_url:
+        type: string
+    type: object
   dto.UserResponse:
     properties:
       avatar_url:
@@ -555,6 +603,16 @@ definitions:
         type: string
       role:
         $ref: '#/definitions/domain.UserRole'
+    type: object
+  dto.VerifyOTPRequest:
+    properties:
+      email:
+        type: string
+      otp_code:
+        type: string
+    required:
+    - email
+    - otp_code
     type: object
   response.APIResponse:
     properties:
@@ -767,7 +825,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register a new user account
+      description: Register a new user account. Generates a 6-digit OTP stored in
+        Redis for 60 seconds.
       parameters:
       - description: Register Payload
         in: body
@@ -778,20 +837,36 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/response.APIResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.AuthResponse'
-              type: object
+            $ref: '#/definitions/response.APIResponse'
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/response.APIResponse'
-      summary: Register user
+      summary: Register user & send 6-digit OTP code to email
+      tags:
+      - Auth
+  /api/v1/auth/resend-otp:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resend OTP Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResendOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Resend 6-digit OTP code
       tags:
       - Auth
   /api/v1/auth/reset-password:
@@ -814,6 +889,37 @@ paths:
           schema:
             $ref: '#/definitions/response.APIResponse'
       summary: Reset password
+      tags:
+      - Auth
+  /api/v1/auth/verify-otp:
+    post:
+      consumes:
+      - application/json
+      description: Validate 6-digit OTP code stored in Redis and return JWT Token
+      parameters:
+      - description: Verify OTP Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Verify OTP code and activate registration
       tags:
       - Auth
   /api/v1/forms:
@@ -1087,12 +1193,12 @@ paths:
         name: form_id
         required: true
         type: string
-      - description: Exam Settings Payload
+      - description: Form Settings Payload
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.UpdateExamSettingsRequest'
+          $ref: '#/definitions/dto.UpdateFormSettingsRequest'
       produces:
       - application/json
       responses:
@@ -1103,11 +1209,11 @@ paths:
             - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/domain.ExamSettings'
+                  $ref: '#/definitions/domain.FormSettings'
               type: object
       security:
       - BearerAuth: []
-      summary: Update exam settings for a form
+      summary: Update form settings (Timer, Schedule, One-Time Submission, Randomization)
       tags:
       - Forms
   /api/v1/forms/{form_id}/submit:
@@ -1275,6 +1381,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a question
+      tags:
+      - Questions
+  /api/v1/questions/upload-image:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Image File (JPG, PNG, GIF)
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UploadImageResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Upload image attachment for questions
       tags:
       - Questions
   /api/v1/responses/{response_id}:

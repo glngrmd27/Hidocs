@@ -161,3 +161,28 @@ func (h *QuestionHandler) DeleteOption(c *gin.Context) {
 
 	response.OK(c, "Question option deleted successfully", nil)
 }
+
+// UploadImage godoc
+// @Summary Upload image attachment for questions
+// @Tags Questions
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param image formData file true "Image File (JPG, PNG, GIF)"
+// @Success 200 {object} response.APIResponse{data=dto.UploadImageResponse}
+// @Router /api/v1/questions/upload-image [post]
+func (h *QuestionHandler) UploadImage(c *gin.Context) {
+	fileHeader, err := c.FormFile("image")
+	if err != nil {
+		response.BadRequest(c, "Image file is required", err)
+		return
+	}
+
+	res, err := h.questionService.UploadQuestionImage(c.Request.Context(), fileHeader)
+	if err != nil {
+		response.BadRequest(c, err.Error(), err)
+		return
+	}
+
+	response.OK(c, "Image uploaded successfully to local storage", res)
+}

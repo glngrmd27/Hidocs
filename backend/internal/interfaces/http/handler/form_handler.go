@@ -155,17 +155,17 @@ func (h *FormHandler) DeleteForm(c *gin.Context) {
 	response.OK(c, "Form deleted successfully", nil)
 }
 
-// UpdateExamSettings godoc
-// @Summary Update exam settings for a form
+// UpdateFormSettings godoc
+// @Summary Update form settings (Timer, Schedule, One-Time Submission, Randomization)
 // @Tags Forms
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param form_id path string true "Form ID"
-// @Param request body dto.UpdateExamSettingsRequest true "Exam Settings Payload"
-// @Success 200 {object} response.APIResponse{data=domain.ExamSettings}
+// @Param request body dto.UpdateFormSettingsRequest true "Form Settings Payload"
+// @Success 200 {object} response.APIResponse{data=domain.FormSettings}
 // @Router /api/v1/forms/{form_id}/settings [put]
-func (h *FormHandler) UpdateExamSettings(c *gin.Context) {
+func (h *FormHandler) UpdateFormSettings(c *gin.Context) {
 	claims := c.MustGet(middleware.UserContextKey).(*security.JWTClaims)
 
 	formID, err := uuid.Parse(c.Param("form_id"))
@@ -174,19 +174,19 @@ func (h *FormHandler) UpdateExamSettings(c *gin.Context) {
 		return
 	}
 
-	var req dto.UpdateExamSettingsRequest
+	var req dto.UpdateFormSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request payload", err)
 		return
 	}
 
-	settings, err := h.formService.UpdateExamSettings(c.Request.Context(), claims.UserID, formID, req)
+	settings, err := h.formService.UpdateFormSettings(c.Request.Context(), claims.UserID, formID, req)
 	if err != nil {
 		response.BadRequest(c, err.Error(), err)
 		return
 	}
 
-	response.OK(c, "Exam settings updated successfully", settings)
+	response.OK(c, "Form settings updated successfully", settings)
 }
 
 // ImportDocx godoc

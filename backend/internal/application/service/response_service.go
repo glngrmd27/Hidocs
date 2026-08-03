@@ -41,30 +41,23 @@ func (s *responseService) SubmitResponse(ctx context.Context, formID uuid.UUID, 
 		return nil, domain.ErrFormClosed
 	}
 
-	// Exam validation
-	if form.Type == domain.TypeExam && form.ExamSettings != nil {
+	// Schedule validation
+	if form.FormSettings != nil {
 		now := time.Now()
-		if form.ExamSettings.StartTime != nil && now.Before(*form.ExamSettings.StartTime) {
+		if form.FormSettings.StartTime != nil && now.Before(*form.FormSettings.StartTime) {
 			return nil, domain.ErrFormNotStarted
 		}
-		if form.ExamSettings.EndTime != nil && now.After(*form.ExamSettings.EndTime) {
+		if form.FormSettings.EndTime != nil && now.After(*form.FormSettings.EndTime) {
 			return nil, domain.ErrFormEnded
-		}
-		if form.ExamSettings.Passcode != "" && form.ExamSettings.Passcode != req.Passcode {
-			return nil, domain.ErrInvalidPasscode
-		}
-		if form.ExamSettings.MaxSubmissions > 0 {
-			count, _ := s.formRepo.GetFormResponseCount(ctx, formID)
-			if count >= int64(form.ExamSettings.MaxSubmissions) {
-				return nil, domain.ErrMaxSubmissionsReached
-			}
 		}
 	}
 
-	// Single submission per email check
-	alreadySubmitted, _ := s.responseRepo.CheckUserAlreadySubmitted(ctx, formID, req.RespondentEmail)
-	if alreadySubmitted {
-		return nil, domain.ErrAlreadySubmitted
+	// Check if one-time submission is enforced
+	if form.FormSettings != nil && form.FormSettings.IsOneTimeSubmission {
+		alreadySubmitted, _ := s.responseRepo.CheckUserAlreadySubmitted(ctx, formID, req.RespondentEmail)
+		if alreadySubmitted {
+			return nil, domain.ErrAlreadySubmitted
+		}
 	}
 
 	responseID := uuid.New()
@@ -83,6 +76,7 @@ func (s *responseService) SubmitResponse(ctx context.Context, formID uuid.UUID, 
 			continue
 		}
 
+		var scoreGiven float64 = 0
 		ans := domain.ResponseAnswer{
 			ID:               uuid.New(),
 			ResponseID:       responseID,
@@ -90,24 +84,28 @@ func (s *responseService) SubmitResponse(ctx context.Context, formID uuid.UUID, 
 			SelectedOptionID: ansReq.SelectedOptionID,
 			AnswerText:       ansReq.AnswerText,
 		}
-		answers = append(answers, ans)
 
 		// Auto-Grading System for Multiple Choice / Dropdown
-		if (q.QuestionType == domain.TypeMultipleChoice || q.QuestionType == domain.TypeDropdown) && ansReq.SelectedOptionID != nil {
+		if q.IsAutoScored && (q.QuestionType == domain.TypeMultipleChoice || q.QuestionType == domain.TypeDropdown || q.QuestionType == domain.TypeYesNo) && ansReq.SelectedOptionID != nil {
 			for _, opt := range q.Options {
 				if opt.ID == *ansReq.SelectedOptionID && opt.IsCorrect {
-					totalScore += float64(q.Points)
+					scoreGiven = float64(q.Points)
+					totalScore += scoreGiven
 					break
 				}
 			}
 		}
+
+		ans.ScoreGiven = &scoreGiven
+		answers = append(answers, ans)
 	}
 
 	formResponse := &domain.FormResponse{
 		ID:              responseID,
 		FormID:          formID,
 		RespondentEmail: req.RespondentEmail,
-		TotalScore:      totalScore,
+		TotalScore:      &totalScore,
+		IsAutoSubmitted: req.IsAutoSubmitted,
 		SubmittedAt:     time.Now(),
 		Answers:         answers,
 	}
@@ -117,10 +115,11 @@ func (s *responseService) SubmitResponse(ctx context.Context, formID uuid.UUID, 
 	}
 
 	return &dto.SubmitResponseResult{
-		ResponseID:  responseID,
-		TotalScore:  totalScore,
-		SubmittedAt: formResponse.SubmittedAt,
-		Message:     "Response submitted successfully",
+		ResponseID:      responseID,
+		TotalScore:      totalScore,
+		IsAutoSubmitted: req.IsAutoSubmitted,
+		SubmittedAt:     formResponse.SubmittedAt,
+		Message:         "Response submitted successfully",
 	}, nil
 }
 
@@ -193,6 +192,7 @@ func (s *responseService) mapResponseToDTO(resp *domain.FormResponse) *dto.Respo
 			QuestionID:       a.QuestionID,
 			SelectedOptionID: a.SelectedOptionID,
 			AnswerText:       a.AnswerText,
+			ScoreGiven:       a.ScoreGiven,
 		}
 
 		if a.Question != nil {
@@ -215,6 +215,7 @@ func (s *responseService) mapResponseToDTO(resp *domain.FormResponse) *dto.Respo
 		FormID:          resp.FormID,
 		RespondentEmail: resp.RespondentEmail,
 		TotalScore:      resp.TotalScore,
+		IsAutoSubmitted: resp.IsAutoSubmitted,
 		SubmittedAt:     resp.SubmittedAt,
 		Answers:         answers,
 	}

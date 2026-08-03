@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -8,29 +10,32 @@ type QuestionType string
 
 const (
 	TypeShortText      QuestionType = "SHORT_TEXT"
-	TypeParagraph      QuestionType = "PARAGRAPH"
+	TypeLongText       QuestionType = "LONG_TEXT"
 	TypeMultipleChoice QuestionType = "MULTIPLE_CHOICE"
 	TypeCheckboxes     QuestionType = "CHECKBOXES"
 	TypeDropdown       QuestionType = "DROPDOWN"
-	TypeDateTime       QuestionType = "DATE_TIME"
-	TypeFileUpload     QuestionType = "FILE_UPLOAD"
-	TypeRatingScale    QuestionType = "RATING_SCALE"
+	TypeRating         QuestionType = "RATING"
+	TypeYesNo          QuestionType = "YES_NO"
 	TypeMath           QuestionType = "MATH"
 	TypeCode           QuestionType = "CODE"
+	TypeImage          QuestionType = "IMAGE"
 )
 
 type Question struct {
-	ID           uuid.UUID        `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	FormID       uuid.UUID        `gorm:"type:uuid;not null;index" json:"form_id"`
-	QuestionText string           `gorm:"type:text;not null" json:"question_text"`
-	QuestionType QuestionType     `gorm:"type:varchar(30);not null" json:"question_type"`
-	CodeLanguage string           `gorm:"type:varchar(30)" json:"code_language,omitempty"`
-	Points       int              `gorm:"type:int;default:0" json:"points"`
-	OrderIndex   int              `gorm:"type:int;not null;default:0" json:"order_index"`
-	IsRequired   bool             `gorm:"type:boolean;default:false" json:"is_required"`
+	ID             uuid.UUID        `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	FormID         uuid.UUID        `gorm:"type:uuid;not null;index" json:"form_id"`
+	QuestionText   string           `gorm:"type:text;not null" json:"question_text"`
+	QuestionType   QuestionType     `gorm:"type:varchar(30);not null" json:"question_type"`
+	CodeLanguage   string           `gorm:"type:varchar(30)" json:"code_language,omitempty"`
+	ImgURL         string           `gorm:"type:varchar(255)" json:"img_url,omitempty"`
+	IsAutoScored   bool             `gorm:"type:boolean;default:true" json:"is_auto_scored"`
+	Points         int              `gorm:"type:int;default:1" json:"points"`
+	OrderIndex     int              `gorm:"type:int;not null;default:0" json:"order_index"`
+	IsRequired     bool             `gorm:"type:boolean;default:false" json:"is_required"`
+	IsAutosavedAt  *time.Time       `gorm:"type:timestamp" json:"is_autosaved_at,omitempty"`
 	
 	// Relations
-	Options      []QuestionOption `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"options,omitempty"`
+	Options        []QuestionOption `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"options,omitempty"`
 }
 
 type QuestionOption struct {

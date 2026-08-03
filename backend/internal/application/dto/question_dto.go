@@ -9,6 +9,8 @@ type CreateQuestionRequest struct {
 	QuestionText string                `json:"question_text" binding:"required"`
 	QuestionType domain.QuestionType   `json:"question_type" binding:"required"`
 	CodeLanguage string                `json:"code_language"`
+	ImgURL       string                `json:"img_url"`
+	IsAutoScored bool                  `json:"is_auto_scored"`
 	Points       int                   `json:"points" binding:"gte=0"`
 	OrderIndex   int                   `json:"order_index"`
 	IsRequired   bool                  `json:"is_required"`
@@ -19,6 +21,8 @@ type UpdateQuestionRequest struct {
 	QuestionText string                `json:"question_text" binding:"required"`
 	QuestionType domain.QuestionType   `json:"question_type" binding:"required"`
 	CodeLanguage string                `json:"code_language"`
+	ImgURL       string                `json:"img_url"`
+	IsAutoScored bool                  `json:"is_auto_scored"`
 	Points       int                   `json:"points" binding:"gte=0"`
 	OrderIndex   int                   `json:"order_index"`
 	IsRequired   bool                  `json:"is_required"`
@@ -37,6 +41,8 @@ type QuestionDTO struct {
 	QuestionText string              `json:"question_text"`
 	QuestionType domain.QuestionType `json:"question_type"`
 	CodeLanguage string              `json:"code_language,omitempty"`
+	ImgURL       string              `json:"img_url,omitempty"`
+	IsAutoScored bool                `json:"is_auto_scored"`
 	Points       int                 `json:"points"`
 	OrderIndex   int                 `json:"order_index"`
 	IsRequired   bool                `json:"is_required"`
@@ -49,4 +55,8 @@ type OptionDTO struct {
 	OptionText string    `json:"option_text"`
 	IsCorrect  bool      `json:"is_correct"`
 	OrderIndex int       `json:"order_index"`
+}
+
+type UploadImageResponse struct {
+	ImgURL string `json:"img_url"`
 }

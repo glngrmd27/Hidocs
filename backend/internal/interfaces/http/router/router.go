@@ -27,6 +27,9 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimiter(500)) // Max 500 requests per minute per IP
 
+	// Serve Uploaded Local Images Static Files
+	r.Static("/uploads", "./uploads")
+
 	// Swagger API Docs
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -44,10 +47,12 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 			public.GET("/forms/:short_code/qr", cfg.PublicHandler.GetFormQRCode)
 		}
 
-		// 2. Authentication
+		// 2. Authentication & OTP Verification
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", cfg.AuthHandler.Register)
+			auth.POST("/verify-otp", cfg.AuthHandler.VerifyOTP)
+			auth.POST("/resend-otp", cfg.AuthHandler.ResendOTP)
 			auth.POST("/login", cfg.AuthHandler.Login)
 			auth.POST("/forgot-password", cfg.AuthHandler.ForgotPassword)
 			auth.POST("/reset-password", cfg.AuthHandler.ResetPassword)
@@ -74,7 +79,7 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 				forms.GET("/:form_id", cfg.FormHandler.GetFormByID)
 				forms.PUT("/:form_id", cfg.FormHandler.UpdateForm)
 				forms.DELETE("/:form_id", cfg.FormHandler.DeleteForm)
-				forms.PUT("/:form_id/settings", cfg.FormHandler.UpdateExamSettings)
+				forms.PUT("/:form_id/settings", cfg.FormHandler.UpdateFormSettings)
 
 				// Questions under form
 				forms.GET("/:form_id/questions", cfg.QuestionHandler.GetQuestionsByFormID)
@@ -89,9 +94,10 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 			// Public Submit Endpoint (or with passcode)
 			api.POST("/forms/:form_id/submit", cfg.ResponseHandler.SubmitForm)
 
-			// 5. Questions & Options
+			// 5. Questions, Options & Local Image Storage Upload
 			questions := protected.Group("/questions")
 			{
+				questions.POST("/upload-image", cfg.QuestionHandler.UploadImage)
 				questions.PUT("/:question_id", cfg.QuestionHandler.UpdateQuestion)
 				questions.DELETE("/:question_id", cfg.QuestionHandler.DeleteQuestion)
 			}

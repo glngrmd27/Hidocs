@@ -55,16 +55,20 @@ func (s *docxService) ImportFormFromDocx(ctx context.Context, userID uuid.UUID, 
 		}
 	}
 
-	// Create default exam settings
-	settings := &domain.ExamSettings{
-		ID:                 uuid.New(),
-		FormID:             formID,
-		DurationMinutes:    60,
-		RandomizeQuestions: false,
-		RandomizeOptions:   false,
+	// Create default form settings
+	defaultDuration := 60
+	settings := &domain.FormSettings{
+		ID:                  uuid.New(),
+		FormID:              formID,
+		DurationMinutes:     &defaultDuration,
+		AutoActiveDays:      30,
+		IsActiveImmediately: false,
+		IsOneTimeSubmission: false,
+		RandomizeQuestions:  false,
+		RandomizeOptions:    false,
 	}
-	_ = s.formRepo.UpsertExamSettings(ctx, settings)
-	form.ExamSettings = settings
+	_ = s.formRepo.UpsertFormSettings(ctx, settings)
+	form.FormSettings = settings
 
 	// Retrieve complete form
 	fullForm, err := s.formRepo.GetByID(ctx, formID)
@@ -89,6 +93,8 @@ func (s *docxService) ImportFormFromDocx(ctx context.Context, userID uuid.UUID, 
 			FormID:       q.FormID,
 			QuestionText: q.QuestionText,
 			QuestionType: q.QuestionType,
+			ImgURL:       q.ImgURL,
+			IsAutoScored: q.IsAutoScored,
 			Points:       q.Points,
 			OrderIndex:   q.OrderIndex,
 			IsRequired:   q.IsRequired,
@@ -104,8 +110,9 @@ func (s *docxService) ImportFormFromDocx(ctx context.Context, userID uuid.UUID, 
 		Type:         fullForm.Type,
 		CustomURL:    fullForm.CustomURL,
 		Status:       fullForm.Status,
+		IsTemplate:   fullForm.IsTemplate,
 		CreatedAt:    fullForm.CreatedAt,
-		ExamSettings: fullForm.ExamSettings,
+		FormSettings: fullForm.FormSettings,
 		Questions:    qDTOs,
 	}, nil
 }

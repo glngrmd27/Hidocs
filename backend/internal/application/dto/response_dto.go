@@ -9,6 +9,7 @@ import (
 type SubmitFormRequest struct {
 	RespondentEmail string               `json:"respondent_email" binding:"required,email"`
 	Passcode        string               `json:"passcode"`
+	IsAutoSubmitted bool                 `json:"is_auto_submitted"`
 	Answers         []SubmitAnswerDetail `json:"answers" binding:"required,dive"`
 }
 
@@ -19,10 +20,11 @@ type SubmitAnswerDetail struct {
 }
 
 type SubmitResponseResult struct {
-	ResponseID  uuid.UUID `json:"response_id"`
-	TotalScore  float64   `json:"total_score"`
-	SubmittedAt time.Time `json:"submitted_at"`
-	Message     string    `json:"message"`
+	ResponseID      uuid.UUID `json:"response_id"`
+	TotalScore      float64   `json:"total_score"`
+	IsAutoSubmitted bool      `json:"is_auto_submitted"`
+	SubmittedAt     time.Time `json:"submitted_at"`
+	Message         string    `json:"message"`
 }
 
 type GradeResponseRequest struct {
@@ -30,12 +32,13 @@ type GradeResponseRequest struct {
 }
 
 type ResponseDetailDTO struct {
-	ID              uuid.UUID          `json:"id"`
-	FormID          uuid.UUID          `json:"form_id"`
-	RespondentEmail string             `json:"respondent_email"`
-	TotalScore      float64            `json:"total_score"`
-	SubmittedAt     time.Time          `json:"submitted_at"`
-	Answers         []AnswerDetailDTO  `json:"answers"`
+	ID              uuid.UUID         `json:"id"`
+	FormID          uuid.UUID         `json:"form_id"`
+	RespondentEmail string            `json:"respondent_email"`
+	TotalScore      *float64          `json:"total_score,omitempty"`
+	IsAutoSubmitted bool              `json:"is_auto_submitted"`
+	SubmittedAt     time.Time         `json:"submitted_at"`
+	Answers         []AnswerDetailDTO `json:"answers"`
 }
 
 type AnswerDetailDTO struct {
@@ -47,4 +50,5 @@ type AnswerDetailDTO struct {
 	AnswerText       string     `json:"answer_text,omitempty"`
 	IsCorrect        *bool      `json:"is_correct,omitempty"`
 	PointsEarned     float64    `json:"points_earned"`
+	ScoreGiven       *float64   `json:"score_given,omitempty"`
 }

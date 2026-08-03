@@ -28,9 +28,9 @@ type FormRepository interface {
 	Update(ctx context.Context, form *Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	
-	// Exam Settings
-	UpsertExamSettings(ctx context.Context, settings *ExamSettings) error
-	GetExamSettingsByFormID(ctx context.Context, formID uuid.UUID) (*ExamSettings, error)
+	// Form Settings
+	UpsertFormSettings(ctx context.Context, settings *FormSettings) error
+	GetFormSettingsByFormID(ctx context.Context, formID uuid.UUID) (*FormSettings, error)
 	
 	// Stats
 	GetFormResponseCount(ctx context.Context, formID uuid.UUID) (int64, error)

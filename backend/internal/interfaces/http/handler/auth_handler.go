@@ -16,13 +16,13 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 }
 
 // Register godoc
-// @Summary Register user
-// @Description Register a new user account
+// @Summary Register user & send 6-digit OTP code to email
+// @Description Register a new user account. Generates a 6-digit OTP stored in Redis for 60 seconds.
 // @Tags Auth
 // @Accept json
 // @Produce json
 // @Param request body dto.RegisterRequest true "Register Payload"
-// @Success 201 {object} response.APIResponse{data=dto.AuthResponse}
+// @Success 200 {object} response.APIResponse
 // @Failure 400 {object} response.APIResponse
 // @Router /api/v1/auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -32,13 +32,62 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	res, err := h.authService.Register(c.Request.Context(), req)
+	msg, err := h.authService.Register(c.Request.Context(), req)
 	if err != nil {
 		response.BadRequest(c, err.Error(), err)
 		return
 	}
 
-	response.Created(c, "User registered successfully", res)
+	response.OK(c, msg, gin.H{"email": req.Email, "otp_expires_in_seconds": 60})
+}
+
+// VerifyOTP godoc
+// @Summary Verify OTP code and activate registration
+// @Description Validate 6-digit OTP code stored in Redis and return JWT Token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.VerifyOTPRequest true "Verify OTP Payload"
+// @Success 200 {object} response.APIResponse{data=dto.AuthResponse}
+// @Failure 400 {object} response.APIResponse
+// @Router /api/v1/auth/verify-otp [post]
+func (h *AuthHandler) VerifyOTP(c *gin.Context) {
+	var req dto.VerifyOTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request payload", err)
+		return
+	}
+
+	res, err := h.authService.VerifyOTP(c.Request.Context(), req)
+	if err != nil {
+		response.BadRequest(c, err.Error(), err)
+		return
+	}
+
+	response.OK(c, "OTP verification successful. Welcome to HiDocs!", res)
+}
+
+// ResendOTP godoc
+// @Summary Resend 6-digit OTP code
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.ResendOTPRequest true "Resend OTP Payload"
+// @Success 200 {object} response.APIResponse
+// @Router /api/v1/auth/resend-otp [post]
+func (h *AuthHandler) ResendOTP(c *gin.Context) {
+	var req dto.ResendOTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request payload", err)
+		return
+	}
+
+	if err := h.authService.ResendOTP(c.Request.Context(), req); err != nil {
+		response.BadRequest(c, err.Error(), err)
+		return
+	}
+
+	response.OK(c, "A new OTP code has been sent to your email.", gin.H{"email": req.Email, "otp_expires_in_seconds": 60})
 }
 
 // Login godoc

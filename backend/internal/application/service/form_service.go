@@ -17,7 +17,7 @@ type FormService interface {
 	ListUserForms(ctx context.Context, userID uuid.UUID, status domain.FormStatus) ([]dto.FormResponseDTO, error)
 	UpdateForm(ctx context.Context, userID uuid.UUID, formID uuid.UUID, req dto.UpdateFormRequest) (*dto.FormResponseDTO, error)
 	DeleteForm(ctx context.Context, userID uuid.UUID, formID uuid.UUID) error
-	UpdateExamSettings(ctx context.Context, userID uuid.UUID, formID uuid.UUID, req dto.UpdateExamSettingsRequest) (*domain.ExamSettings, error)
+	UpdateFormSettings(ctx context.Context, userID uuid.UUID, formID uuid.UUID, req dto.UpdateFormSettingsRequest) (*domain.FormSettings, error)
 	GetPublicForm(ctx context.Context, identifier string) (*dto.PublicFormDTO, error)
 	GetFormQRCode(ctx context.Context, identifier string) (string, error)
 }
@@ -44,23 +44,26 @@ func (s *formService) CreateForm(ctx context.Context, userID uuid.UUID, req dto.
 		Type:        req.Type,
 		CustomURL:   customURL,
 		Status:      domain.StatusDraft,
+		IsTemplate:  req.IsTemplate,
 	}
 
 	if err := s.formRepo.Create(ctx, form); err != nil {
 		return nil, err
 	}
 
-	if req.Type == domain.TypeExam {
-		settings := &domain.ExamSettings{
-			ID:                 uuid.New(),
-			FormID:             form.ID,
-			DurationMinutes:    60,
-			RandomizeQuestions: false,
-			RandomizeOptions:   false,
-		}
-		_ = s.formRepo.UpsertExamSettings(ctx, settings)
-		form.ExamSettings = settings
+	defaultDuration := 60
+	settings := &domain.FormSettings{
+		ID:                  uuid.New(),
+		FormID:              form.ID,
+		DurationMinutes:     &defaultDuration,
+		AutoActiveDays:      30,
+		IsActiveImmediately: false,
+		IsOneTimeSubmission: false,
+		RandomizeQuestions:  false,
+		RandomizeOptions:    false,
 	}
+	_ = s.formRepo.UpsertFormSettings(ctx, settings)
+	form.FormSettings = settings
 
 	return s.mapFormToDTO(ctx, form), nil
 }
@@ -103,6 +106,7 @@ func (s *formService) UpdateForm(ctx context.Context, userID uuid.UUID, formID u
 		form.CustomURL = req.CustomURL
 	}
 	form.Status = req.Status
+	form.IsTemplate = req.IsTemplate
 
 	if err := s.formRepo.Update(ctx, form); err != nil {
 		return nil, err
@@ -124,7 +128,7 @@ func (s *formService) DeleteForm(ctx context.Context, userID uuid.UUID, formID u
 	return s.formRepo.Delete(ctx, formID)
 }
 
-func (s *formService) UpdateExamSettings(ctx context.Context, userID uuid.UUID, formID uuid.UUID, req dto.UpdateExamSettingsRequest) (*domain.ExamSettings, error) {
+func (s *formService) UpdateFormSettings(ctx context.Context, userID uuid.UUID, formID uuid.UUID, req dto.UpdateFormSettingsRequest) (*domain.FormSettings, error) {
 	form, err := s.formRepo.GetByID(ctx, formID)
 	if err != nil {
 		return nil, err
@@ -134,19 +138,20 @@ func (s *formService) UpdateExamSettings(ctx context.Context, userID uuid.UUID, 
 		return nil, domain.ErrForbidden
 	}
 
-	settings := &domain.ExamSettings{
-		ID:                 uuid.New(),
-		FormID:             formID,
-		DurationMinutes:    req.DurationMinutes,
-		MaxSubmissions:     req.MaxSubmissions,
-		Passcode:           req.Passcode,
-		RandomizeQuestions: req.RandomizeQuestions,
-		RandomizeOptions:   req.RandomizeOptions,
-		StartTime:          req.StartTime,
-		EndTime:            req.EndTime,
+	settings := &domain.FormSettings{
+		ID:                  uuid.New(),
+		FormID:              formID,
+		DurationMinutes:     req.DurationMinutes,
+		AutoActiveDays:      req.AutoActiveDays,
+		IsActiveImmediately: req.IsActiveImmediately,
+		IsOneTimeSubmission: req.IsOneTimeSubmission,
+		RandomizeQuestions:  req.RandomizeQuestions,
+		RandomizeOptions:    req.RandomizeOptions,
+		StartTime:           req.StartTime,
+		EndTime:             req.EndTime,
 	}
 
-	if err := s.formRepo.UpsertExamSettings(ctx, settings); err != nil {
+	if err := s.formRepo.UpsertFormSettings(ctx, settings); err != nil {
 		return nil, err
 	}
 
@@ -172,13 +177,13 @@ func (s *formService) GetPublicForm(ctx context.Context, identifier string) (*dt
 		return nil, domain.ErrFormClosed
 	}
 
-	// Check Exam schedule if EXAM type
-	if form.Type == domain.TypeExam && form.ExamSettings != nil {
+	// Schedule check
+	if form.FormSettings != nil {
 		now := time.Now()
-		if form.ExamSettings.StartTime != nil && now.Before(*form.ExamSettings.StartTime) {
+		if form.FormSettings.StartTime != nil && now.Before(*form.FormSettings.StartTime) {
 			return nil, domain.ErrFormNotStarted
 		}
-		if form.ExamSettings.EndTime != nil && now.After(*form.ExamSettings.EndTime) {
+		if form.FormSettings.EndTime != nil && now.After(*form.FormSettings.EndTime) {
 			return nil, domain.ErrFormEnded
 		}
 	}
@@ -190,24 +195,26 @@ func (s *formService) GetPublicForm(ctx context.Context, identifier string) (*dt
 		Type:        form.Type,
 		CustomURL:   form.CustomURL,
 		Status:      form.Status,
+		IsTemplate:  form.IsTemplate,
 		Questions:   []dto.PublicQuestionDTO{},
 	}
 
-	if form.ExamSettings != nil {
-		publicDTO.ExamSettings = &dto.PublicExamSettings{
-			DurationMinutes:    form.ExamSettings.DurationMinutes,
-			MaxSubmissions:     form.ExamSettings.MaxSubmissions,
-			HasPasscode:        form.ExamSettings.Passcode != "",
-			RandomizeQuestions: form.ExamSettings.RandomizeQuestions,
-			RandomizeOptions:   form.ExamSettings.RandomizeOptions,
-			StartTime:          form.ExamSettings.StartTime,
-			EndTime:            form.ExamSettings.EndTime,
+	if form.FormSettings != nil {
+		publicDTO.FormSettings = &dto.PublicFormSettings{
+			DurationMinutes:     form.FormSettings.DurationMinutes,
+			AutoActiveDays:      form.FormSettings.AutoActiveDays,
+			IsActiveImmediately: form.FormSettings.IsActiveImmediately,
+			IsOneTimeSubmission: form.FormSettings.IsOneTimeSubmission,
+			RandomizeQuestions:  form.FormSettings.RandomizeQuestions,
+			RandomizeOptions:    form.FormSettings.RandomizeOptions,
+			StartTime:           form.FormSettings.StartTime,
+			EndTime:             form.FormSettings.EndTime,
 		}
 	}
 
-	// Format questions (Hide IsCorrect for exam security!)
+	// Randomization
 	questions := form.Questions
-	if form.ExamSettings != nil && form.ExamSettings.RandomizeQuestions {
+	if form.FormSettings != nil && form.FormSettings.RandomizeQuestions {
 		rand.Seed(time.Now().UnixNano())
 		rand.Shuffle(len(questions), func(i, j int) {
 			questions[i], questions[j] = questions[j], questions[i]
@@ -216,7 +223,7 @@ func (s *formService) GetPublicForm(ctx context.Context, identifier string) (*dt
 
 	for _, q := range questions {
 		options := q.Options
-		if form.ExamSettings != nil && form.ExamSettings.RandomizeOptions {
+		if form.FormSettings != nil && form.FormSettings.RandomizeOptions {
 			rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(options), func(i, j int) {
 				options[i], options[j] = options[j], options[i]
@@ -237,6 +244,8 @@ func (s *formService) GetPublicForm(ctx context.Context, identifier string) (*dt
 			QuestionText: q.QuestionText,
 			QuestionType: q.QuestionType,
 			CodeLanguage: q.CodeLanguage,
+			ImgURL:       q.ImgURL,
+			IsAutoScored: q.IsAutoScored,
 			Points:       q.Points,
 			OrderIndex:   q.OrderIndex,
 			IsRequired:   q.IsRequired,
@@ -245,6 +254,16 @@ func (s *formService) GetPublicForm(ctx context.Context, identifier string) (*dt
 	}
 
 	return publicDTO, nil
+}
+
+func (s *formService) GetFormQRCode(ctx context.Context, identifier string) (string, error) {
+	form, err := s.GetPublicForm(ctx, identifier)
+	if err != nil {
+		return "", err
+	}
+
+	qrURL := "https://quickchart.io/qr?text=" + form.CustomURL + "&size=300"
+	return qrURL, nil
 }
 
 func (s *formService) mapFormToDTO(ctx context.Context, form *domain.Form) *dto.FormResponseDTO {
@@ -269,6 +288,8 @@ func (s *formService) mapFormToDTO(ctx context.Context, form *domain.Form) *dto.
 			QuestionText: q.QuestionText,
 			QuestionType: q.QuestionType,
 			CodeLanguage: q.CodeLanguage,
+			ImgURL:       q.ImgURL,
+			IsAutoScored: q.IsAutoScored,
 			Points:       q.Points,
 			OrderIndex:   q.OrderIndex,
 			IsRequired:   q.IsRequired,
@@ -284,19 +305,10 @@ func (s *formService) mapFormToDTO(ctx context.Context, form *domain.Form) *dto.
 		Type:          form.Type,
 		CustomURL:     form.CustomURL,
 		Status:        form.Status,
+		IsTemplate:    form.IsTemplate,
 		CreatedAt:     form.CreatedAt,
 		ResponseCount: count,
-		ExamSettings:  form.ExamSettings,
+		FormSettings:  form.FormSettings,
 		Questions:     questionDTOs,
 	}
-}
-
-func (s *formService) GetFormQRCode(ctx context.Context, identifier string) (string, error) {
-	form, err := s.GetPublicForm(ctx, identifier)
-	if err != nil {
-		return "", err
-	}
-
-	qrURL := "https://quickchart.io/qr?text=" + form.CustomURL + "&size=300"
-	return qrURL, nil
 }

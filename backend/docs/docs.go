@@ -344,7 +344,7 @@ const docTemplate = `{
         },
         "/api/v1/auth/register": {
             "post": {
-                "description": "Register a new user account",
+                "description": "Register a new user account. Generates a 6-digit OTP stored in Redis for 60 seconds.",
                 "consumes": [
                     "application/json"
                 ],
@@ -354,7 +354,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Register user",
+                "summary": "Register user \u0026 send 6-digit OTP code to email",
                 "parameters": [
                     {
                         "description": "Register Payload",
@@ -367,26 +367,47 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.AuthResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/resend-otp": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Resend 6-digit OTP code",
+                "parameters": [
+                    {
+                        "description": "Resend OTP Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ResendOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -421,6 +442,58 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/verify-otp": {
+            "post": {
+                "description": "Validate 6-digit OTP code stored in Redis and return JWT Token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify OTP code and activate registration",
+                "parameters": [
+                    {
+                        "description": "Verify OTP Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.VerifyOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -942,7 +1015,7 @@ const docTemplate = `{
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Update exam settings for a form",
+                "summary": "Update form settings (Timer, Schedule, One-Time Submission, Randomization)",
                 "parameters": [
                     {
                         "type": "string",
@@ -952,12 +1025,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Exam Settings Payload",
+                        "description": "Form Settings Payload",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateExamSettingsRequest"
+                            "$ref": "#/definitions/dto.UpdateFormSettingsRequest"
                         }
                     }
                 ],
@@ -973,7 +1046,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/domain.ExamSettings"
+                                            "$ref": "#/definitions/domain.FormSettings"
                                         }
                                     }
                                 }
@@ -1136,6 +1209,54 @@ const docTemplate = `{
                         }
                     }
                 }
+            }
+        },
+        "/api/v1/questions/upload-image": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Questions"
+                ],
+                "summary": "Upload image attachment for questions",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Image File (JPG, PNG, GIF)",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.UploadImageResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
             }
         },
         "/api/v1/questions/{question_id}": {
@@ -1457,38 +1578,6 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.ExamSettings": {
-            "type": "object",
-            "properties": {
-                "duration_minutes": {
-                    "type": "integer"
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "form_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "max_submissions": {
-                    "type": "integer"
-                },
-                "passcode": {
-                    "type": "string"
-                },
-                "randomize_options": {
-                    "type": "boolean"
-                },
-                "randomize_questions": {
-                    "type": "boolean"
-                },
-                "start_time": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.FormAnalytics": {
             "type": "object",
             "properties": {
@@ -1509,6 +1598,41 @@ const docTemplate = `{
                 },
                 "total_responses": {
                     "type": "integer"
+                }
+            }
+        },
+        "domain.FormSettings": {
+            "type": "object",
+            "properties": {
+                "auto_active_days": {
+                    "type": "integer"
+                },
+                "duration_minutes": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "form_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active_immediately": {
+                    "type": "boolean"
+                },
+                "is_one_time_submission": {
+                    "type": "boolean"
+                },
+                "randomize_options": {
+                    "type": "boolean"
+                },
+                "randomize_questions": {
+                    "type": "boolean"
+                },
+                "start_time": {
+                    "type": "string"
                 }
             }
         },
@@ -1567,27 +1691,27 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "SHORT_TEXT",
-                "PARAGRAPH",
+                "LONG_TEXT",
                 "MULTIPLE_CHOICE",
                 "CHECKBOXES",
                 "DROPDOWN",
-                "DATE_TIME",
-                "FILE_UPLOAD",
-                "RATING_SCALE",
+                "RATING",
+                "YES_NO",
                 "MATH",
-                "CODE"
+                "CODE",
+                "IMAGE"
             ],
             "x-enum-varnames": [
                 "TypeShortText",
-                "TypeParagraph",
+                "TypeLongText",
                 "TypeMultipleChoice",
                 "TypeCheckboxes",
                 "TypeDropdown",
-                "TypeDateTime",
-                "TypeFileUpload",
-                "TypeRatingScale",
+                "TypeRating",
+                "TypeYesNo",
                 "TypeMath",
-                "TypeCode"
+                "TypeCode",
+                "TypeImage"
             ]
         },
         "domain.UserRole": {
@@ -1622,6 +1746,9 @@ const docTemplate = `{
                 "question_text": {
                     "type": "string"
                 },
+                "score_given": {
+                    "type": "number"
+                },
                 "selected_option_id": {
                     "type": "string"
                 },
@@ -1653,6 +1780,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "is_template": {
+                    "type": "boolean"
                 },
                 "title": {
                     "type": "string",
@@ -1698,6 +1828,12 @@ const docTemplate = `{
             "properties": {
                 "code_language": {
                     "type": "string"
+                },
+                "img_url": {
+                    "type": "string"
+                },
+                "is_auto_scored": {
+                    "type": "boolean"
                 },
                 "is_required": {
                     "type": "boolean"
@@ -1766,11 +1902,14 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "exam_settings": {
-                    "$ref": "#/definitions/domain.ExamSettings"
+                "form_settings": {
+                    "$ref": "#/definitions/domain.FormSettings"
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_template": {
+                    "type": "boolean"
                 },
                 "questions": {
                     "type": "array",
@@ -1853,32 +1992,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PublicExamSettings": {
-            "type": "object",
-            "properties": {
-                "duration_minutes": {
-                    "type": "integer"
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "has_passcode": {
-                    "type": "boolean"
-                },
-                "max_submissions": {
-                    "type": "integer"
-                },
-                "randomize_options": {
-                    "type": "boolean"
-                },
-                "randomize_questions": {
-                    "type": "boolean"
-                },
-                "start_time": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.PublicFormDTO": {
             "type": "object",
             "properties": {
@@ -1888,11 +2001,14 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "exam_settings": {
-                    "$ref": "#/definitions/dto.PublicExamSettings"
+                "form_settings": {
+                    "$ref": "#/definitions/dto.PublicFormSettings"
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_template": {
+                    "type": "boolean"
                 },
                 "questions": {
                     "type": "array",
@@ -1908,6 +2024,35 @@ const docTemplate = `{
                 },
                 "type": {
                     "$ref": "#/definitions/domain.FormType"
+                }
+            }
+        },
+        "dto.PublicFormSettings": {
+            "type": "object",
+            "properties": {
+                "auto_active_days": {
+                    "type": "integer"
+                },
+                "duration_minutes": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "is_active_immediately": {
+                    "type": "boolean"
+                },
+                "is_one_time_submission": {
+                    "type": "boolean"
+                },
+                "randomize_options": {
+                    "type": "boolean"
+                },
+                "randomize_questions": {
+                    "type": "boolean"
+                },
+                "start_time": {
+                    "type": "string"
                 }
             }
         },
@@ -1933,6 +2078,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "img_url": {
+                    "type": "string"
+                },
+                "is_auto_scored": {
+                    "type": "boolean"
                 },
                 "is_required": {
                     "type": "boolean"
@@ -1968,6 +2119,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "img_url": {
+                    "type": "string"
+                },
+                "is_auto_scored": {
+                    "type": "boolean"
                 },
                 "is_required": {
                     "type": "boolean"
@@ -2014,6 +2171,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ResendOTPRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ResetPasswordRequest": {
             "type": "object",
             "required": [
@@ -2044,6 +2212,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_auto_submitted": {
+                    "type": "boolean"
                 },
                 "respondent_email": {
                     "type": "string"
@@ -2086,6 +2257,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.SubmitAnswerDetail"
                     }
                 },
+                "is_auto_submitted": {
+                    "type": "boolean"
+                },
                 "passcode": {
                     "type": "string"
                 },
@@ -2097,6 +2271,9 @@ const docTemplate = `{
         "dto.SubmitResponseResult": {
             "type": "object",
             "properties": {
+                "is_auto_submitted": {
+                    "type": "boolean"
+                },
                 "message": {
                     "type": "string"
                 },
@@ -2119,34 +2296,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateExamSettingsRequest": {
-            "type": "object",
-            "properties": {
-                "duration_minutes": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "max_submissions": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "passcode": {
-                    "type": "string"
-                },
-                "randomize_options": {
-                    "type": "boolean"
-                },
-                "randomize_questions": {
-                    "type": "boolean"
-                },
-                "start_time": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.UpdateFormRequest": {
             "type": "object",
             "required": [
@@ -2160,6 +2309,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "is_template": {
+                    "type": "boolean"
                 },
                 "status": {
                     "enum": [
@@ -2191,6 +2343,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpdateFormSettingsRequest": {
+            "type": "object",
+            "properties": {
+                "auto_active_days": {
+                    "type": "integer"
+                },
+                "duration_minutes": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "is_active_immediately": {
+                    "type": "boolean"
+                },
+                "is_one_time_submission": {
+                    "type": "boolean"
+                },
+                "randomize_options": {
+                    "type": "boolean"
+                },
+                "randomize_questions": {
+                    "type": "boolean"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.UpdateProfileRequest": {
             "type": "object",
             "required": [
@@ -2217,6 +2398,12 @@ const docTemplate = `{
                 "code_language": {
                     "type": "string"
                 },
+                "img_url": {
+                    "type": "string"
+                },
+                "is_auto_scored": {
+                    "type": "boolean"
+                },
                 "is_required": {
                     "type": "boolean"
                 },
@@ -2238,6 +2425,14 @@ const docTemplate = `{
                 },
                 "question_type": {
                     "$ref": "#/definitions/domain.QuestionType"
+                }
+            }
+        },
+        "dto.UploadImageResponse": {
+            "type": "object",
+            "properties": {
+                "img_url": {
+                    "type": "string"
                 }
             }
         },
@@ -2264,6 +2459,21 @@ const docTemplate = `{
                 },
                 "role": {
                     "$ref": "#/definitions/domain.UserRole"
+                }
+            }
+        },
+        "dto.VerifyOTPRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "otp_code"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "otp_code": {
+                    "type": "string"
                 }
             }
         },

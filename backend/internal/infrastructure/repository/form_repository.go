@@ -25,7 +25,7 @@ func (r *formRepository) Create(ctx context.Context, form *domain.Form) error {
 func (r *formRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Form, error) {
 	var form domain.Form
 	err := r.db.WithContext(ctx).
-		Preload("ExamSettings").
+		Preload("FormSettings").
 		Preload("Questions", func(db *gorm.DB) *gorm.DB {
 			return db.Order("order_index asc")
 		}).
@@ -46,7 +46,7 @@ func (r *formRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.For
 func (r *formRepository) GetByCustomURL(ctx context.Context, customURL string) (*domain.Form, error) {
 	var form domain.Form
 	err := r.db.WithContext(ctx).
-		Preload("ExamSettings").
+		Preload("FormSettings").
 		Preload("Questions", func(db *gorm.DB) *gorm.DB {
 			return db.Order("order_index asc")
 		}).
@@ -83,15 +83,15 @@ func (r *formRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&domain.Form{}, "id = ?", id).Error
 }
 
-func (r *formRepository) UpsertExamSettings(ctx context.Context, settings *domain.ExamSettings) error {
+func (r *formRepository) UpsertFormSettings(ctx context.Context, settings *domain.FormSettings) error {
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "form_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"duration_minutes", "passcode", "randomize_questions", "randomize_options", "start_time", "end_time"}),
+		DoUpdates: clause.AssignmentColumns([]string{"duration_minutes", "auto_active_days", "is_active_immediately", "is_one_time_submission", "randomize_questions", "randomize_options", "start_time", "end_time"}),
 	}).Create(settings).Error
 }
 
-func (r *formRepository) GetExamSettingsByFormID(ctx context.Context, formID uuid.UUID) (*domain.ExamSettings, error) {
-	var settings domain.ExamSettings
+func (r *formRepository) GetFormSettingsByFormID(ctx context.Context, formID uuid.UUID) (*domain.FormSettings, error) {
+	var settings domain.FormSettings
 	if err := r.db.WithContext(ctx).First(&settings, "form_id = ?", formID).Error; err != nil {
 		return nil, err
 	}
