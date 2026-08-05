@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"backend/internal/application/dto"
@@ -49,7 +50,8 @@ func NewAuthService(
 }
 
 func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (string, error) {
-	existing, _ := s.userRepo.GetByEmail(ctx, req.Email)
+	emailStr := strings.ToLower(strings.TrimSpace(req.Email))
+	existing, _ := s.userRepo.GetByEmail(ctx, emailStr)
 	if existing != nil {
 		return "", domain.ErrUserAlreadyExists
 	}
@@ -62,30 +64,37 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (st
 	// 1. Generate 6-digit OTP code
 	otpCode := utils.RandomPin(6)
 
-	// 2. Save OTP and pending user payload in Redis with 60-second TTL
-	ttl := 60 * time.Second
+	// 2. Save OTP and pending user payload in Redis with 180-second TTL
+	ttl := 180 * time.Second
 
 	pendingData := map[string]string{
 		"name":          req.Name,
-		"email":         req.Email,
+		"email":         emailStr,
 		"password_hash": hashedPassword,
 	}
-	jsonPayload, _ := json.Marshal(pendingData)
-
-	if err := s.otpCache.SetOTP(ctx, req.Email, otpCode, ttl); err != nil {
+	jsonPayload, err := json.Marshal(pendingData)
+	if err != nil {
 		return "", err
 	}
-	_ = s.otpCache.SetPendingUser(ctx, req.Email, string(jsonPayload), ttl)
+
+	if err := s.otpCache.SetOTP(ctx, emailStr, otpCode, ttl); err != nil {
+		return "", err
+	}
+	if err := s.otpCache.SetPendingUser(ctx, emailStr, string(jsonPayload), ttl); err != nil {
+		return "", err
+	}
 
 	// 3. Send OTP Code via SMTP
-	go s.emailSender.SendOTPEmail(req.Email, otpCode)
+	go s.emailSender.SendOTPEmail(emailStr, otpCode)
 
-	return "OTP code has been sent to your email. Valid for 60 seconds.", nil
+	return "OTP code has been sent to your email. Valid for 180 seconds.", nil
 }
 
 func (s *authService) VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (*dto.AuthResponse, error) {
+	emailStr := strings.ToLower(strings.TrimSpace(req.Email))
+
 	// 1. Fetch OTP from Redis
-	storedOTP, err := s.otpCache.GetOTP(ctx, req.Email)
+	storedOTP, err := s.otpCache.GetOTP(ctx, emailStr)
 	if err != nil || storedOTP == "" {
 		return nil, errors.New("OTP code has expired or is invalid. Please request a new OTP.")
 	}
@@ -96,7 +105,7 @@ func (s *authService) VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (
 	}
 
 	// 3. Fetch pending user payload from Redis
-	pendingStr, err := s.otpCache.GetPendingUser(ctx, req.Email)
+	pendingStr, err := s.otpCache.GetPendingUser(ctx, emailStr)
 	if err != nil || pendingStr == "" {
 		return nil, errors.New("Registration session expired. Please register again.")
 	}
@@ -121,7 +130,7 @@ func (s *authService) VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (
 	}
 
 	// 5. Delete OTP & pending data from Redis
-	_ = s.otpCache.DeleteOTP(ctx, req.Email)
+	_ = s.otpCache.DeleteOTP(ctx, emailStr)
 
 	// 6. Generate JWT Session Token
 	token, err := s.jwtManager.GenerateToken(user)
@@ -143,25 +152,34 @@ func (s *authService) VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (
 }
 
 func (s *authService) ResendOTP(ctx context.Context, req dto.ResendOTPRequest) error {
-	pendingStr, err := s.otpCache.GetPendingUser(ctx, req.Email)
+	emailStr := strings.ToLower(strings.TrimSpace(req.Email))
+
+	pendingStr, err := s.otpCache.GetPendingUser(ctx, emailStr)
 	if err != nil || pendingStr == "" {
+		existing, _ := s.userRepo.GetByEmail(ctx, emailStr)
+		if existing != nil {
+			return errors.New("User is already registered and verified. Please login.")
+		}
 		return errors.New("No pending registration found for this email")
 	}
 
 	otpCode := utils.RandomPin(6)
-	ttl := 60 * time.Second
+	ttl := 180 * time.Second
 
-	if err := s.otpCache.SetOTP(ctx, req.Email, otpCode, ttl); err != nil {
+	if err := s.otpCache.SetOTP(ctx, emailStr, otpCode, ttl); err != nil {
 		return err
 	}
-	_ = s.otpCache.SetPendingUser(ctx, req.Email, pendingStr, ttl)
+	if err := s.otpCache.SetPendingUser(ctx, emailStr, pendingStr, ttl); err != nil {
+		return err
+	}
 
-	go s.emailSender.SendOTPEmail(req.Email, otpCode)
+	go s.emailSender.SendOTPEmail(emailStr, otpCode)
 	return nil
 }
 
 func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.AuthResponse, error) {
-	user, err := s.userRepo.GetByEmail(ctx, req.Email)
+	emailStr := strings.ToLower(strings.TrimSpace(req.Email))
+	user, err := s.userRepo.GetByEmail(ctx, emailStr)
 	if err != nil {
 		return nil, domain.ErrInvalidCredentials
 	}
@@ -194,7 +212,8 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Aut
 }
 
 func (s *authService) ForgotPassword(ctx context.Context, req dto.ForgotPasswordRequest) (string, error) {
-	user, err := s.userRepo.GetByEmail(ctx, req.Email)
+	emailStr := strings.ToLower(strings.TrimSpace(req.Email))
+	user, err := s.userRepo.GetByEmail(ctx, emailStr)
 	if err != nil {
 		return "", domain.ErrUserNotFound
 	}

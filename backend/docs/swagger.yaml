@@ -826,7 +826,7 @@ paths:
       consumes:
       - application/json
       description: Register a new user account. Generates a 6-digit OTP stored in
-        Redis for 60 seconds.
+        Redis for 180 seconds.
       parameters:
       - description: Register Payload
         in: body

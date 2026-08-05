@@ -17,7 +17,7 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 
 // Register godoc
 // @Summary Register user & send 6-digit OTP code to email
-// @Description Register a new user account. Generates a 6-digit OTP stored in Redis for 60 seconds.
+// @Description Register a new user account. Generates a 6-digit OTP stored in Redis for 180 seconds.
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -38,7 +38,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, msg, gin.H{"email": req.Email, "otp_expires_in_seconds": 60})
+	response.OK(c, msg, gin.H{"email": req.Email, "otp_expires_in_seconds": 180})
 }
 
 // VerifyOTP godoc
@@ -87,7 +87,7 @@ func (h *AuthHandler) ResendOTP(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, "A new OTP code has been sent to your email.", gin.H{"email": req.Email, "otp_expires_in_seconds": 60})
+	response.OK(c, "A new OTP code has been sent to your email.", gin.H{"email": req.Email, "otp_expires_in_seconds": 180})
 }
 
 // Login godoc

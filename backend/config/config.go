@@ -56,7 +56,7 @@ func LoadConfig() *Config {
 		RedisDB:       redisDB,
 		SMTPHost:      getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:      getEnv("SMTP_PORT", "587"),
-		SMTPUser:      getEnv("SMTP_USER", ""),
+		SMTPUser:      getEnv("SMTP_USER", "muhammadalmer2304@gmail.com"),
 		SMTPPassword:  getEnv("SMTP_PASSWORD", ""),
 		JWTSecret:     getEnv("JWT_SECRET", "super-secret-key-hidocs-2026"),
 		JWTExpireHr:   jwtExpire,

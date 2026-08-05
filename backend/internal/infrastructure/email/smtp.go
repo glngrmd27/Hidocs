@@ -21,7 +21,7 @@ func NewSMTPEmailSender(cfg *config.Config) *SMTPEmailSender {
 }
 
 func (s *SMTPEmailSender) SendOTPEmail(toEmail, otpCode string) error {
-	log.Printf("📩 [OTP DISTRIBUTOR] OTP Code for %s is: %s (Expires in 60 seconds)", toEmail, otpCode)
+	log.Printf("📩 [OTP DISTRIBUTOR] OTP Code for %s is: %s (Expires in 180 seconds)", toEmail, otpCode)
 
 	if s.cfg.SMTPPassword == "" || s.cfg.SMTPUser == "" {
 		log.Println("ℹ️ SMTP_PASSWORD/SMTP_USER not configured. OTP printed to console above.")
@@ -46,7 +46,7 @@ func (s *SMTPEmailSender) SendOTPEmail(toEmail, otpCode string) error {
 				<h2>Kode Verifikasi OTP HiDocs</h2>
 				<p>Gunakan kode OTP berikut untuk menyelesaikan proses registrasi akun Anda:</p>
 				<div class="otp">%s</div>
-				<p style="color: #6B7280; font-size: 13px;">Kode ini hanya berlaku selama <strong>60 detik</strong>. Jangan bagikan kode ini kepada siapapun.</p>
+				<p style="color: #6B7280; font-size: 13px;">Kode ini hanya berlaku selama <strong>180 detik</strong>. Jangan bagikan kode ini kepada siapapun.</p>
 			</div>
 		</body>
 		</html>

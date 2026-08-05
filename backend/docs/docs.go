@@ -344,7 +344,7 @@ const docTemplate = `{
         },
         "/api/v1/auth/register": {
             "post": {
-                "description": "Register a new user account. Generates a 6-digit OTP stored in Redis for 60 seconds.",
+                "description": "Register a new user account. Generates a 6-digit OTP stored in Redis for 180 seconds.",
                 "consumes": [
                     "application/json"
                 ],

@@ -64,7 +64,12 @@ func NewRedisClient(cfg *config.Config) *RedisClient {
 	return client
 }
 
+func cleanEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
 func (c *RedisClient) SetOTP(ctx context.Context, email, otp string, ttl time.Duration) error {
+	email = cleanEmail(email)
 	if c.isFallback {
 		c.mu.Lock()
 		defer c.mu.Unlock()
@@ -78,6 +83,7 @@ func (c *RedisClient) SetOTP(ctx context.Context, email, otp string, ttl time.Du
 }
 
 func (c *RedisClient) GetOTP(ctx context.Context, email string) (string, error) {
+	email = cleanEmail(email)
 	if c.isFallback {
 		c.mu.RLock()
 		defer c.mu.RUnlock()
@@ -91,6 +97,7 @@ func (c *RedisClient) GetOTP(ctx context.Context, email string) (string, error) 
 }
 
 func (c *RedisClient) DeleteOTP(ctx context.Context, email string) error {
+	email = cleanEmail(email)
 	if c.isFallback {
 		c.mu.Lock()
 		defer c.mu.Unlock()
@@ -104,6 +111,7 @@ func (c *RedisClient) DeleteOTP(ctx context.Context, email string) error {
 }
 
 func (c *RedisClient) SetPendingUser(ctx context.Context, email, payload string, ttl time.Duration) error {
+	email = cleanEmail(email)
 	if c.isFallback {
 		c.mu.Lock()
 		defer c.mu.Unlock()
@@ -117,6 +125,7 @@ func (c *RedisClient) SetPendingUser(ctx context.Context, email, payload string,
 }
 
 func (c *RedisClient) GetPendingUser(ctx context.Context, email string) (string, error) {
+	email = cleanEmail(email)
 	if c.isFallback {
 		c.mu.RLock()
 		defer c.mu.RUnlock()
