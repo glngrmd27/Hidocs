@@ -1,0 +1,14 @@
+const users = [
+  {
+    username: "admin",
+    password: "admin123",
+    role: "Admin",
+  },
+  {
+    username: "user",
+    password: "user123",
+    role: "User",
+  },
+];
+
+export default users;

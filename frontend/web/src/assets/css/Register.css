@@ -1,0 +1,1298 @@
+/* =========================================================
+   REGISTER PAGE — HIDOCS
+========================================================= */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: #0f3d75;
+}
+
+button,
+input,
+select {
+    font-family: inherit;
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.register-page {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    padding: 28px;
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+}
+
+.register-background-overlay {
+    position: absolute;
+    inset: 0;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(6, 32, 69, .88),
+            rgba(19, 77, 141, .78)
+        );
+
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+
+.register-container {
+    position: relative;
+    z-index: 2;
+
+    width: 100%;
+    max-width: 1160px;
+    min-height: 720px;
+
+    overflow: hidden;
+
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 28px;
+
+    background: rgba(255, 255, 255, .97);
+
+    display: grid;
+    grid-template-columns:
+        minmax(0, .95fr)
+        minmax(450px, 1.05fr);
+
+    box-shadow:
+        0 32px 80px rgba(4, 24, 50, .38),
+        0 5px 16px rgba(4, 24, 50, .16);
+}
+
+
+/* =========================================================
+   BRAND PANEL
+========================================================= */
+
+.register-brand-panel {
+    position: relative;
+    min-height: 720px;
+    overflow: hidden;
+
+    padding: 36px 38px 30px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #0f3d75 0%,
+            #15559b 52%,
+            #2577c9 100%
+        );
+
+    color: #ffffff;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.register-brand-panel::after {
+    content: "";
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 150px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            transparent,
+            rgba(3, 30, 65, .18)
+        );
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   BRAND DECORATION
+========================================================= */
+
+.register-brand-decoration {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.register-circle {
+    position: absolute;
+    display: block;
+
+    border-radius: 50%;
+
+    border:
+        1px solid rgba(255, 255, 255, .14);
+}
+
+.register-circle.circle-one {
+    width: 265px;
+    height: 265px;
+
+    top: -130px;
+    right: -95px;
+
+    background:
+        rgba(255, 255, 255, .055);
+}
+
+.register-circle.circle-two {
+    width: 175px;
+    height: 175px;
+
+    right: 72px;
+    bottom: -95px;
+
+    background:
+        rgba(255, 255, 255, .035);
+}
+
+.register-brand-dots {
+    position: absolute;
+
+    right: 48px;
+    top: 168px;
+
+    width: 112px;
+
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 11px;
+
+    opacity: .36;
+}
+
+.register-brand-dots span {
+    width: 4px;
+    height: 4px;
+
+    border-radius: 50%;
+
+    background: #ffffff;
+}
+
+
+/* =========================================================
+   BRAND CONTENT
+========================================================= */
+
+.register-brand-content {
+    position: relative;
+    z-index: 2;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.register-brand {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 11px;
+}
+
+.register-logo-wrapper {
+    width: 43px;
+    height: 43px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255, 255, 255, .16);
+
+    border:
+        1px solid rgba(255, 255, 255, .2);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.register-logo {
+    width: 31px;
+    height: 31px;
+
+    object-fit: contain;
+}
+
+.register-brand > span {
+    color: #ffffff;
+
+    font-size: 21px;
+    font-weight: 800;
+
+    letter-spacing: -.4px;
+}
+
+
+/* =========================================================
+   BRAND MESSAGE
+========================================================= */
+
+.register-brand-message {
+    margin-top: 62px;
+    max-width: 440px;
+}
+
+.register-brand-badge {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 28px;
+
+    padding: 0 12px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(255, 255, 255, .13);
+
+    border:
+        1px solid rgba(255, 255, 255, .17);
+
+    color:
+        rgba(255, 255, 255, .88);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.register-brand-message h1 {
+    margin: 18px 0 12px;
+
+    color: #ffffff;
+
+    font-size: 36px;
+    line-height: 1.23;
+    font-weight: 800;
+
+    letter-spacing: -1px;
+}
+
+.register-brand-message p {
+    margin: 0;
+
+    color:
+        rgba(255, 255, 255, .76);
+
+    font-size: 12px;
+    line-height: 1.75;
+}
+
+
+/* =========================================================
+   FEATURE LIST
+========================================================= */
+
+.register-feature-list {
+    margin-top: 34px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+.register-feature-item {
+    min-height: 61px;
+
+    padding: 10px 12px;
+
+    border:
+        1px solid rgba(255, 255, 255, .11);
+
+    border-radius: 14px;
+
+    background:
+        rgba(255, 255, 255, .075);
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.register-feature-icon {
+    width: 36px;
+    height: 36px;
+
+    flex-shrink: 0;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255, 255, 255, .14);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 13px;
+}
+
+.register-feature-item > div:last-child {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.register-feature-item strong {
+    color: #ffffff;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.register-feature-item span {
+    color:
+        rgba(255, 255, 255, .65);
+
+    font-size: 7px;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   BRAND FOOTER
+========================================================= */
+
+.register-brand-footer {
+    position: relative;
+    z-index: 2;
+
+    margin-top: 26px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    color:
+        rgba(255, 255, 255, .55);
+
+    font-size: 7px;
+}
+
+
+/* =========================================================
+   FORM PANEL
+========================================================= */
+
+.register-form-panel {
+    min-width: 0;
+    min-height: 720px;
+
+    padding: 34px 50px;
+
+    background:
+        radial-gradient(
+            circle at top right,
+            rgba(63, 136, 220, .08),
+            transparent 30%
+        ),
+        #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-direction: column;
+}
+
+.register-form-card {
+    width: 100%;
+    max-width: 455px;
+}
+
+.register-mobile-header {
+    display: none;
+}
+
+
+/* =========================================================
+   BACK LINK
+========================================================= */
+
+.register-back-link {
+    width: max-content;
+
+    margin-bottom: 23px;
+
+    color: #4b78a5;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    text-decoration: none;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    transition:
+        color .18s ease,
+        transform .18s ease;
+}
+
+.register-back-link:hover {
+    color: #2e73b7;
+    transform: translateX(-2px);
+}
+
+
+/* =========================================================
+   FORM HEADER
+========================================================= */
+
+.register-form-header {
+    margin-bottom: 24px;
+}
+
+.register-form-eyebrow {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 26px;
+
+    padding: 0 10px;
+
+    border-radius: 999px;
+
+    background: #eaf3fd;
+
+    color: #397bc0;
+
+    font-size: 8px;
+    font-weight: 800;
+
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.register-form-header h2 {
+    margin: 13px 0 8px;
+
+    color: #24384f;
+
+    font-size: 27px;
+    line-height: 1.25;
+    font-weight: 800;
+
+    letter-spacing: -.7px;
+}
+
+.register-form-header p {
+    margin: 0;
+
+    max-width: 365px;
+
+    color: #8392a5;
+
+    font-size: 10px;
+    line-height: 1.65;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.register-form {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 16px;
+}
+
+.register-form-group {
+    width: 100%;
+}
+
+.register-form-group > label,
+.register-label-row label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #53657a;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.register-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.register-label-row span {
+    margin-bottom: 7px;
+
+    color: #92a0b1;
+
+    font-size: 7px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+.register-input-wrapper,
+.register-select-wrapper {
+    width: 100%;
+    height: 46px;
+
+    padding: 0 13px;
+
+    border:
+        1px solid #d7e1ec;
+
+    border-radius: 12px;
+
+    background: #f8fafc;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+.register-input-wrapper:focus-within,
+.register-select-wrapper:focus-within {
+    border-color: #4689d0;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 3px rgba(70, 137, 208, .1);
+}
+
+.register-input-icon {
+    flex-shrink: 0;
+
+    color: #8ba0b6;
+
+    font-size: 12px;
+}
+
+.register-input-wrapper input,
+.register-select-wrapper select {
+    width: 100%;
+    height: 100%;
+
+    border: none;
+    outline: none;
+
+    background: transparent;
+
+    color: #32475d;
+
+    font-size: 10px;
+}
+
+.register-input-wrapper input::placeholder {
+    color: #a0adbb;
+}
+
+.register-input-wrapper input:disabled,
+.register-select-wrapper select:disabled {
+    cursor: not-allowed;
+    opacity: .65;
+}
+
+
+/* =========================================================
+   PASSWORD BUTTON
+========================================================= */
+
+.register-eye-btn {
+    width: 31px;
+    height: 31px;
+
+    flex-shrink: 0;
+
+    border: none;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: #8b9bae;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    font-size: 11px;
+
+    transition:
+        background .18s ease,
+        color .18s ease;
+}
+
+.register-eye-btn:hover {
+    background: #e9eef4;
+    color: #397bc0;
+}
+
+
+/* =========================================================
+   SELECT
+========================================================= */
+
+.register-select-wrapper {
+    position: relative;
+}
+
+.register-select-wrapper select {
+    appearance: none;
+    -webkit-appearance: none;
+
+    padding-right: 28px;
+
+    cursor: pointer;
+}
+
+.register-select-arrow {
+    position: absolute;
+
+    right: 13px;
+
+    color: #8b9bae;
+
+    font-size: 9px;
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.register-error-message {
+    min-height: 42px;
+
+    margin-top: -2px;
+
+    padding: 9px 11px;
+
+    border:
+        1px solid #f2cccc;
+
+    border-radius: 10px;
+
+    background: #fff0f0;
+
+    color: #d94d4d;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    font-size: 8px;
+    font-weight: 600;
+}
+
+.register-error-icon {
+    width: 20px;
+    height: 20px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #e35c5c;
+
+    color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   REGISTER BUTTON
+========================================================= */
+
+.register-btn {
+    position: relative;
+
+    width: 100%;
+    height: 48px;
+
+    margin-top: 2px;
+
+    padding: 0 16px;
+
+    border: none;
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #164b87,
+            #2878c8
+        );
+
+    color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    cursor: pointer;
+
+    font-size: 10px;
+    font-weight: 800;
+
+    box-shadow:
+        0 8px 18px rgba(34, 105, 179, .24);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        opacity .2s ease;
+}
+
+.register-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 12px 23px rgba(34, 105, 179, .3);
+}
+
+.register-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.register-btn:disabled {
+    cursor: wait;
+    opacity: .75;
+}
+
+.register-btn-arrow {
+    position: absolute;
+
+    right: 17px;
+
+    font-size: 9px;
+
+    transition:
+        transform .2s ease;
+}
+
+.register-btn:hover:not(:disabled)
+.register-btn-arrow {
+    transform: translateX(3px);
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.register-loading-spinner {
+    width: 16px;
+    height: 16px;
+
+    border:
+        2px solid rgba(255, 255, 255, .35);
+
+    border-top-color: #ffffff;
+
+    border-radius: 50%;
+
+    animation:
+        register-spinner .75s linear infinite;
+}
+
+@keyframes register-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =========================================================
+   DIVIDER
+========================================================= */
+
+.register-divider {
+    width: 100%;
+
+    margin: 21px 0 16px;
+
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.register-divider span {
+    height: 1px;
+
+    background: #e1e7ef;
+}
+
+.register-divider p {
+    margin: 0;
+
+    color: #8c9aac;
+
+    font-size: 8px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   LOGIN BUTTON
+========================================================= */
+
+.register-login-btn {
+    width: 100%;
+    height: 44px;
+
+    border:
+        1px solid #d7e1ec;
+
+    border-radius: 11px;
+
+    background: #ffffff;
+
+    color: #3d6e9d;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    text-decoration: none;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease,
+        background .2s ease,
+        color .2s ease;
+}
+
+.register-login-btn:hover {
+    transform: translateY(-1px);
+
+    border-color: #bdd4ea;
+
+    background: #edf5fd;
+
+    color: #2e73b7;
+}
+
+
+/* =========================================================
+   SECURITY INFO
+========================================================= */
+
+.register-security-info {
+    margin-top: 17px;
+
+    padding: 10px 12px;
+
+    border:
+        1px solid #e1e8f0;
+
+    border-radius: 10px;
+
+    background: #f8fafc;
+
+    color: #8291a3;
+
+    display: flex;
+    align-items: flex-start;
+
+    gap: 8px;
+
+    font-size: 7px;
+    line-height: 1.55;
+}
+
+.register-security-info svg {
+    flex-shrink: 0;
+
+    margin-top: 1px;
+
+    color: #4a86c3;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .register-page {
+        padding: 20px;
+    }
+
+    .register-container {
+        max-width: 930px;
+
+        grid-template-columns:
+            minmax(0, .9fr)
+            minmax(410px, 1.1fr);
+    }
+
+    .register-brand-panel {
+        padding: 31px 29px 27px;
+    }
+
+    .register-brand-message {
+        margin-top: 54px;
+    }
+
+    .register-brand-message h1 {
+        font-size: 31px;
+    }
+
+    .register-form-panel {
+        padding: 32px 36px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE AND SMALL TABLET
+========================================================= */
+
+@media (max-width: 780px) {
+
+    .register-page {
+        min-height: 100vh;
+
+        padding: 14px;
+
+        align-items: flex-start;
+
+        overflow-y: auto;
+    }
+
+    .register-container {
+        min-height: auto;
+
+        grid-template-columns: 1fr;
+
+        border-radius: 22px;
+    }
+
+    .register-brand-panel {
+        display: none;
+    }
+
+    .register-form-panel {
+        min-height: calc(100vh - 28px);
+
+        padding: 24px 22px 32px;
+
+        justify-content: flex-start;
+    }
+
+    .register-mobile-header {
+        width: 100%;
+
+        margin-bottom: 28px;
+
+        display: grid;
+        grid-template-columns: 38px 1fr 38px;
+
+        align-items: center;
+    }
+
+    .register-mobile-back {
+        width: 36px;
+        height: 36px;
+
+        border-radius: 10px;
+
+        background: #eef4fb;
+
+        color: #397bc0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        text-decoration: none;
+
+        font-size: 13px;
+    }
+
+    .register-mobile-brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        gap: 9px;
+    }
+
+    .register-mobile-logo {
+        width: 39px;
+        height: 39px;
+
+        border-radius: 11px;
+
+        background: #eaf3fd;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .register-mobile-logo img {
+        width: 28px;
+        height: 28px;
+
+        object-fit: contain;
+    }
+
+    .register-mobile-brand > span {
+        color: #1f4e82;
+
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .register-mobile-spacer {
+        width: 38px;
+    }
+
+    .register-back-link {
+        display: none;
+    }
+
+    .register-form-card {
+        max-width: 480px;
+    }
+
+    .register-form-header {
+        text-align: center;
+    }
+
+    .register-form-header p {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .register-page {
+        padding: 0;
+
+        background-image: none !important;
+    }
+
+    .register-background-overlay {
+        display: none;
+    }
+
+    .register-container {
+        min-height: 100vh;
+
+        border: none;
+        border-radius: 0;
+
+        box-shadow: none;
+    }
+
+    .register-form-panel {
+        min-height: 100vh;
+
+        padding: 20px 17px 28px;
+    }
+
+    .register-mobile-header {
+        margin-bottom: 24px;
+    }
+
+    .register-form-header {
+        margin-bottom: 21px;
+    }
+
+    .register-form-eyebrow {
+        min-height: 24px;
+
+        font-size: 7px;
+    }
+
+    .register-form-header h2 {
+        margin-top: 12px;
+
+        font-size: 23px;
+    }
+
+    .register-form-header p {
+        font-size: 9px;
+    }
+
+    .register-form {
+        gap: 15px;
+    }
+
+    .register-input-wrapper,
+    .register-select-wrapper {
+        height: 45px;
+
+        border-radius: 11px;
+    }
+
+    .register-btn {
+        height: 46px;
+
+        border-radius: 11px;
+    }
+
+    .register-login-btn {
+        height: 43px;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 360px) {
+
+    .register-form-panel {
+        padding-left: 13px;
+        padding-right: 13px;
+    }
+
+    .register-form-header h2 {
+        font-size: 21px;
+    }
+
+    .register-label-row {
+        align-items: flex-start;
+    }
+
+    .register-label-row span {
+        font-size: 6px;
+    }
+
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+.register-page button:focus-visible,
+.register-page input:focus-visible,
+.register-page select:focus-visible,
+.register-page a:focus-visible {
+    outline:
+        2px solid rgba(45, 117, 187, .55);
+
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .register-page *,
+    .register-page *::before,
+    .register-page *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+
+}

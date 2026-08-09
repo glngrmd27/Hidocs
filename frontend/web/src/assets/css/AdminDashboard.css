@@ -1,0 +1,2616 @@
+/* =========================================================
+   ADMIN DASHBOARD — HIDOCS
+========================================================= */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: #eef3f9;
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.admin-dashboard {
+    width: 100%;
+    min-height: 100vh;
+
+    padding-bottom: 118px;
+
+    background:
+        radial-gradient(
+            circle at top right,
+            rgba(72, 139, 224, .08),
+            transparent 26%
+        ),
+        #f3f6fb;
+
+    color: #20324a;
+
+    transition:
+        background .25s ease,
+        color .25s ease;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.admin-hero {
+    position: relative;
+
+    width: 100%;
+    min-height: 255px;
+
+    overflow: hidden;
+
+    padding: 26px 34px 34px;
+
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0f3d75 0%,
+            #1d5ca7 56%,
+            #2c78cf 100%
+        );
+
+    box-shadow:
+        inset 0 -1px 0 rgba(255, 255, 255, .1),
+        0 12px 30px rgba(26, 74, 132, .18);
+}
+
+.admin-hero::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 58px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            transparent,
+            rgba(4, 31, 67, .11)
+        );
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   HERO DECORATION
+========================================================= */
+
+.admin-hero-decoration {
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+}
+
+.hero-circle {
+    position: absolute;
+
+    display: block;
+
+    border-radius: 50%;
+
+    border:
+        1px solid rgba(255, 255, 255, .13);
+}
+
+.hero-circle-one {
+    width: 230px;
+    height: 230px;
+
+    top: -105px;
+    right: -40px;
+
+    background:
+        rgba(255, 255, 255, .05);
+}
+
+.hero-circle-two {
+    width: 150px;
+    height: 150px;
+
+    right: 88px;
+    bottom: -80px;
+
+    background:
+        rgba(255, 255, 255, .035);
+}
+
+.hero-dots {
+    position: absolute;
+
+    right: 42px;
+    top: 110px;
+
+    width: 112px;
+
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 10px;
+
+    opacity: .38;
+}
+
+.hero-dots span {
+    width: 4px;
+    height: 4px;
+
+    border-radius: 50%;
+
+    background: #ffffff;
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.admin-hero-brand {
+    position: relative;
+
+    z-index: 2;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.admin-hero-logo {
+    width: 36px;
+    height: 36px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255, 255, 255, .14);
+
+    border:
+        1px solid rgba(255, 255, 255, .18);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.admin-hero-logo img {
+    width: 26px;
+    height: 26px;
+
+    object-fit: contain;
+}
+
+.admin-hero-brand > span {
+    font-size: 19px;
+
+    font-weight: 700;
+
+    letter-spacing: -.2px;
+}
+
+
+/* =========================================================
+   HERO CONTENT
+========================================================= */
+
+.admin-hero-content {
+    position: relative;
+
+    z-index: 2;
+
+    max-width: 650px;
+
+    margin-top: 42px;
+}
+
+.admin-greeting-badge {
+    height: 28px;
+
+    padding: 0 12px;
+
+    border:
+        1px solid rgba(255, 255, 255, .17);
+
+    border-radius: 999px;
+
+    background:
+        rgba(255, 255, 255, .13);
+
+    color:
+        rgba(255, 255, 255, .88);
+
+    display: inline-flex;
+
+    align-items: center;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+}
+
+.admin-hero-content h1 {
+    margin: 16px 0 7px;
+
+    color: #ffffff;
+
+    font-size: 34px;
+
+    line-height: 1.18;
+
+    font-weight: 700;
+
+    letter-spacing: -.9px;
+}
+
+.admin-wave {
+    display: inline-block;
+
+    margin-left: 8px;
+
+    transform-origin: 70% 70%;
+
+    animation:
+        admin-wave 2.2s ease-in-out infinite;
+}
+
+@keyframes admin-wave {
+
+    0%,
+    100% {
+        transform: rotate(0);
+    }
+
+    15% {
+        transform: rotate(11deg);
+    }
+
+    30% {
+        transform: rotate(-7deg);
+    }
+
+    45% {
+        transform: rotate(9deg);
+    }
+
+    60% {
+        transform: rotate(-4deg);
+    }
+
+    75% {
+        transform: rotate(0);
+    }
+}
+
+.admin-hero-content p {
+    max-width: 460px;
+
+    margin: 0;
+
+    color:
+        rgba(255, 255, 255, .79);
+
+    font-size: 14px;
+
+    line-height: 1.65;
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.admin-main-content {
+    position: relative;
+
+    z-index: 4;
+
+    width: 100%;
+    max-width: 1180px;
+
+    margin: -30px auto 0;
+
+    padding: 0 26px 46px;
+}
+
+
+/* =========================================================
+   PRIMARY ACTIONS
+========================================================= */
+
+.admin-primary-actions {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+
+    margin-bottom: 30px;
+}
+
+.admin-primary-card {
+    position: relative;
+
+    width: 100%;
+    min-height: 118px;
+
+    padding: 21px 22px;
+
+    border:
+        1px solid #dce6f1;
+
+    border-radius: 19px;
+
+    background:
+        rgba(255, 255, 255, .97);
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 10px 25px rgba(23, 49, 82, .08),
+        0 2px 6px rgba(23, 49, 82, .04);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        border-color .2s ease;
+}
+
+.admin-primary-card:hover {
+    transform: translateY(-4px);
+
+    border-color: #b9d4ef;
+
+    box-shadow:
+        0 16px 34px rgba(23, 49, 82, .13),
+        0 3px 7px rgba(23, 49, 82, .05);
+}
+
+.admin-primary-card:active {
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   PRIMARY ICON
+========================================================= */
+
+.primary-card-icon {
+    width: 56px;
+    height: 56px;
+
+    flex-shrink: 0;
+
+    border-radius: 16px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 22px;
+}
+
+.primary-card-icon.plus {
+    background:
+        linear-gradient(
+            145deg,
+            #dfeeff,
+            #eff6ff
+        );
+
+    color: #246fbe;
+}
+
+.primary-card-icon.word {
+    position: relative;
+
+    background:
+        linear-gradient(
+            145deg,
+            #e4edff,
+            #f3f7ff
+        );
+
+    color: #3267c7;
+}
+
+.primary-card-icon.word > svg {
+    opacity: .23;
+
+    font-size: 31px;
+}
+
+.primary-card-icon.word > span {
+    position: absolute;
+
+    font-size: 18px;
+
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   PRIMARY CONTENT
+========================================================= */
+
+.primary-card-content {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.primary-card-content h2 {
+    margin: 0 0 5px;
+
+    color: #24364e;
+
+    font-size: 16px;
+
+    font-weight: 700;
+}
+
+.primary-card-content p {
+    max-width: 340px;
+
+    margin: 0;
+
+    color: #8190a4;
+
+    font-size: 11px;
+
+    line-height: 1.55;
+}
+
+.primary-card-arrow {
+    width: 34px;
+    height: 34px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #f1f6fb;
+
+    color: #8aa1ba;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 12px;
+
+    transition:
+        background .2s ease,
+        color .2s ease,
+        transform .2s ease;
+}
+
+.admin-primary-card:hover
+.primary-card-arrow {
+    background: #246fbe;
+
+    color: #ffffff;
+
+    transform: translateX(2px);
+}
+
+
+/* =========================================================
+   SECTION HEADING
+========================================================= */
+
+.admin-section-heading {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    margin-bottom: 14px;
+}
+
+.admin-section-heading h2 {
+    margin: 0;
+
+    color: #26394f;
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+    letter-spacing: -.25px;
+}
+
+.admin-view-all-btn {
+    padding: 8px 4px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #3277bf;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    font-family: inherit;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.admin-view-all-btn svg {
+    font-size: 10px;
+
+    transition:
+        transform .2s ease;
+}
+
+.admin-view-all-btn:hover svg {
+    transform: translateX(3px);
+}
+
+
+/* =========================================================
+   RECENT GRID
+========================================================= */
+
+.admin-recent-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+}
+
+
+/* =========================================================
+   RECENT CARD
+========================================================= */
+
+.admin-recent-card {
+    width: 100%;
+    min-height: 138px;
+
+    padding: 18px;
+
+    border:
+        1px solid #dfe7f0;
+
+    border-radius: 17px;
+
+    background: #ffffff;
+
+    display: flex;
+
+    align-items: stretch;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 5px 16px rgba(25, 50, 85, .06);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        border-color .2s ease;
+}
+
+.admin-recent-card:hover {
+    transform: translateY(-3px);
+
+    border-color: #c6d9ec;
+
+    box-shadow:
+        0 12px 25px rgba(25, 50, 85, .1);
+}
+
+.recent-card-main {
+    min-width: 0;
+
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 13px;
+}
+
+.recent-card-icon {
+    width: 43px;
+    height: 43px;
+
+    flex-shrink: 0;
+
+    border-radius: 12px;
+
+    background: #eaf3fd;
+
+    color: #2f78c2;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 17px;
+}
+
+.recent-card-content {
+    min-width: 0;
+}
+
+.recent-card-content h3 {
+    margin: 1px 0 5px;
+
+    color: #2b3f56;
+
+    font-size: 13px;
+
+    line-height: 1.45;
+
+    font-weight: 700;
+
+    display: -webkit-box;
+
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+
+    overflow: hidden;
+}
+
+.recent-card-content p {
+    margin: 0 0 12px;
+
+    color: #96a2b2;
+
+    font-size: 9px;
+}
+
+.recent-card-date {
+    color: #7f91a7;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    font-size: 9px;
+}
+
+.recent-card-date svg {
+    color: #4f89c5;
+
+    font-size: 9px;
+}
+
+.recent-card-side {
+    flex-shrink: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 12px;
+}
+
+.recent-card-status {
+    min-height: 24px;
+
+    padding: 0 9px;
+
+    border:
+        1px solid #c8ecd9;
+
+    border-radius: 999px;
+
+    background: #eaf8f1;
+
+    color: #219865;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    font-size: 8px;
+
+    font-weight: 700;
+}
+
+.recent-status-dot {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #2cb875;
+
+    box-shadow:
+        0 0 0 3px rgba(44, 184, 117, .11);
+}
+
+.recent-card-buttons {
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+}
+
+.recent-card-buttons button {
+    width: 31px;
+    height: 31px;
+
+    border:
+        1px solid #dce5ef;
+
+    border-radius: 9px;
+
+    background: #f8fafc;
+
+    color: #8295aa;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    font-size: 10px;
+
+    transition:
+        background .2s ease,
+        color .2s ease,
+        border-color .2s ease;
+}
+
+.recent-card-buttons button:hover {
+    border-color: #bdd5ec;
+
+    background: #eaf3fd;
+
+    color: #2e75bb;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.admin-empty-recent {
+    grid-column: 1 / -1;
+
+    min-height: 260px;
+
+    padding: 34px 20px;
+
+    border:
+        1px dashed #cfd9e5;
+
+    border-radius: 18px;
+
+    background: #ffffff;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+}
+
+.admin-empty-recent-icon {
+    width: 60px;
+    height: 60px;
+
+    margin-bottom: 14px;
+
+    border-radius: 16px;
+
+    background: #eaf3fd;
+
+    color: #347fc5;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 24px;
+}
+
+.admin-empty-recent h3 {
+    margin: 0 0 6px;
+
+    color: #2d4058;
+
+    font-size: 15px;
+}
+
+.admin-empty-recent p {
+    margin: 0 0 14px;
+
+    color: #8b99aa;
+
+    font-size: 11px;
+}
+
+.admin-empty-recent button {
+    height: 36px;
+
+    padding: 0 14px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: #256bb0;
+
+    color: #ffffff;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    font-family: inherit;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   BOTTOM NAVIGATION
+========================================================= */
+
+.admin-bottom-nav {
+    position: fixed;
+
+    left: 28px;
+    right: 28px;
+    bottom: 16px;
+
+    height: 82px;
+
+    padding: 0 12px;
+
+    border:
+        1px solid rgba(210, 220, 232, .88);
+
+    border-radius: 23px;
+
+    background:
+        rgba(255, 255, 255, .97);
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    align-items: center;
+
+    box-shadow:
+        0 12px 34px rgba(22, 47, 78, .14),
+        0 2px 7px rgba(22, 47, 78, .05);
+
+    z-index: 100;
+
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.admin-nav-item {
+    position: relative;
+
+    width: 100%;
+    height: 62px;
+
+    padding: 0;
+
+    border: none;
+
+    border-radius: 16px;
+
+    background: transparent;
+
+    color: #98a8ba;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition:
+        background .2s ease,
+        color .2s ease,
+        transform .2s ease;
+}
+
+.admin-nav-item:hover {
+    background: #f4f8fc;
+
+    color: #4d79a7;
+}
+
+.admin-nav-item svg {
+    display: block;
+
+    width: 19px;
+    height: 19px;
+
+    flex-shrink: 0;
+
+    font-size: 19px;
+}
+
+.admin-nav-item span {
+    display: block;
+
+    margin: 0;
+
+    font-size: 9px;
+
+    line-height: 1;
+
+    font-weight: 600;
+}
+
+.admin-nav-item.active {
+    background: #edf5fd;
+
+    color: #246bb2;
+}
+
+.admin-nav-item.active::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 50%;
+
+    width: 38px;
+    height: 3px;
+
+    border-radius: 999px;
+
+    background: #2d73ba;
+
+    transform:
+        translateX(-50%);
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+.admin-dashboard.dark {
+    background:
+        radial-gradient(
+            circle at top right,
+            rgba(76, 139, 218, .08),
+            transparent 28%
+        ),
+        #0d1624;
+
+    color: #e7edf6;
+}
+
+.admin-dashboard.dark
+.admin-hero {
+    background:
+        linear-gradient(
+            135deg,
+            #0b274b 0%,
+            #123d70 58%,
+            #1d5b9e 100%
+        );
+
+    box-shadow:
+        inset 0 -1px 0 rgba(255, 255, 255, .07),
+        0 12px 30px rgba(0, 0, 0, .25);
+}
+
+.admin-dashboard.dark
+.admin-primary-card,
+
+.admin-dashboard.dark
+.admin-recent-card,
+
+.admin-dashboard.dark
+.admin-empty-recent {
+    background: #172234;
+
+    border-color: #2c3b50;
+
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, .18);
+}
+
+.admin-dashboard.dark
+.primary-card-content h2,
+
+.admin-dashboard.dark
+.admin-section-heading h2,
+
+.admin-dashboard.dark
+.recent-card-content h3,
+
+.admin-dashboard.dark
+.admin-empty-recent h3 {
+    color: #f1f5f9;
+}
+
+.admin-dashboard.dark
+.primary-card-content p,
+
+.admin-dashboard.dark
+.recent-card-content p,
+
+.admin-dashboard.dark
+.recent-card-date,
+
+.admin-dashboard.dark
+.admin-empty-recent p {
+    color: #8fa0b4;
+}
+
+.admin-dashboard.dark
+.primary-card-icon.plus,
+
+.admin-dashboard.dark
+.recent-card-icon,
+
+.admin-dashboard.dark
+.admin-empty-recent-icon {
+    background: #213b5a;
+
+    color: #6cb1ff;
+}
+
+.admin-dashboard.dark
+.primary-card-icon.word {
+    background: #233b65;
+
+    color: #7ba7ff;
+}
+
+.admin-dashboard.dark
+.primary-card-arrow,
+
+.admin-dashboard.dark
+.recent-card-buttons button {
+    background: #1d2b3e;
+
+    border-color: #314359;
+
+    color: #8da0b5;
+}
+
+.admin-dashboard.dark
+.admin-primary-card:hover,
+
+.admin-dashboard.dark
+.admin-recent-card:hover {
+    border-color: #44617e;
+}
+
+.admin-dashboard.dark
+.admin-bottom-nav {
+    background:
+        rgba(23, 34, 52, .97);
+
+    border-color: #2d3d52;
+
+    box-shadow:
+        0 12px 34px rgba(0, 0, 0, .34);
+}
+
+.admin-dashboard.dark
+.admin-nav-item {
+    color: #8293a7;
+}
+
+.admin-dashboard.dark
+.admin-nav-item:hover {
+    background: #1c2a3c;
+
+    color: #a8bdd5;
+}
+
+.admin-dashboard.dark
+.admin-nav-item.active {
+    background: #213a58;
+
+    color: #69adf8;
+}
+
+.admin-dashboard.dark
+.admin-nav-item.active::before {
+    background: #69adf8;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .admin-hero {
+        min-height: 235px;
+
+        padding: 24px 25px 31px;
+    }
+
+    .admin-hero-content {
+        margin-top: 34px;
+    }
+
+    .admin-hero-content h1 {
+        font-size: 30px;
+    }
+
+    .admin-main-content {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .admin-primary-actions,
+    .admin-recent-grid {
+        gap: 14px;
+    }
+
+    .admin-primary-card {
+        min-height: 112px;
+
+        padding: 18px;
+    }
+
+    .primary-card-content h2 {
+        font-size: 15px;
+    }
+
+    .primary-card-content p {
+        font-size: 10px;
+    }
+
+    .admin-bottom-nav {
+        left: 20px;
+        right: 20px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 680px) {
+
+    .admin-dashboard {
+        padding-bottom: 102px;
+    }
+
+    .admin-hero {
+        min-height: 225px;
+
+        padding: 20px 17px 29px;
+    }
+
+    .admin-hero-logo {
+        width: 33px;
+        height: 33px;
+    }
+
+    .admin-hero-logo img {
+        width: 23px;
+        height: 23px;
+    }
+
+    .admin-hero-brand > span {
+        font-size: 17px;
+    }
+
+    .admin-hero-content {
+        margin-top: 31px;
+    }
+
+    .admin-greeting-badge {
+        height: 25px;
+
+        padding: 0 10px;
+
+        font-size: 8px;
+    }
+
+    .admin-hero-content h1 {
+        margin-top: 13px;
+
+        font-size: 25px;
+    }
+
+    .admin-hero-content p {
+        font-size: 12px;
+    }
+
+    .hero-dots {
+        right: 16px;
+        top: 98px;
+
+        width: 88px;
+
+        gap: 8px;
+    }
+
+    .hero-circle-one {
+        width: 190px;
+        height: 190px;
+    }
+
+    .admin-main-content {
+        margin-top: -24px;
+
+        padding: 0 13px 34px;
+    }
+
+    .admin-primary-actions,
+    .admin-recent-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-primary-actions {
+        gap: 12px;
+
+        margin-bottom: 25px;
+    }
+
+    .admin-primary-card {
+        min-height: 101px;
+
+        padding: 16px;
+
+        border-radius: 16px;
+    }
+
+    .primary-card-icon {
+        width: 49px;
+        height: 49px;
+
+        border-radius: 14px;
+
+        font-size: 19px;
+    }
+
+    .primary-card-content h2 {
+        font-size: 14px;
+    }
+
+    .primary-card-content p {
+        font-size: 9px;
+    }
+
+    .primary-card-arrow {
+        width: 31px;
+        height: 31px;
+    }
+
+    .admin-section-heading h2 {
+        font-size: 16px;
+    }
+
+    .admin-view-all-btn {
+        font-size: 10px;
+    }
+
+    .admin-recent-card {
+        min-height: 128px;
+
+        padding: 15px;
+
+        border-radius: 15px;
+    }
+
+    .recent-card-icon {
+        width: 39px;
+        height: 39px;
+
+        font-size: 15px;
+    }
+
+    .recent-card-content h3 {
+        font-size: 12px;
+    }
+
+    .admin-bottom-nav {
+        left: 12px;
+        right: 12px;
+        bottom: 10px;
+
+        height: 72px;
+
+        padding: 0 7px;
+
+        border-radius: 20px;
+    }
+
+    .admin-nav-item {
+        width: 100%;
+        height: 56px;
+
+        border-radius: 14px;
+
+        gap: 5px;
+    }
+
+    .admin-nav-item svg {
+        width: 17px;
+        height: 17px;
+
+        font-size: 17px;
+    }
+
+    .admin-nav-item span {
+        font-size: 8px;
+    }
+
+    .admin-nav-item.active::before {
+        width: 32px;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+
+    .admin-hero {
+        min-height: 213px;
+    }
+
+    .admin-hero-content h1 {
+        font-size: 22px;
+    }
+
+    .admin-hero-content p {
+        font-size: 11px;
+    }
+
+    .primary-card-content p {
+        max-width: 220px;
+    }
+
+    .admin-recent-card {
+        gap: 9px;
+    }
+
+    .recent-card-side {
+        gap: 8px;
+    }
+
+    .recent-card-status {
+        padding: 0 7px;
+
+        font-size: 7px;
+    }
+
+    .recent-card-buttons button {
+        width: 28px;
+        height: 28px;
+    }
+
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+.admin-dashboard button:focus-visible,
+.admin-dashboard article:focus-visible {
+    outline:
+        2px solid rgba(46, 117, 187, .5);
+
+    outline-offset: 3px;
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .admin-dashboard *,
+    .admin-dashboard *::before,
+    .admin-dashboard *::after {
+        animation: none !important;
+
+        transition: none !important;
+
+        scroll-behavior: auto !important;
+    }
+
+}
+/* =========================================================
+   ADMIN DASHBOARD — ADDITIONAL COMPONENTS
+   Recent Forms, QR Code Modal, Copy Feedback
+========================================================= */
+
+
+/* =========================================================
+   SECTION HEADING DETAILS
+========================================================= */
+
+.admin-section-heading > div {
+    min-width: 0;
+}
+
+.admin-section-eyebrow {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #3f7fbe;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 1.15px;
+
+    text-transform: uppercase;
+}
+
+.admin-section-heading p {
+    margin: 4px 0 0;
+
+    color: #8c9aac;
+
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   RECENT FORM TYPE
+========================================================= */
+
+.recent-card-type {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 21px;
+
+    margin-bottom: 5px;
+    padding: 0 8px;
+
+    border-radius: 999px;
+
+    background: #edf5fd;
+    color: #3c7fbd;
+
+    font-size: 7px;
+    font-weight: 700;
+
+    text-transform: capitalize;
+}
+
+
+/* =========================================================
+   RECENT FORM STATUS — INACTIVE
+========================================================= */
+
+.recent-card-status.inactive {
+    border-color: #dce3eb;
+
+    background: #f3f5f7;
+    color: #8492a3;
+}
+
+.recent-card-status.inactive .recent-status-dot {
+    background: #9aa8b8;
+
+    box-shadow:
+        0 0 0 3px rgba(154, 168, 184, .12);
+}
+
+
+/* =========================================================
+   RECENT CARD BUTTON STATES
+========================================================= */
+
+.recent-card-buttons .recent-qr-button {
+    color: #367ec4;
+}
+
+.recent-card-buttons .recent-qr-button:hover {
+    border-color: #b8d4ed;
+
+    background: #e5f1fd;
+    color: #226db4;
+}
+
+.recent-card-buttons .recent-copy-button.copied {
+    border-color: #bfe5d1;
+
+    background: #e7f7ef;
+    color: #259b68;
+}
+
+.recent-card-buttons .recent-open-button:hover {
+    transform: translateX(1px);
+}
+
+
+/* =========================================================
+   EMPTY STATE DETAILS
+========================================================= */
+
+.admin-empty-eyebrow {
+    margin-bottom: 6px;
+
+    color: #3f7fbe;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 1.1px;
+
+    text-transform: uppercase;
+}
+
+.admin-empty-recent p {
+    max-width: 430px;
+
+    line-height: 1.65;
+}
+
+.admin-empty-recent button {
+    min-height: 38px;
+
+    padding: 0 16px;
+
+    box-shadow:
+        0 5px 12px rgba(37, 107, 176, .17);
+
+    transition:
+        transform .2s ease,
+        background .2s ease,
+        box-shadow .2s ease;
+}
+
+.admin-empty-recent button:hover {
+    transform: translateY(-2px);
+
+    background: #3079bd;
+
+    box-shadow:
+        0 8px 17px rgba(37, 107, 176, .23);
+}
+
+
+/* =========================================================
+   QR MODAL OVERLAY
+========================================================= */
+
+.admin-qr-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1000;
+
+    padding: 24px;
+
+    overflow-y: auto;
+
+    background:
+        rgba(8, 19, 34, .58);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+
+    animation:
+        adminQrOverlayIn .2s ease;
+}
+
+@keyframes adminQrOverlayIn {
+
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+
+/* =========================================================
+   QR MODAL
+========================================================= */
+
+.admin-qr-modal {
+    position: relative;
+
+    width: 100%;
+    max-width: 470px;
+
+    overflow: hidden;
+
+    border:
+        1px solid rgba(218, 229, 240, .95);
+
+    border-radius: 24px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 28px 70px rgba(5, 24, 48, .28),
+        0 8px 20px rgba(5, 24, 48, .12);
+
+    animation:
+        adminQrModalIn .25s ease;
+}
+
+@keyframes adminQrModalIn {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(14px)
+            scale(.97);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+}
+
+
+/* =========================================================
+   QR MODAL HEADER
+========================================================= */
+
+.admin-qr-modal-header {
+    width: 100%;
+
+    padding: 20px 21px;
+
+    border-bottom:
+        1px solid #e6edf5;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f7fbff,
+            #edf5fd
+        );
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+}
+
+.admin-qr-modal-heading {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+.admin-qr-modal-icon {
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #dcecff,
+            #eef6ff
+        );
+
+    color: #2673bd;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 17px;
+}
+
+.admin-qr-modal-heading > div:last-child {
+    min-width: 0;
+}
+
+.admin-qr-modal-heading span {
+    display: block;
+
+    margin-bottom: 2px;
+
+    color: #4b83ba;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    text-transform: uppercase;
+}
+
+.admin-qr-modal-heading h2 {
+    margin: 0;
+
+    color: #253a52;
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.admin-qr-close-btn {
+    width: 35px;
+    height: 35px;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid #d9e3ed;
+
+    border-radius: 10px;
+
+    background: #ffffff;
+    color: #7f90a4;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    font-size: 12px;
+
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        transform .2s ease;
+}
+
+.admin-qr-close-btn:hover {
+    transform: rotate(4deg);
+
+    border-color: #f1c2c7;
+
+    background: #fff1f2;
+    color: #db5260;
+}
+
+
+/* =========================================================
+   QR FORM INFORMATION
+========================================================= */
+
+.admin-qr-form-info {
+    padding: 19px 22px 14px;
+
+    text-align: center;
+}
+
+.admin-qr-form-type {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 22px;
+
+    margin-bottom: 9px;
+    padding: 0 9px;
+
+    border-radius: 999px;
+
+    background: #edf5fd;
+    color: #347abd;
+
+    font-size: 7px;
+    font-weight: 700;
+
+    text-transform: capitalize;
+}
+
+.admin-qr-form-info h3 {
+    margin: 0 0 6px;
+
+    color: #283c54;
+
+    font-size: 16px;
+    line-height: 1.45;
+
+    font-weight: 700;
+}
+
+.admin-qr-form-info p {
+    margin: 0;
+
+    color: #8a99aa;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   QR CODE
+========================================================= */
+
+.admin-qr-code-wrapper {
+    padding: 9px 22px 18px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+}
+
+.admin-qr-code-box {
+    position: relative;
+
+    width: 264px;
+    height: 264px;
+
+    padding: 16px;
+
+    border:
+        1px solid #dce7f2;
+
+    border-radius: 22px;
+
+    background: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-shadow:
+        0 10px 28px rgba(31, 74, 122, .1);
+}
+
+.admin-qr-code-box::before,
+.admin-qr-code-box::after {
+    content: "";
+
+    position: absolute;
+
+    width: 35px;
+    height: 35px;
+
+    pointer-events: none;
+}
+
+.admin-qr-code-box::before {
+    top: 8px;
+    left: 8px;
+
+    border-top:
+        3px solid #327cc3;
+
+    border-left:
+        3px solid #327cc3;
+
+    border-radius: 8px 0 0 0;
+}
+
+.admin-qr-code-box::after {
+    right: 8px;
+    bottom: 8px;
+
+    border-right:
+        3px solid #327cc3;
+
+    border-bottom:
+        3px solid #327cc3;
+
+    border-radius: 0 0 8px 0;
+}
+
+.admin-qr-code-box canvas {
+    display: block;
+
+    width: 230px !important;
+    height: 230px !important;
+
+    max-width: 100%;
+}
+
+.admin-qr-scan-label {
+    min-height: 28px;
+
+    margin-top: 13px;
+    padding: 0 11px;
+
+    border-radius: 999px;
+
+    background: #edf5fd;
+    color: #3b7fbe;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.admin-qr-scan-label svg {
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   QR LINK PREVIEW
+========================================================= */
+
+.admin-qr-link-preview {
+    margin: 0 22px 18px;
+
+    padding: 13px;
+
+    border:
+        1px solid #dce7f2;
+
+    border-radius: 13px;
+
+    background: #f5f9fd;
+}
+
+.admin-qr-link-preview > span {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #8494a7;
+
+    font-size: 8px;
+    font-weight: 600;
+}
+
+.admin-qr-link-preview > div {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+}
+
+.admin-qr-link-preview p {
+    min-width: 0;
+
+    margin: 0;
+
+    flex: 1;
+
+    overflow: hidden;
+
+    color: #3378b9;
+
+    font-size: 9px;
+    font-weight: 600;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.admin-qr-link-preview button {
+    width: 31px;
+    height: 31px;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid #d3e1ee;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #527fa9;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    font-size: 10px;
+
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease;
+}
+
+.admin-qr-link-preview button:hover {
+    border-color: #b8d3ec;
+
+    background: #e7f2fc;
+    color: #2973b7;
+}
+
+
+/* =========================================================
+   QR MODAL ACTIONS
+========================================================= */
+
+.admin-qr-modal-actions {
+    padding: 16px 22px 21px;
+
+    border-top:
+        1px solid #e7edf4;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, .8fr)
+        minmax(0, 1.2fr);
+
+    gap: 10px;
+}
+
+.admin-qr-cancel-btn,
+.admin-qr-download-btn {
+    height: 41px;
+
+    border-radius: 11px;
+
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    transition:
+        transform .2s ease,
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+.admin-qr-cancel-btn {
+    border:
+        1px solid #dce5ef;
+
+    background: #ffffff;
+    color: #75879b;
+}
+
+.admin-qr-cancel-btn:hover {
+    border-color: #c5d3e1;
+
+    background: #f3f6f9;
+    color: #536a83;
+}
+
+.admin-qr-download-btn {
+    border: none;
+
+    background:
+        linear-gradient(
+            90deg,
+            #1f63a8,
+            #3183d2
+        );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 6px 15px rgba(35, 106, 180, .2);
+}
+
+.admin-qr-download-btn:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 9px 20px rgba(35, 106, 180, .27);
+}
+
+.admin-qr-download-btn.downloaded {
+    background:
+        linear-gradient(
+            90deg,
+            #23875f,
+            #35ad7a
+        );
+
+    box-shadow:
+        0 6px 15px rgba(38, 145, 99, .2);
+}
+
+
+/* =========================================================
+   DARK MODE — NEW ELEMENTS
+========================================================= */
+
+.admin-dashboard.dark
+.admin-section-eyebrow {
+    color: #6caff5;
+}
+
+.admin-dashboard.dark
+.admin-section-heading p {
+    color: #8394aa;
+}
+
+.admin-dashboard.dark
+.recent-card-type {
+    background: #203a58;
+    color: #6db2ff;
+}
+
+.admin-dashboard.dark
+.recent-card-status.inactive {
+    border-color: #3a4656;
+
+    background: #252f3d;
+    color: #8b99aa;
+}
+
+.admin-dashboard.dark
+.recent-card-buttons .recent-qr-button {
+    color: #73b5fc;
+}
+
+.admin-dashboard.dark
+.recent-card-buttons .recent-qr-button:hover {
+    border-color: #3e6286;
+
+    background: #234363;
+    color: #8dc4ff;
+}
+
+.admin-dashboard.dark
+.recent-card-buttons .recent-copy-button.copied {
+    border-color: #2c5c4a;
+
+    background: #1d4437;
+    color: #65d49d;
+}
+
+.admin-dashboard.dark
+.admin-empty-eyebrow {
+    color: #69adf8;
+}
+
+.admin-dashboard.dark
+.admin-qr-overlay {
+    background:
+        rgba(2, 9, 18, .74);
+}
+
+.admin-dashboard.dark
+.admin-qr-modal {
+    border-color: #314156;
+
+    background: #172234;
+
+    box-shadow:
+        0 28px 70px rgba(0, 0, 0, .5);
+}
+
+.admin-dashboard.dark
+.admin-qr-modal-header {
+    border-bottom-color: #2b3b50;
+
+    background:
+        linear-gradient(
+            135deg,
+            #1a2c42,
+            #172234
+        );
+}
+
+.admin-dashboard.dark
+.admin-qr-modal-icon {
+    background: #213d5c;
+    color: #6eb3ff;
+}
+
+.admin-dashboard.dark
+.admin-qr-modal-heading h2,
+.admin-dashboard.dark
+.admin-qr-form-info h3 {
+    color: #f0f5fb;
+}
+
+.admin-dashboard.dark
+.admin-qr-modal-heading span {
+    color: #70acf0;
+}
+
+.admin-dashboard.dark
+.admin-qr-close-btn {
+    border-color: #34465d;
+
+    background: #1c2a3c;
+    color: #91a3b8;
+}
+
+.admin-dashboard.dark
+.admin-qr-close-btn:hover {
+    border-color: #74404b;
+
+    background: #45242c;
+    color: #fb7185;
+}
+
+.admin-dashboard.dark
+.admin-qr-form-type {
+    background: #203a58;
+    color: #6db2ff;
+}
+
+.admin-dashboard.dark
+.admin-qr-form-info p {
+    color: #8d9db1;
+}
+
+.admin-dashboard.dark
+.admin-qr-code-box {
+    border-color: #35485f;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, .3);
+}
+
+.admin-dashboard.dark
+.admin-qr-scan-label {
+    background: #203a58;
+    color: #6eb3ff;
+}
+
+.admin-dashboard.dark
+.admin-qr-link-preview {
+    border-color: #30445c;
+
+    background: #1c2d42;
+}
+
+.admin-dashboard.dark
+.admin-qr-link-preview > span {
+    color: #8293a8;
+}
+
+.admin-dashboard.dark
+.admin-qr-link-preview p {
+    color: #75b6ff;
+}
+
+.admin-dashboard.dark
+.admin-qr-link-preview button {
+    border-color: #354a62;
+
+    background: #17263a;
+    color: #91a8bf;
+}
+
+.admin-dashboard.dark
+.admin-qr-link-preview button:hover {
+    background: #244361;
+    color: #76b8ff;
+}
+
+.admin-dashboard.dark
+.admin-qr-modal-actions {
+    border-top-color: #2c3c51;
+}
+
+.admin-dashboard.dark
+.admin-qr-cancel-btn {
+    border-color: #35475e;
+
+    background: #1c2a3c;
+    color: #91a3b8;
+}
+
+.admin-dashboard.dark
+.admin-qr-cancel-btn:hover {
+    background: #243449;
+    color: #b3c3d5;
+}
+
+
+/* =========================================================
+   TABLET — QR
+========================================================= */
+
+@media (max-width: 760px) {
+
+    .admin-qr-overlay {
+        padding: 16px;
+    }
+
+    .admin-qr-modal {
+        max-width: 440px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE — NEW ELEMENTS
+========================================================= */
+
+@media (max-width: 680px) {
+
+    .admin-section-heading {
+        align-items: flex-end;
+    }
+
+    .admin-section-heading p {
+        font-size: 8px;
+    }
+
+    .recent-card-type {
+        font-size: 6px;
+    }
+
+    .admin-empty-recent {
+        min-height: 240px;
+
+        padding:
+            28px 18px;
+    }
+
+    .admin-empty-recent p {
+        max-width: 300px;
+
+        font-size: 9px;
+    }
+
+    .admin-qr-overlay {
+        align-items: flex-start;
+
+        padding:
+            14px 11px;
+
+        overflow-y: auto;
+    }
+
+    .admin-qr-modal {
+        margin: auto 0;
+
+        border-radius: 19px;
+    }
+
+    .admin-qr-modal-header {
+        padding:
+            16px;
+    }
+
+    .admin-qr-form-info {
+        padding:
+            16px 17px 12px;
+    }
+
+    .admin-qr-form-info h3 {
+        font-size: 14px;
+    }
+
+    .admin-qr-code-wrapper {
+        padding:
+            7px 16px 15px;
+    }
+
+    .admin-qr-code-box {
+        width: 238px;
+        height: 238px;
+
+        padding: 14px;
+    }
+
+    .admin-qr-code-box canvas {
+        width: 206px !important;
+        height: 206px !important;
+    }
+
+    .admin-qr-link-preview {
+        margin:
+            0 16px 15px;
+    }
+
+    .admin-qr-modal-actions {
+        padding:
+            14px 16px 17px;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE — QR
+========================================================= */
+
+@media (max-width: 420px) {
+
+    .admin-section-heading {
+        gap: 8px;
+    }
+
+    .admin-section-heading p {
+        max-width: 210px;
+    }
+
+    .recent-card-main {
+        gap: 9px;
+    }
+
+    .recent-card-content p {
+        -webkit-line-clamp: 2;
+
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+
+        overflow: hidden;
+    }
+
+    .admin-qr-code-box {
+        width: 220px;
+        height: 220px;
+
+        border-radius: 18px;
+    }
+
+    .admin-qr-code-box canvas {
+        width: 190px !important;
+        height: 190px !important;
+    }
+
+    .admin-qr-modal-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-qr-cancel-btn {
+        order: 2;
+    }
+
+    .admin-qr-download-btn {
+        order: 1;
+    }
+
+}
+
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+    .admin-qr-overlay {
+        position: static;
+
+        padding: 0;
+
+        background: #ffffff;
+
+        display: block;
+    }
+
+    .admin-qr-modal {
+        max-width: none;
+
+        border: none;
+
+        box-shadow: none;
+    }
+
+    .admin-qr-close-btn,
+    .admin-qr-modal-actions {
+        display: none;
+    }
+
+}

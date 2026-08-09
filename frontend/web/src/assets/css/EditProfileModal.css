@@ -1,0 +1,351 @@
+/* =========================================
+   MODAL OVERLAY
+========================================= */
+
+.modal-overlay{
+
+    position:fixed;
+
+    inset:0;
+
+    background:rgba(15,23,42,.50);
+
+    backdrop-filter:blur(4px);
+
+    display:flex;
+
+    justify-content:center;
+    align-items:center;
+
+    padding:20px;
+
+    z-index:9999;
+}
+
+
+/* =========================================
+   EDIT MODAL
+========================================= */
+
+.edit-modal{
+
+    width:450px;
+
+    max-width:100%;
+
+    background:#FFFFFF;
+
+    border-radius:20px;
+
+    padding:30px;
+
+    box-shadow:
+        0 20px 50px rgba(0,0,0,.20);
+
+    animation:editPopup .25s ease;
+
+    transition:
+        background .3s ease,
+        box-shadow .3s ease;
+}
+
+
+/* =========================================
+   TITLE
+========================================= */
+
+.edit-modal h2{
+
+    text-align:center;
+
+    color:#184A90;
+
+    font-size:24px;
+
+    font-weight:700;
+
+    margin-bottom:28px;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.modal-form{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:18px;
+}
+
+.form-group{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+}
+
+.modal-form label{
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#2F3B52;
+}
+
+
+/* =========================================
+   INPUT
+========================================= */
+
+.modal-form input{
+
+    width:100%;
+
+    height:50px;
+
+    border:1px solid #D8E2F2;
+
+    border-radius:11px;
+
+    background:#FFFFFF;
+
+    color:#1E293B;
+
+    padding:0 15px;
+
+    font-family:'Poppins',sans-serif;
+
+    font-size:14px;
+
+    outline:none;
+
+    transition:
+        border-color .25s ease,
+        box-shadow .25s ease,
+        background .25s ease;
+}
+
+.modal-form input::placeholder{
+
+    color:#A0AABD;
+}
+
+.modal-form input:focus{
+
+    border-color:#2F78E8;
+
+    box-shadow:
+        0 0 0 3px rgba(47,120,232,.10);
+}
+
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+.modal-buttons{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    gap:12px;
+
+    margin-top:28px;
+}
+
+.cancel-btn,
+.save-btn{
+
+    width:110px;
+
+    height:46px;
+
+    border:none;
+
+    border-radius:11px;
+
+    font-family:'Poppins',sans-serif;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.25s;
+}
+
+
+/* =========================================
+   CANCEL
+========================================= */
+
+.cancel-btn{
+
+    background:#E9EEF7;
+
+    color:#43516A;
+}
+
+.cancel-btn:hover{
+
+    background:#DCE4F1;
+}
+
+
+/* =========================================
+   SAVE
+========================================= */
+
+.save-btn{
+
+    background:#2F78E8;
+
+    color:#FFFFFF;
+}
+
+.save-btn:hover{
+
+    background:#1E64CF;
+
+    transform:translateY(-1px);
+}
+
+
+/* =========================================
+   ANIMATION
+========================================= */
+
+@keyframes editPopup{
+
+    from{
+
+        opacity:0;
+
+        transform:
+            translateY(10px)
+            scale(.94);
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+}
+
+
+/* =========================================
+   DARK MODE
+========================================= */
+
+.profile-page.dark .edit-modal{
+
+    background:#1E293B;
+
+    box-shadow:
+        0 20px 55px rgba(0,0,0,.45);
+}
+
+.profile-page.dark .edit-modal h2{
+
+    color:#F8FAFC;
+}
+
+.profile-page.dark .modal-form label{
+
+    color:#E2E8F0;
+}
+
+.profile-page.dark .modal-form input{
+
+    background:#0F172A;
+
+    color:#F8FAFC;
+
+    border-color:#334155;
+}
+
+.profile-page.dark .modal-form input::placeholder{
+
+    color:#64748B;
+}
+
+.profile-page.dark .modal-form input:focus{
+
+    border-color:#60A5FA;
+
+    box-shadow:
+        0 0 0 3px rgba(96,165,250,.12);
+}
+
+.profile-page.dark .cancel-btn{
+
+    background:#334155;
+
+    color:#E2E8F0;
+}
+
+.profile-page.dark .cancel-btn:hover{
+
+    background:#475569;
+}
+
+.profile-page.dark .save-btn{
+
+    background:#2563EB;
+
+    color:#FFFFFF;
+}
+
+.profile-page.dark .save-btn:hover{
+
+    background:#1D4ED8;
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media(max-width:480px){
+
+    .edit-modal{
+
+        width:100%;
+
+        padding:24px 20px;
+
+        border-radius:18px;
+    }
+
+    .edit-modal h2{
+
+        font-size:21px;
+
+        margin-bottom:22px;
+    }
+
+    .modal-buttons{
+
+        flex-direction:column-reverse;
+    }
+
+    .cancel-btn,
+    .save-btn{
+
+        width:100%;
+    }
+
+}
