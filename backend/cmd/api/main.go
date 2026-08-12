@@ -8,7 +8,6 @@ import (
 	"backend/config"
 	_ "backend/docs"
 	"backend/internal/application/service"
-	"backend/internal/domain"
 	"backend/internal/infrastructure/cache"
 	"backend/internal/infrastructure/database"
 	"backend/internal/infrastructure/email"
@@ -17,8 +16,6 @@ import (
 	"backend/internal/infrastructure/security"
 	"backend/internal/interfaces/http/handler"
 	"backend/internal/interfaces/http/router"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 // @title HiDocs Backend API (Form & Exam Maker)
@@ -50,9 +47,6 @@ func main() {
 	docxParser := parser.NewDocxParser()
 	redisClient := cache.NewRedisClient(cfg)
 	emailSender := email.NewSMTPEmailSender(cfg)
-
-	// Seed Admin User if not existing
-	seedAdmin(db, hasher)
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
@@ -105,21 +99,40 @@ func main() {
 	}
 }
 
-func seedAdmin(db *gorm.DB, hasher security.PasswordHasher) {
-	var count int64
-	db.Model(&domain.User{}).Where("role = ?", domain.RoleAdmin).Count(&count)
-	if count == 0 {
-		hashed, _ := hasher.HashPassword("admin123")
-		admin := &domain.User{
-			ID:           uuid.New(),
-			Name:         "System Admin",
-			Email:        "admin@hidocs.id",
-			PasswordHash: hashed,
-			Role:         domain.RoleAdmin,
-			IsActive:     true,
-		}
-		if err := db.Create(admin).Error; err == nil {
-			log.Println("Default admin user created: admin@hidocs.id / admin123")
-		}
-	}
-}
+// func seedSuperAdmin(db *gorm.DB, hasher security.PasswordHasher) {
+// 	var count int64
+// 	db.Model(&domain.User{}).Where("role = ?", domain.RoleSuperAdmin).Count(&count)
+// 	if count == 0 {
+// 		hashed, _ := hasher.HashPassword("superadmin123")
+// 		superAdmin := &domain.User{
+// 			ID:           uuid.New(),
+// 			Name:         "System SuperAdmin",
+// 			Email:        "superadmin@hidocs.id",
+// 			PasswordHash: hashed,
+// 			Role:         domain.RoleSuperAdmin,
+// 			IsActive:     true,
+// 		}
+// 		if err := db.Create(superAdmin).Error; err == nil {
+// 			log.Println("Default superadmin user created: superadmin@hidocs.id / superadmin123")
+// 		}
+// 	}
+// }
+
+// func seedAdmin(db *gorm.DB, hasher security.PasswordHasher) {
+// 	var count int64
+// 	db.Model(&domain.User{}).Where("role = ?", domain.RoleAdmin).Count(&count)
+// 	if count == 0 {
+// 		hashed, _ := hasher.HashPassword("admin123")
+// 		admin := &domain.User{
+// 			ID:           uuid.New(),
+// 			Name:         "System Admin",
+// 			Email:        "admin@hidocs.id",
+// 			PasswordHash: hashed,
+// 			Role:         domain.RoleAdmin,
+// 			IsActive:     true,
+// 		}
+// 		if err := db.Create(admin).Error; err == nil {
+// 			log.Println("Default admin user created: admin@hidocs.id / admin123")
+// 		}
+// 	}
+// }

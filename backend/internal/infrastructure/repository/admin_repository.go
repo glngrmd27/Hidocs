@@ -34,6 +34,12 @@ func (r *adminRepository) ListCreators(ctx context.Context) ([]domain.User, erro
 	return users, err
 }
 
+func (r *adminRepository) ListAdmins(ctx context.Context) ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.WithContext(ctx).Where("role = ?", domain.RoleAdmin).Order("created_at desc").Find(&users).Error
+	return users, err
+}
+
 func (r *adminRepository) UpdateCreatorStatus(ctx context.Context, creatorID uuid.UUID, isActive bool) error {
 	return r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", creatorID).Update("is_active", isActive).Error
 }

@@ -123,6 +123,48 @@ func (h *AdminHandler) ListAllForms(c *gin.Context) {
 	response.OK(c, "All forms retrieved successfully", forms)
 }
 
+// CreateAdmin godoc
+// @Summary Create a new admin account (SuperAdmin only)
+// @Tags SuperAdmin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.RegisterRequest true "Create Admin Payload"
+// @Success 201 {object} response.APIResponse{data=dto.UserResponse}
+// @Router /api/v1/superadmin/create-admin [post]
+func (h *AdminHandler) CreateAdmin(c *gin.Context) {
+	var req dto.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request payload", err)
+		return
+	}
+
+	admin, err := h.adminService.CreateAdmin(c.Request.Context(), req)
+	if err != nil {
+		response.BadRequest(c, err.Error(), err)
+		return
+	}
+
+	response.Created(c, "Admin account created successfully", admin)
+}
+
+// ListAdmins godoc
+// @Summary List all admin accounts (SuperAdmin only)
+// @Tags SuperAdmin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.APIResponse{data=[]dto.UserResponse}
+// @Router /api/v1/superadmin/list-admin [get]
+func (h *AdminHandler) ListAdmins(c *gin.Context) {
+	admins, err := h.adminService.ListAdmins(c.Request.Context())
+	if err != nil {
+		response.InternalServerError(c, "Failed to list admins", err)
+		return
+	}
+
+	response.OK(c, "Admins retrieved successfully", admins)
+}
+
 // DeleteForm godoc
 // @Summary Delete form as admin
 // @Tags Admin

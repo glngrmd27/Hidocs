@@ -1,6 +1,7 @@
 package router
 
 import (
+	"backend/internal/domain"
 	"backend/internal/infrastructure/security"
 	"backend/internal/interfaces/http/handler"
 	"backend/internal/interfaces/http/middleware"
@@ -115,7 +116,7 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 
 			// 7. Admin Exclusive Endpoints
 			admin := protected.Group("/admin")
-			admin.Use(middleware.RequireRole("admin"))
+			admin.Use(middleware.RequireRole(domain.RoleAdmin))
 			{
 				admin.GET("/dashboard/stats", cfg.AdminHandler.GetDashboardStats)
 				admin.GET("/creators", cfg.AdminHandler.ListCreators)
@@ -123,6 +124,14 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 				admin.PUT("/creators/:creator_id/status", cfg.AdminHandler.UpdateCreatorStatus)
 				admin.GET("/forms", cfg.AdminHandler.ListAllForms)
 				admin.DELETE("/forms/:form_id", cfg.AdminHandler.DeleteForm)
+			}
+
+			// 8. Superadmin Exclusive 
+			superadmin := protected.Group("/superadmin")
+			superadmin.Use(middleware.RequireRole(domain.RoleSuperAdmin))
+			{
+				superadmin.POST("/create-admin", cfg.AdminHandler.CreateAdmin)
+				superadmin.GET("/list-admin", cfg.AdminHandler.ListAdmins)
 			}
 		}
 	}

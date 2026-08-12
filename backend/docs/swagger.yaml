@@ -113,10 +113,12 @@ definitions:
     - TypeImage
   domain.UserRole:
     enum:
+    - superadmin
     - admin
     - user
     type: string
     x-enum-varnames:
+    - RoleSuperAdmin
     - RoleAdmin
     - RoleUser
   dto.AnswerDetailDTO:
@@ -1463,6 +1465,55 @@ paths:
       summary: Adjust score/grade manually for a response
       tags:
       - Responses
+  /api/v1/superadmin/create-admin:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create Admin Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new admin account (SuperAdmin only)
+      tags:
+      - SuperAdmin
+  /api/v1/superadmin/list-admin:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List all admin accounts (SuperAdmin only)
+      tags:
+      - SuperAdmin
   /api/v1/users/me:
     get:
       produces:
