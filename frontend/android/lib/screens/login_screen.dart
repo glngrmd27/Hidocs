@@ -6,8 +6,6 @@ import '../widgets/gradient_button.dart';
 import '../widgets/custom_input.dart';
 import '../widgets/hidocs_logo.dart';
 import 'register_screen.dart';
-import 'admin_home_screen.dart';
-import 'user_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -145,18 +143,18 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 0),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(32, 40, 32, 0),
                         child: Column(children: [
                           HiDocsLogo(size: 84),
-                          const SizedBox(height: 16),
-                          const Text('HiDocs!',
+                          SizedBox(height: 16),
+                          Text('HiDocs!',
                               style: TextStyle(
                                   fontSize: 38,
                                   fontWeight: FontWeight.w900,
                                   color: Colors.white,
                                   letterSpacing: -1.5)),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                         ]),
                       ),
                       const SizedBox(height: 36),
@@ -318,25 +316,25 @@ class _LoginScreenState extends State<LoginScreen>
                               color:
                                   Colors.white.withValues(alpha: 0.20)),
                         ),
-                        child: Column(
+                        child: const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                           Row(children: [
-                            const Icon(Icons.info_outline_rounded,
+                            Icon(Icons.info_outline_rounded,
                                 size: 15, color: AppTheme.accent),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('Demo Accounts',
                                 style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: AppTheme.accent)),
                           ]),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           _DemoRow(
                               icon: Icons.admin_panel_settings_rounded,
                               label: 'Admin',
                               value: 'Admin  /  admin123'),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           _DemoRow(
                               icon: Icons.person_rounded,
                               label: 'User',

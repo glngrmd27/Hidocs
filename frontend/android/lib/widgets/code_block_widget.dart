@@ -22,7 +22,6 @@ class CodeBlockWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFF252D40)),
       ),
       child: Column(children: [
-        // Title bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: const BoxDecoration(
@@ -30,7 +29,6 @@ class CodeBlockWidget extends StatelessWidget {
             borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
           ),
           child: Row(children: [
-            // Traffic lights
             _dot(const Color(0xFFFF5F57)),
             const SizedBox(width: 6),
             _dot(const Color(0xFFFFBD2E)),
@@ -41,7 +39,6 @@ class CodeBlockWidget extends StatelessWidget {
                 color: Color(0xFF6B7A99), fontSize: 12,
                 fontWeight: FontWeight.w500)),
             const SizedBox(width: 12),
-            // Copy button
             GestureDetector(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: code));
@@ -60,7 +57,6 @@ class CodeBlockWidget extends StatelessWidget {
             ),
           ]),
         ),
-        // Code body
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.all(18),

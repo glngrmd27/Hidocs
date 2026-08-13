@@ -37,7 +37,7 @@ class FormMakerApp extends StatelessWidget {
               '/login': (context) => const LoginScreen(),
               '/register': (context) => const RegisterScreen(),
               '/admin-home': (context) => const AdminHomeScreen(),
-              '/user-home': (context) => UserHomeScreen(),
+              '/user-home': (context) => const UserHomeScreen(),
             },
           );
         },
@@ -57,7 +57,7 @@ class AuthWrapper extends StatelessWidget {
       if (auth.isAdmin) {
         return const AdminHomeScreen();
       } else {
-        return UserHomeScreen();
+        return const UserHomeScreen();
       }
     }
 

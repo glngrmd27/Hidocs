@@ -37,7 +37,7 @@ class CustomCard extends StatelessWidget {
         border: hasBorder ? Border.all(color: bd) : null,
         boxShadow: hasShadow && !isDark ? [
           BoxShadow(
-            color:  Colors.black.withOpacity(0.05),
+            color:  Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -59,7 +59,6 @@ class CustomCard extends StatelessWidget {
   }
 }
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
 class StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -83,13 +82,13 @@ class StatCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           color: dark
-              ? Colors.white.withOpacity(0.08)
-              : accentColor.withOpacity(0.07),
+              ? Colors.white.withValues(alpha: 0.08)
+              : accentColor.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: dark
-                ? Colors.white.withOpacity(0.12)
-                : accentColor.withOpacity(0.18),
+                ? Colors.white.withValues(alpha: 0.12)
+                : accentColor.withValues(alpha: 0.18),
           ),
         ),
         child: Column(children: [
@@ -97,8 +96,8 @@ class StatCard extends StatelessWidget {
             width: 36, height: 36,
             decoration: BoxDecoration(
               color: dark
-                  ? accentColor.withOpacity(0.20)
-                  : accentColor.withOpacity(0.14),
+                  ? accentColor.withValues(alpha: 0.20)
+                  : accentColor.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 18, color: accentColor),

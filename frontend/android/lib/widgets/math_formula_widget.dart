@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 
-/// Renders a math formula as styled plain text with a dedicated card.
-/// (flutter_math_fork removed — plain rendering used instead.)
 class MathFormulaWidget extends StatelessWidget {
   final String formula;
   final double fontSize;
@@ -24,11 +22,10 @@ class MathFormulaWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: isDark
-                ? AppTheme.primary.withOpacity(0.30)
-                : AppTheme.primary.withOpacity(0.15)),
+                ? AppTheme.primary.withValues(alpha: 0.30)
+                : AppTheme.primary.withValues(alpha: 0.15)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Header
         Row(children: [
           Icon(Icons.functions_rounded, size: 16,
               color: isDark ? const Color(0xFF4A90D9) : AppTheme.primary),
@@ -39,7 +36,6 @@ class MathFormulaWidget extends StatelessWidget {
               letterSpacing: 0.3)),
         ]),
         const SizedBox(height: 12),
-        // Formula
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),

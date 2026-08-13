@@ -90,9 +90,7 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final myForms     = formProvider.getFormsByCreator(auth.currentUser!.id);
-    final totalResp   = myForms.fold(0, (s, f) => s + f.totalResponses);
-    final activeCount = myForms.where((f) => f.isActive).length;
+    final myForms = formProvider.getFormsByCreator(auth.currentUser!.id);
 
     return Scaffold(
       body: CustomScrollView(
@@ -106,10 +104,10 @@ class _DashboardTab extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: _HeaderBg(auth: auth),
             ),
-            title: Row(children: [
+            title: const Row(children: [
               HiDocsLogo(size: 28, showShadow: false),
-              const SizedBox(width: 10),
-              const Text('HiDocs!',
+              SizedBox(width: 10),
+              Text('HiDocs!',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -166,7 +164,7 @@ class _DashboardTab extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 if (myForms.isEmpty)
-                  _EmptyState(
+                  const _EmptyState(
                     icon: Icons.article_outlined,
                     title: 'No forms yet',
                     subtitle: 'Tap "New Form" to get started',
@@ -493,32 +491,6 @@ class _StatusPill extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: isActive ? AppTheme.success : AppTheme.error)),
-      ]),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _Chip(this.icon, this.label, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.20)),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 11, color: color),
-        const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w600, color: color)),
       ]),
     );
   }

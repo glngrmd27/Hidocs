@@ -131,7 +131,7 @@ class ResultsScreen extends StatelessWidget {
                   onPressed: () => _showExportSnack(context),
                   fullWidth: true,
                   icon: Icons.table_chart_rounded,
-                  colors: [AppTheme.success, const Color(0xFF0D8A4B)],
+                  colors: const [AppTheme.success, Color(0xFF0D8A4B)],
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -242,17 +242,17 @@ class _SummaryCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark
-              ? color.withOpacity(0.12)
-              : color.withOpacity(0.07),
+              ? color.withValues(alpha: 0.12)
+              : color.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.20)),
+          border: Border.all(color: color.withValues(alpha: 0.20)),
         ),
         child: Row(children: [
           Container(
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, size: 20, color: color),
@@ -313,7 +313,7 @@ class _RespondentRow extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.09),
+            color: AppTheme.primary.withValues(alpha: 0.09),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
@@ -341,14 +341,14 @@ class _RespondentRow extends StatelessWidget {
                         : AppTheme.textPrimary)),
             const SizedBox(height: 2),
             Row(children: [
-              Icon(Icons.calendar_today_outlined,
+              const Icon(Icons.calendar_today_outlined,
                   size: 11, color: AppTheme.textMuted),
               const SizedBox(width: 4),
               Text(data['date'] as String,
                   style: const TextStyle(
                       fontSize: 11, color: AppTheme.textMuted)),
               const SizedBox(width: 10),
-              Icon(Icons.timer_outlined,
+              const Icon(Icons.timer_outlined,
                   size: 11, color: AppTheme.textMuted),
               const SizedBox(width: 4),
               Text(data['duration'] as String,
@@ -362,9 +362,9 @@ class _RespondentRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(
               horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.10),
+            color: color.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withOpacity(0.25)),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
           ),
           child: Text('$score%',
               style: TextStyle(

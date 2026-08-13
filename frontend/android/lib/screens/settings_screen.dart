@@ -214,16 +214,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (_) {
                   themeProvider.toggleTheme();
                 },
-                activeColor: AppTheme.primary,
+                activeThumbColor: AppTheme.primary,
               ),
             ),
 
-            _SettingsTile(
+            const _SettingsTile(
               icon: Icons.info_outline_rounded,
               iconColor: AppTheme.info,
               title: 'About HiDocs!',
               subtitle: '',
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
                 color: AppTheme.textMuted,
@@ -245,9 +245,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
               fullWidth: true,
               icon: Icons.logout_rounded,
-              colors: [
+              colors: const [
                 AppTheme.error,
-                const Color(0xFFB71C1C),
+                Color(0xFFB71C1C),
               ],
             ),
           ],

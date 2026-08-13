@@ -28,7 +28,7 @@ class HiDocsLogo extends StatelessWidget {
               borderRadius: BorderRadius.circular(size * 0.3),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFDEDDB).withOpacity(0.35),
+                  color: const Color(0xFFFDEDDB).withValues(alpha: 0.35),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),

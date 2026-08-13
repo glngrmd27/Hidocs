@@ -182,10 +182,6 @@ class _CreateFormScreenState extends State<CreateFormScreen>
     int oldIndex,
     int newIndex,
   ) {
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
-
     if (oldIndex < 0 ||
         oldIndex >= _questions.length ||
         newIndex < 0 ||
@@ -998,7 +994,7 @@ class _QuestionsTab extends StatelessWidget {
                       const EdgeInsets.all(16),
                   buildDefaultDragHandles: false,
                   itemCount: questions.length,
-                  onReorder: onReorder,
+                  onReorderItem: onReorder,
                   itemBuilder:
                       (context, index) {
                     return _QuestionEditor(
