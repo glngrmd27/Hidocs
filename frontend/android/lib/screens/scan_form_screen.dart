@@ -230,7 +230,7 @@ class _ScannerOverlayPainter extends CustomPainter {
     final overlayPaint = Paint()..color = Colors.black54;
     final side = size.shortestSide * 0.62;
     final frame = Rect.fromCenter(
-      center: size.center(Offset(0, -20)),
+      center: size.center(const Offset(0, -20)),
       width: side,
       height: side,
     );
@@ -386,7 +386,7 @@ class _LinkInputPanel extends StatelessWidget {
             const SizedBox(height: 14),
             Row(
               children: [
-                Icon(Icons.link_rounded, size: 18, color: AppTheme.info),
+                const Icon(Icons.link_rounded, size: 18, color: AppTheme.info),
                 const SizedBox(width: 8),
                 Text(
                   'Atau masukkan link form',
