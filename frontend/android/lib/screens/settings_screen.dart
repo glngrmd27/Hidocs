@@ -70,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     height: 58,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: auth.isAdmin
+                        colors: (auth.isAdmin || auth.isSuperAdmin)
                             ? [
                                 AppTheme.warning,
                                 const Color(0xFFE5890A),
@@ -83,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: (auth.isAdmin
+                          color: (auth.isAdmin || auth.isSuperAdmin
                                   ? AppTheme.warning
                                   : AppTheme.primary)
                               .withValues(alpha: 0.25),
@@ -140,20 +140,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: auth.isAdmin
+                            color: (auth.isAdmin || auth.isSuperAdmin)
                                 ? AppTheme.warning.withValues(alpha: 0.12)
                                 : AppTheme.primary.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            auth.isAdmin
-                                ? 'ADMINISTRATOR'
-                                : 'USER',
+                            auth.isSuperAdmin
+                                ? 'SUPER ADMIN'
+                                : auth.isAdmin
+                                    ? 'ADMINISTRATOR'
+                                    : 'USER',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.8,
-                              color: auth.isAdmin
+                              color: (auth.isAdmin || auth.isSuperAdmin)
                                   ? AppTheme.warning
                                   : AppTheme.primary,
                             ),
@@ -234,8 +236,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             GradientButton(
               text: 'Sign Out',
-              onPressed: () {
-                auth.logout();
+              onPressed: () async {
+                await auth.logout();
+
+                if (!mounted) return;
 
                 Navigator.pushNamedAndRemoveUntil(
                   context,
@@ -315,7 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final name = nameController.text.trim();
                 final email = emailController.text.trim();
 
@@ -323,20 +327,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return;
                 }
 
-                auth.updateProfile(
+                await auth.updateProfile(
                   name: name,
                   email: email,
                 );
 
-                Navigator.pop(dialogContext);
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+
+                if (!mounted) return;
 
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
-                      'Profile berhasil diperbarui',
+                      auth.error != null
+                          ? auth.error!
+                          : 'Profile berhasil diperbarui',
                     ),
+                    backgroundColor: auth.error != null
+                        ? AppTheme.error
+                        : null,
                   ),
                 );
+
+                auth.clearError();
               },
               child: const Text('Save'),
             ),

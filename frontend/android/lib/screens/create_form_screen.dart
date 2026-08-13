@@ -236,7 +236,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       );
   }
 
-  void _saveForm() {
+  Future<void> _saveForm() async {
     if (!_formKey.currentState!.validate()) {
       _tabCtrl.animateTo(0);
       return;
@@ -311,9 +311,23 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       createdAt: now,
     );
 
-    formProvider.createForm(form);
+    final created = await formProvider.createForm(form);
 
     if (!mounted) {
+      return;
+    }
+
+    if (!created) {
+      final errorMessage = formProvider.error ??
+          'Gagal membuat form. Periksa jaringan Anda.';
+
+      formProvider.clearError();
+
+      _showMessage(
+        errorMessage,
+        backgroundColor: AppTheme.error,
+      );
+
       return;
     }
 

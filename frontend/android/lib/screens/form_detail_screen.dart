@@ -9,9 +9,37 @@ import '../models/question_model.dart';
 import '../widgets/gradient_button.dart';
 import 'results_screen.dart';
 
-class FormDetailScreen extends StatelessWidget {
+class FormDetailScreen extends StatefulWidget {
   final FormModel form;
   const FormDetailScreen({required this.form, super.key});
+
+  @override
+  State<FormDetailScreen> createState() => _FormDetailScreenState();
+}
+
+class _FormDetailScreenState extends State<FormDetailScreen> {
+  late FormModel _form;
+
+  @override
+  void initState() {
+    super.initState();
+    _form = widget.form;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDetail();
+    });
+  }
+
+  Future<void> _loadDetail() async {
+    final detail = await Provider.of<FormProvider>(context, listen: false)
+        .loadFormDetail(widget.form.id);
+
+    if (mounted && detail != null) {
+      setState(() {
+        _form = detail;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,14 +60,42 @@ class FormDetailScreen extends StatelessWidget {
                     color: Colors.white),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
-                onSelected: (val) {
+                onSelected: (val) async {
                   if (val == 'toggle') {
-                    formProvider.toggleFormActive(form.id);
                     Navigator.pop(context);
+
+                    final ok =
+                        await formProvider.toggleFormActive(_form.id);
+
+                    if (!mounted) return;
+
+                    if (ok) {
+                      setState(() {
+                        _form = copyFormModel(
+                            _form, isActive: !_form.isActive);
+                      });
+                    } else {
+                      final message = formProvider.error ??
+                          'Gagal mengubah status _form.';
+
+                      formProvider.clearError();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(message),
+                          backgroundColor: AppTheme.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                        ),
+                      );
+                    }
                   } else if (val == 'delete') {
                     _confirmDelete(context, formProvider);
                   } else if (val == 'share') {
-                    Share.share('Fill out this form: ${form.fullLink}');
+                    Share.share(
+                        'Fill out this form: ${_form.fullLink}');
                   }
                 },
                 itemBuilder: (_) => [
@@ -53,11 +109,11 @@ class FormDetailScreen extends StatelessWidget {
                   PopupMenuItem(
                       value: 'toggle',
                       child: ListTile(
-                          leading: Icon(form.isActive
+                          leading: Icon(_form.isActive
                               ? Icons.pause_circle_outline_rounded
                               : Icons.play_circle_outline_rounded),
                           title: Text(
-                              form.isActive ? 'Close Form' : 'Activate Form'),
+                              _form.isActive ? 'Close Form' : 'Activate Form'),
                           dense: true,
                           contentPadding: EdgeInsets.zero)),
                   const PopupMenuItem(
@@ -89,10 +145,10 @@ class FormDetailScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                       Row(children: [
-                        _StatusPill(isActive: form.isActive),
+                        _StatusPill(isActive: _form.isActive),
                       ]),
                       const SizedBox(height: 8),
-                      Text(form.title,
+                      Text(_form.title,
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
@@ -130,7 +186,7 @@ class FormDetailScreen extends StatelessWidget {
                         size: 20, color: AppTheme.info),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(form.fullLink,
+                      child: Text(_form.fullLink,
                           style: const TextStyle(
                               fontSize: 14,
                               color: AppTheme.info,
@@ -139,7 +195,7 @@ class FormDetailScreen extends StatelessWidget {
                     GestureDetector(
                       onTap: () {
                         Clipboard.setData(
-                            ClipboardData(text: form.fullLink));
+                            ClipboardData(text: _form.fullLink));
                         ScaffoldMessenger.of(context)
                             .showSnackBar(SnackBar(
                           content: const Text('Link copied!'),
@@ -174,20 +230,20 @@ class FormDetailScreen extends StatelessWidget {
                   _StatBox(
                       icon: Icons.people_rounded,
                       label: 'Responses',
-                      value: '${form.totalResponses}',
+                      value: '${_form.totalResponses}',
                       color: AppTheme.success),
                   const SizedBox(width: 10),
                   _StatBox(
                       icon: Icons.help_rounded,
                       label: 'Questions',
-                      value: '${form.questions.length}',
+                      value: '${_form.questions.length}',
                       color: AppTheme.info),
-                  if (form.hasTimer) ...[
+                  if (_form.hasTimer) ...[
                     const SizedBox(width: 10),
                     _StatBox(
                         icon: Icons.timer_rounded,
                         label: 'Minutes',
-                        value: '${form.timerMinutes}',
+                        value: '${_form.timerMinutes}',
                         color: AppTheme.warning),
                   ],
                 ]),
@@ -197,27 +253,27 @@ class FormDetailScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 10),
                 Wrap(spacing: 8, runSpacing: 8, children: [
-                  if (form.shuffleQuestions)
+                  if (_form.shuffleQuestions)
                     _FeatureChip(
                         Icons.shuffle_rounded, 'Shuffle questions',
                         AppTheme.primary),
-                  if (form.shuffleOptions)
+                  if (_form.shuffleOptions)
                     _FeatureChip(Icons.swap_vert_rounded,
                         'Shuffle answers', AppTheme.info),
-                  if (form.oneTimeOnly)
+                  if (_form.oneTimeOnly)
                     _FeatureChip(Icons.lock_outline_rounded,
                         'One-time only', AppTheme.error),
-                  if (form.hasTimer)
+                  if (_form.hasTimer)
                     _FeatureChip(Icons.timer_rounded,
-                        'Timer ${form.timerMinutes}m',
+                        'Timer ${_form.timerMinutes}m',
                         AppTheme.warning),
-                  if (form.isScheduled)
+                  if (_form.isScheduled)
                     _FeatureChip(Icons.schedule_rounded,
                         'Scheduled', AppTheme.success),
                 ]),
                 const SizedBox(height: 24),
 
-                  if (form.isScheduled) ...[
+                  if (_form.isScheduled) ...[
                     Text('Schedule',
                         style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 10),
@@ -238,14 +294,14 @@ class FormDetailScreen extends StatelessWidget {
                         child: Row(children: [
                           _ScheduleCol(
                               label: 'Opens',
-                              dt: form.scheduledOpen),
+                              dt: _form.scheduledOpen),
                           Container(
                               width: 1, height: 40,
                               margin: const EdgeInsets.symmetric(horizontal: 16),
                               color: isDark ? AppTheme.darkBorder : AppTheme.border),
                           _ScheduleCol(
                               label: 'Closes',
-                              dt: form.scheduledClose),
+                              dt: _form.scheduledClose),
                         ]),
                       ),
                     ),
@@ -260,7 +316,7 @@ class FormDetailScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (_) =>
-                                  ResultsScreen(form: form))),
+                                  ResultsScreen(form: _form))),
                       fullWidth: true,
                       icon: Icons.bar_chart_rounded,
                     ),
@@ -288,10 +344,32 @@ class FormDetailScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
-              fp.deleteForm(form.id);
+            onPressed: () async {
               Navigator.pop(context);
-              Navigator.pop(context);
+
+              final ok = await fp.deleteForm(_form.id);
+
+              if (!mounted) return;
+
+              if (ok) {
+                Navigator.pop(context);
+              } else {
+                final message =
+                    fp.error ?? 'Gagal menghapus form.';
+
+                fp.clearError();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    backgroundColor: AppTheme.error,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.error),

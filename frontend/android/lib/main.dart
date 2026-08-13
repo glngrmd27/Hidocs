@@ -4,9 +4,11 @@ import 'app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/form_provider.dart';
+import 'screens/admin_dashboard_screen.dart';
+import 'screens/creator_home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/admin_home_screen.dart';
+import 'screens/role_selection_screen.dart';
 import 'screens/user_home_screen.dart';
 
 void main() {
@@ -36,8 +38,11 @@ class FormMakerApp extends StatelessWidget {
             routes: {
               '/login': (context) => const LoginScreen(),
               '/register': (context) => const RegisterScreen(),
-              '/admin-home': (context) => const AdminHomeScreen(),
+              '/role-select': (context) => const RoleSelectionScreen(),
               '/user-home': (context) => UserHomeScreen(),
+              '/creator-home': (context) => const CreatorHomeScreen(),
+              '/admin-home': (context) => const AdminDashboardScreen(),
+              '/super-admin-home': (context) => const AdminDashboardScreen(),
             },
           );
         },
@@ -54,11 +59,7 @@ class AuthWrapper extends StatelessWidget {
     final auth = Provider.of<AuthProvider>(context);
 
     if (auth.isLoggedIn) {
-      if (auth.isAdmin) {
-        return const AdminHomeScreen();
-      } else {
-        return UserHomeScreen();
-      }
+      return const RoleSelectionScreen();
     }
 
     return const LoginScreen();

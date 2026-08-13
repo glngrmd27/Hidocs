@@ -1,28 +1,135 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+
 import '../app_theme.dart';
 import '../models/form_model.dart';
+import '../providers/form_provider.dart';
 import '../widgets/gradient_button.dart';
 
-class ResultsScreen extends StatelessWidget {
+class ResultsScreen extends StatefulWidget {
   final FormModel form;
   const ResultsScreen({required this.form, super.key});
 
-  static const _mock = [
-    {'name': 'Budi Santoso',  'date': '10 Jun 2024', 'score': 85, 'duration': '22 min'},
-    {'name': 'Ani Rahayu',    'date': '11 Jun 2024', 'score': 92, 'duration': '18 min'},
-    {'name': 'Dedi Maulana',  'date': '12 Jun 2024', 'score': 78, 'duration': '28 min'},
-    {'name': 'Sari Kusuma',   'date': '13 Jun 2024', 'score': 95, 'duration': '15 min'},
-    {'name': 'Riko Pratama',  'date': '14 Jun 2024', 'score': 70, 'duration': '30 min'},
-    {'name': 'Dewi Lestari',  'date': '14 Jun 2024', 'score': 88, 'duration': '20 min'},
-  ];
+  @override
+  State<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends State<ResultsScreen> {
+  List<Map<String, dynamic>> _responses = [];
+  bool _loading = true;
+  bool _exporting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+    });
+
+    final provider = Provider.of<FormProvider>(context, listen: false);
+    final responses = await provider.loadResponses(widget.form.id);
+
+    if (!mounted) return;
+
+    setState(() {
+      _responses = responses;
+      _loading = false;
+    });
+  }
+
+  List<Map<String, dynamic>> get _rows {
+    return _responses.map((r) {
+      final submittedAt =
+          DateTime.tryParse(r['submitted_at']?.toString() ?? '');
+      final score = (r['total_score'] as num?)?.toDouble() ?? 0;
+
+      return {
+        'name': (r['respondent_email'] ?? 'Respondent').toString(),
+        'date': submittedAt != null
+            ? '${submittedAt.day}/${submittedAt.month}/${submittedAt.year}'
+            : '-',
+        'score': score,
+        'duration': '-',
+      };
+    }).toList();
+  }
+
+  double? get _average {
+    if (_rows.isEmpty) return 0;
+    final total = _rows.fold(0.0, (s, r) => s + (r['score'] as double));
+    return total / _rows.length;
+  }
+
+  double? get _highest {
+    if (_rows.isEmpty) return 0;
+    return _rows
+        .map((r) => r['score'] as double)
+        .reduce((a, b) => a > b ? a : b);
+  }
+
+  double? get _lowest {
+    if (_rows.isEmpty) return 0;
+    return _rows
+        .map((r) => r['score'] as double)
+        .reduce((a, b) => a < b ? a : b);
+  }
+
+  Future<void> _exportExcel() async {
+    setState(() {
+      _exporting = true;
+    });
+
+    try {
+      final provider = Provider.of<FormProvider>(context, listen: false);
+      final bytes = await provider.exportResponses(widget.form.id,
+          format: 'xlsx');
+
+      if (!mounted) return;
+
+      final file = XFile.fromData(
+        bytes,
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        name: 'responses_${widget.form.id}.xlsx',
+      );
+
+      await Share.shareXFiles(
+        [file],
+        text: 'Ekspor respon form: ${widget.form.title}',
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Gagal mengekspor data. Periksa jaringan Anda.',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _exporting = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final avg  = _mock.fold(0, (s, r) => s + (r['score'] as int)) ~/ _mock.length;
-    final high = _mock.map((r) => r['score'] as int).reduce((a, b) => a > b ? a : b);
-    final low  = _mock.map((r) => r['score'] as int).reduce((a, b) => a < b ? a : b);
 
     return Scaffold(
       body: CustomScrollView(
@@ -32,7 +139,7 @@ class ResultsScreen extends StatelessWidget {
             pinned: true,
             backgroundColor: AppTheme.primary,
             elevation: 0,
-            
+
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
@@ -56,7 +163,7 @@ class ResultsScreen extends StatelessWidget {
                               color: Colors.white60,
                               fontWeight: FontWeight.w500)),
                       const SizedBox(height: 4),
-                      Text(form.title,
+                      Text(widget.form.title,
                           style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -80,13 +187,13 @@ class ResultsScreen extends StatelessWidget {
                 Row(children: [
                   _SummaryCard(
                       label: 'Total Responses',
-                      value: '${form.totalResponses}',
+                      value: '${widget.form.totalResponses}',
                       icon: Icons.people_rounded,
                       color: AppTheme.primary),
                   const SizedBox(width: 10),
                   _SummaryCard(
                       label: 'Average',
-                      value: '$avg%',
+                      value: '${_average?.toStringAsFixed(0) ?? 0}%',
                       icon: Icons.trending_up_rounded,
                       color: AppTheme.success),
                 ]),
@@ -94,13 +201,13 @@ class ResultsScreen extends StatelessWidget {
                 Row(children: [
                   _SummaryCard(
                       label: 'Highest',
-                      value: '$high%',
+                      value: '${_highest?.toStringAsFixed(0) ?? 0}%',
                       icon: Icons.emoji_events_rounded,
                       color: AppTheme.warning),
                   const SizedBox(width: 10),
                   _SummaryCard(
                       label: 'Lowest',
-                      value: '$low%',
+                      value: '${_lowest?.toStringAsFixed(0) ?? 0}%',
                       icon: Icons.arrow_downward_rounded,
                       color: AppTheme.error),
                 ]),
@@ -109,7 +216,13 @@ class ResultsScreen extends StatelessWidget {
                 Text('Score Distribution',
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 14),
-                ..._buildDistribution(context, isDark),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  ..._buildDistribution(context, isDark),
                 const SizedBox(height: 24),
 
                 Row(
@@ -117,33 +230,38 @@ class ResultsScreen extends StatelessWidget {
                     children: [
                   Text('Respondents',
                       style: Theme.of(context).textTheme.titleMedium),
-                  Text('${_mock.length} participants',
+                  Text('${_rows.length} participants',
                       style: const TextStyle(
                           fontSize: 13, color: AppTheme.textMuted)),
                 ]),
                 const SizedBox(height: 12),
-                ..._mock.map((r) =>
-                    _RespondentRow(data: r, isDark: isDark)),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_rows.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text('Belum ada respon.',
+                          style: TextStyle(color: AppTheme.textMuted)),
+                    ),
+                  )
+                else
+                  ..._rows.map((r) =>
+                      _RespondentRow(data: r, isDark: isDark)),
                 const SizedBox(height: 28),
 
                 GradientButton(
                   text: 'Export to Excel',
-                  onPressed: () => _showExportSnack(context),
+                  onPressed: _exportExcel,
+                  isLoading: _exporting,
                   fullWidth: true,
                   icon: Icons.table_chart_rounded,
                   colors: [AppTheme.success, const Color(0xFF0D8A4B)],
                 ),
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 17),
-                  label: const Text('Export to PDF'),
-                  style: OutlinedButton.styleFrom(
-                      minimumSize:
-                          const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14))),
-                ),
               ]),
             ),
           ),
@@ -153,15 +271,23 @@ class ResultsScreen extends StatelessWidget {
   }
 
   List<Widget> _buildDistribution(BuildContext context, bool isDark) {
+    final scores = _rows.map((r) => r['score'] as double).toList();
+
+    int countInRange(double min, double max) {
+      return scores
+          .where((s) => s >= min && (max == 100 ? s <= max : s < max))
+          .length;
+    }
+
     final ranges = [
-      {'label': '90–100%', 'count': 2, 'color': AppTheme.success},
-      {'label': '75–89%',  'count': 3, 'color': AppTheme.info},
-      {'label': '60–74%',  'count': 1, 'color': AppTheme.warning},
-      {'label': '< 60%',   'count': 0, 'color': AppTheme.error},
+      {'label': '90–100%', 'count': countInRange(90, 100), 'color': AppTheme.success},
+      {'label': '75–89%',  'count': countInRange(75, 90), 'color': AppTheme.info},
+      {'label': '60–74%',  'count': countInRange(60, 75), 'color': AppTheme.warning},
+      {'label': '< 60%',   'count': countInRange(0, 60), 'color': AppTheme.error},
     ];
     final max = ranges
         .map((r) => r['count'] as int)
-        .reduce((a, b) => a > b ? a : b);
+        .fold(0, (a, b) => a > b ? a : b);
 
     return ranges.map((r) {
       final count = r['count'] as int;
@@ -203,22 +329,6 @@ class ResultsScreen extends StatelessWidget {
         ]),
       );
     }).toList();
-  }
-
-  void _showExportSnack(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Row(children: [
-        Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
-        SizedBox(width: 8),
-        Text('Data exported to Excel successfully!',
-            style: TextStyle(fontWeight: FontWeight.w500)),
-      ]),
-      backgroundColor: AppTheme.success,
-      behavior: SnackBarBehavior.floating,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-    ));
   }
 }
 
@@ -287,7 +397,7 @@ class _RespondentRow extends StatelessWidget {
   final bool isDark;
   const _RespondentRow({required this.data, required this.isDark});
 
-  Color _scoreColor(int s) {
+  Color _scoreColor(double s) {
     if (s >= 90) return AppTheme.success;
     if (s >= 75) return AppTheme.info;
     if (s >= 60) return AppTheme.warning;
@@ -296,7 +406,7 @@ class _RespondentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final score = data['score'] as int;
+    final score = data['score'] as double;
     final color = _scoreColor(score);
 
     return Container(
@@ -318,7 +428,7 @@ class _RespondentRow extends StatelessWidget {
           ),
           child: Center(
             child: Text(
-              (data['name'] as String).substring(0, 1),
+              (data['name'] as String).substring(0, 1).toUpperCase(),
               style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -338,7 +448,9 @@ class _RespondentRow extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: isDark
                         ? AppTheme.darkTextPrimary
-                        : AppTheme.textPrimary)),
+                        : AppTheme.textPrimary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
             const SizedBox(height: 2),
             Row(children: [
               Icon(Icons.calendar_today_outlined,
@@ -366,7 +478,7 @@ class _RespondentRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: color.withOpacity(0.25)),
           ),
-          child: Text('$score%',
+          child: Text('${score.toStringAsFixed(0)}%',
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,

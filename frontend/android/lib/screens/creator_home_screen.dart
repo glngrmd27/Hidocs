@@ -10,14 +10,24 @@ import 'create_form_screen.dart';
 import 'form_detail_screen.dart';
 import 'settings_screen.dart';
 
-class AdminHomeScreen extends StatefulWidget {
-  const AdminHomeScreen({super.key});
+class CreatorHomeScreen extends StatefulWidget {
+  const CreatorHomeScreen({super.key});
   @override
-  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
+  State<CreatorHomeScreen> createState() => _CreatorHomeScreenState();
 }
 
-class _AdminHomeScreenState extends State<AdminHomeScreen> {
+class _CreatorHomeScreenState extends State<CreatorHomeScreen> {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<FormProvider>().loadForms();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +67,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           : null,
       bottomNavigationBar: _BottomNav(
         currentIndex: _tab,
-        onTap: (i) => setState(() => _tab = i),
+        onTap: (i) {
+          setState(() => _tab = i);
+          if (mounted) {
+            context.read<FormProvider>().loadForms();
+          }
+        },
         items: const [
           _NavItem(
               icon: Icons.space_dashboard_outlined,
@@ -90,9 +105,7 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final myForms     = formProvider.getFormsByCreator(auth.currentUser!.id);
-    final totalResp   = myForms.fold(0, (s, f) => s + f.totalResponses);
-    final activeCount = myForms.where((f) => f.isActive).length;
+    final myForms = formProvider.getFormsByCreator(auth.currentUser!.id);
 
     return Scaffold(
       body: CustomScrollView(
@@ -165,7 +178,12 @@ class _DashboardTab extends StatelessWidget {
                 ]),
                 const SizedBox(height: 8),
 
-                if (myForms.isEmpty)
+                if (myForms.isEmpty && formProvider.isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (myForms.isEmpty)
                   _EmptyState(
                     icon: Icons.article_outlined,
                     title: 'No forms yet',
@@ -257,7 +275,7 @@ class _HeaderBg extends StatelessWidget {
                       color: Colors.white,
                       letterSpacing: -0.3)),
               const SizedBox(height: 4),
-              Text('Manage your forms and track responses',
+              Text('Create and manage your forms & quizzes',
                   style: TextStyle(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.65))),
@@ -287,7 +305,7 @@ class _FormsTab extends StatelessWidget {
       backgroundColor:
           isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
       appBar: AppBar(
-        title: const Text('Manage Forms'),
+        title: const Text('My Forms'),
         actions: [
           IconButton(
               icon: const Icon(Icons.search_rounded),
@@ -493,32 +511,6 @@ class _StatusPill extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: isActive ? AppTheme.success : AppTheme.error)),
-      ]),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _Chip(this.icon, this.label, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.20)),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 11, color: color),
-        const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w600, color: color)),
       ]),
     );
   }

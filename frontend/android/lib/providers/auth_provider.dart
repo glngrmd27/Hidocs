@@ -1,124 +1,208 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/user_model.dart';
+import '../services/api_client.dart';
 
 class AuthProvider extends ChangeNotifier {
   UserModel? _currentUser;
   bool _isLoading = false;
   String? _error;
-
-  final List<UserModel> _users = [
-    UserModel(
-      id: 'admin001',
-      name: 'Admin',
-      email: 'admin@hidocs.app',
-      password: 'admin123',
-      role: UserRole.admin,
-      createdAt: DateTime(2024, 1, 15),
-    ),
-    UserModel(
-      id: 'user001',
-      name: 'Budi',
-      email: 'budi@email.com',
-      password: 'user123',
-      role: UserRole.user,
-      createdAt: DateTime(2024, 3, 20),
-    ),
-  ];
+  String _pendingEmail = '';
+  bool _otpSent = false;
 
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isLoggedIn => _currentUser != null;
   bool get isAdmin => _currentUser?.role == UserRole.admin;
+  bool get isSuperAdmin => _currentUser?.role == UserRole.superadmin;
   bool get isUser => _currentUser?.role == UserRole.user;
+  String get roleLabel => _currentUser?.role == UserRole.superadmin
+      ? 'superadmin'
+      : _currentUser?.role == UserRole.admin
+          ? 'admin'
+          : 'user';
+  bool get otpSent => _otpSent;
+  String get pendingEmail => _pendingEmail;
+
+  AuthProvider() {
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final userJson = prefs.getString('auth_user');
+
+      if (token != null && token.isNotEmpty && userJson != null) {
+        ApiClient.token = token;
+        _currentUser = UserModel.fromJson(
+            jsonDecode(userJson) as Map<String, dynamic>);
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistSession(Map<String, dynamic> data) async {
+    final token = (data['token'] ?? '').toString();
+    final userJson = data['user'] ?? {};
+
+    ApiClient.token = token;
+    _currentUser = UserModel.fromJson(
+        userJson is Map ? Map<String, dynamic>.from(userJson) : {});
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+    await prefs.setString('auth_user', jsonEncode(userJson));
+  }
 
   Future<void> login(String username, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 1200));
-
     try {
-      final user = _users.firstWhere(
-        (u) => (u.name.toLowerCase() == username.toLowerCase() || u.email.toLowerCase() == username.toLowerCase()) && u.password == password,
-      );
-      _currentUser = user;
-    } catch (e) {
-      _error = 'Username atau password salah';
+      final data = await ApiClient.post('/auth/login', body: {
+        'email': username.trim(),
+        'password': password,
+      });
+
+      if (data is Map) {
+        await _persistSession(Map<String, dynamic>.from(data));
+      }
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      _error = 'Koneksi gagal. Periksa jaringan atau server.';
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> register(String email, String username, String password, UserRole role) async {
+  Future<void> register(String email, String username, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    try {
+      await ApiClient.post('/auth/register', body: {
+        'name': username.trim(),
+        'email': email.trim(),
+        'password': password,
+      });
 
-    final existsEmail = _users.any((u) => u.email.toLowerCase() == email.toLowerCase());
-    final existsName = _users.any((u) => u.name.toLowerCase() == username.toLowerCase());
-
-    if (existsEmail) {
-      _error = 'Email sudah terdaftar';
-    } else if (existsName) {
-      _error = 'Username sudah terdaftar';
-    } else {
-      final newUser = UserModel(
-        id: 'user${DateTime.now().millisecondsSinceEpoch}',
-        name: username,
-        email: email,
-        password: password,
-        role: role,
-        createdAt: DateTime.now(),
-      );
-      _users.add(newUser);
-      _currentUser = newUser;
+      _pendingEmail = email.trim();
+      _otpSent = true;
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      _error = 'Koneksi gagal. Periksa jaringan atau server.';
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  void logout() {
-    _currentUser = null;
+  Future<bool> verifyOtp(String otpCode) async {
+    _isLoading = true;
     _error = null;
+    notifyListeners();
+
+    try {
+      final data = await ApiClient.post('/auth/verify-otp', body: {
+        'email': _pendingEmail,
+        'otp_code': otpCode.trim(),
+      });
+
+      if (data is Map) {
+        await _persistSession(Map<String, dynamic>.from(data));
+      }
+
+      _otpSent = false;
+      _pendingEmail = '';
+      _isLoading = false;
+      notifyListeners();
+
+      return true;
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      _error = 'Koneksi gagal. Periksa jaringan atau server.';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+
+    return false;
+  }
+
+  Future<void> resendOtp() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await ApiClient.post('/auth/resend-otp', body: {
+        'email': _pendingEmail,
+      });
+      _error = 'Kode OTP baru telah dikirim ke email Anda.';
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      _error = 'Koneksi gagal. Periksa jaringan atau server.';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> updateProfile({required String name, required String email}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final data = await ApiClient.put('/users/me', body: {
+        'name': name.trim(),
+      });
+
+      if (data is Map) {
+        _currentUser = UserModel.fromJson(Map<String, dynamic>.from(data));
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_user', jsonEncode(data));
+      }
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      _error = 'Koneksi gagal. Periksa jaringan atau server.';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    _currentUser = null;
+    ApiClient.token = null;
+    _otpSent = false;
+    _pendingEmail = '';
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      await prefs.remove('auth_user');
+    } catch (_) {}
+
     notifyListeners();
   }
 
   void clearError() {
     _error = null;
-    notifyListeners();
-  }
-
-  void updateProfile({
-    required String name,
-    required String email,
-  }) {
-    if (_currentUser == null) return;
-
-    final updatedUser = UserModel(
-      id: _currentUser!.id,
-      name: name,
-      email: email,
-      password: _currentUser!.password,
-      role: _currentUser!.role,
-      createdAt: _currentUser!.createdAt,
-    );
-
-    final index = _users.indexWhere(
-      (user) => user.id == _currentUser!.id,
-    );
-
-    if (index != -1) {
-      _users[index] = updatedUser;
-    }
-
-    _currentUser = updatedUser;
-
-    notifyListeners();
   }
 }

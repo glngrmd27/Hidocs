@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app_theme.dart';
+import '../providers/auth_provider.dart';
 import '../providers/form_provider.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
@@ -37,6 +38,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
   bool _submitted = false;
   bool _isSubmitting = false;
+  double? _score;
 
   @override
   void initState() {
@@ -139,9 +141,9 @@ class _FillFormScreenState extends State<FillFormScreen> {
     );
   }
 
-  void _submitForm({
+  Future<void> _submitForm({
     bool auto = false,
-  }) {
+  }) async {
     if (_submitted || _isSubmitting) return;
 
     if (!auto) {
@@ -205,15 +207,103 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
     setState(() {
       _isSubmitting = true;
-      _submitted = true;
     });
 
-    Provider.of<FormProvider>(
+    final formProvider = Provider.of<FormProvider>(
       context,
       listen: false,
-    ).markSubmitted(
-      widget.form.id,
     );
+
+    final auth = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    );
+
+    final answers = <Map<String, dynamic>>[];
+
+    for (final q in _questions) {
+      final value = _answers[q.id];
+
+      if (value == null) {
+        continue;
+      }
+
+      if (value is String && value.trim().isEmpty) {
+        continue;
+      }
+
+      if (q.type == QuestionType.multipleChoice ||
+          q.type == QuestionType.imageChoice) {
+        answers.add({
+          'question_id': q.id,
+          'selected_option_id': value,
+          'answer_text': null,
+        });
+      } else {
+        answers.add({
+          'question_id': q.id,
+          'selected_option_id': null,
+          'answer_text': value.toString(),
+        });
+      }
+    }
+
+    final result = await formProvider.submitForm(
+      widget.form.id,
+      respondentEmail: auth.currentUser?.email ?? '',
+      answers: answers,
+      auto: auto,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result == null) {
+      final errorMessage = formProvider.error ??
+          'Gagal mengirim jawaban. Periksa jaringan Anda.';
+
+      formProvider.clearError();
+
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  errorMessage,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _submitted = true;
+      _score = (result['total_score'] as num?)?.toDouble();
+    });
 
     if (auto && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -277,6 +367,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
     if (_submitted) {
       return _SuccessScreen(
+        score: _score,
         onBack: () => Navigator.pop(context),
       );
     }
@@ -667,9 +758,11 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
 class _SuccessScreen
     extends StatelessWidget {
+  final double? score;
   final VoidCallback onBack;
 
   const _SuccessScreen({
+    this.score,
     required this.onBack,
   });
 
@@ -750,6 +843,57 @@ class _SuccessScreen
                 textAlign:
                     TextAlign.center,
               ),
+
+              if (score != null) ...[
+                const SizedBox(
+                  height: 24,
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary
+                        .withValues(
+                      alpha: 0.08,
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(18),
+                    border: Border.all(
+                      color: AppTheme.primary
+                          .withValues(
+                        alpha: 0.25,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Your Score',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color:
+                              AppTheme.textMuted,
+                          fontWeight:
+                              FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 6,
+                      ),
+                      Text(
+                        '${score!.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 34,
+                          fontWeight:
+                              FontWeight.w900,
+                          color:
+                              AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(
                 height: 36,

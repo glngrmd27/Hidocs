@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../providers/auth_provider.dart';
-import '../models/user_model.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/custom_input.dart';
 import '../widgets/hidocs_logo.dart';
@@ -18,16 +18,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   bool _obscure = true;
-  UserRole _role = UserRole.user;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
+    _otpCtrl.dispose();
     super.dispose();
   }
 
@@ -40,43 +41,183 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _emailCtrl.text.trim(),
       _usernameCtrl.text.trim(),
       _passwordCtrl.text,
-      _role,
     );
 
     if (!mounted) return;
 
     if (auth.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  auth.error!,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: AppTheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      _showSnack(auth.error!, AppTheme.error);
+      auth.clearError();
+      return;
+    }
 
+    if (auth.otpSent) {
+      _showSnack(
+        'Kode OTP telah dikirim ke ${auth.pendingEmail}. Masukkan kode untuk menyelesaikan pendaftaran.',
+        AppTheme.success,
+      );
+    }
+  }
+
+  Future<void> _handleVerifyOtp() async {
+    final otp = _otpCtrl.text.trim();
+
+    if (otp.length != 6) {
+      _showSnack('Masukkan kode OTP 6 digit.', AppTheme.warning);
+      return;
+    }
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    final success = await auth.verifyOtp(otp);
+
+    if (!mounted) return;
+
+    if (auth.error != null) {
+      _showSnack(auth.error!, AppTheme.error);
+      auth.clearError();
+      return;
+    }
+
+    if (success) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/role-select',
+        (route) => false,
+      );
+    }
+  }
+
+  Future<void> _handleResendOtp() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    await auth.resendOtp();
+
+    if (!mounted) return;
+
+    if (auth.error != null) {
+      _showSnack(auth.error!, AppTheme.warning);
       auth.clearError();
     }
+  }
+
+  void _showSnack(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Widget _buildOtpStep(AuthProvider auth, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Verify Email',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Masukkan kode OTP 6 digit yang dikirim ke email Anda untuk menyelesaikan pendaftaran.',
+          style: TextStyle(
+            fontSize: 13,
+            height: 1.5,
+            color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
+          ),
+        ),
+        const SizedBox(height: 26),
+        CustomInput(
+          controller: _otpCtrl,
+          label: 'OTP Code',
+          hint: '6-digit code',
+          prefixIcon: Icons.pin_outlined,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(6),
+          ],
+          validator: (v) {
+            if (v == null || v.length != 6) {
+              return 'Masukkan 6 digit kode OTP';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Kode berlaku selama 180 detik. Periksa juga folder spam email Anda.',
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
+          ),
+        ),
+        const SizedBox(height: 26),
+        GradientButton(
+          text: 'Verify & Create Account',
+          onPressed: _handleVerifyOtp,
+          isLoading: auth.isLoading,
+          fullWidth: true,
+          icon: Icons.verified_rounded,
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton(
+            onPressed: _handleResendOtp,
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+            ),
+            child: const Text(
+              'Resend OTP',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Center(
+          child: GestureDetector(
+            onTap: () {
+              auth.clearError();
+              _otpCtrl.clear();
+              Navigator.pop(context);
+            },
+            child: Text(
+              'Back to registration',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -85,6 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final size = MediaQuery.of(context).size;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final showOtp = auth.otpSent;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -228,7 +370,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ],
                         ),
-                        child: Form(
+                        child: showOtp
+                            ? _buildOtpStep(auth, isDark)
+                            : Form(
                           key: _formKey,
                           child: Column(
                             crossAxisAlignment:
@@ -343,102 +487,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 },
                               ),
 
-                              const SizedBox(height: 20),
-
-                              Text(
-                                'Role',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppTheme.darkTextPrimary
-                                      : AppTheme.textSecondary,
-                                ),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? AppTheme.darkSurface
-                                      : AppTheme.surfaceCard,
-                                  borderRadius:
-                                      BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? AppTheme.darkBorder
-                                        : AppTheme.border,
-                                  ),
-                                ),
-                                child:
-                                    DropdownButtonHideUnderline(
-                                  child: ButtonTheme(
-                                    alignedDropdown: true,
-                                    child:
-                                        DropdownButton<UserRole>(
-                                      value: _role,
-                                      isExpanded: true,
-                                      borderRadius:
-                                          BorderRadius.circular(14),
-                                      dropdownColor: isDark
-                                          ? AppTheme.darkCard
-                                          : Colors.white,
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 4,
-                                      ),
-                                      icon: Icon(
-                                        Icons
-                                            .keyboard_arrow_down_rounded,
-                                        color: isDark
-                                            ? AppTheme.darkTextMuted
-                                            : AppTheme.textMuted,
-                                        size: 22,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight:
-                                            FontWeight.w500,
-                                        color: isDark
-                                            ? AppTheme.darkTextPrimary
-                                            : AppTheme.textPrimary,
-                                      ),
-                                      items: const [
-                                        DropdownMenuItem(
-                                          value: UserRole.admin,
-                                          child: _RoleOption(
-                                            icon: Icons
-                                                .admin_panel_settings_rounded,
-                                            label: 'Admin',
-                                            color:
-                                                AppTheme.warning,
-                                          ),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: UserRole.user,
-                                          child: _RoleOption(
-                                            icon: Icons
-                                                .person_rounded,
-                                            label: 'User',
-                                            color:
-                                                AppTheme.primary,
-                                          ),
-                                        ),
-                                      ],
-                                      onChanged: (v) {
-                                        if (v != null) {
-                                          setState(() {
-                                            _role = v;
-                                          });
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-
                               const SizedBox(height: 28),
 
                               GradientButton(
@@ -497,57 +545,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-class _RoleOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _RoleOption({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 1),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppTheme.darkTextPrimary
-                  : AppTheme.textPrimary,
             ),
           ),
         ],
