@@ -119,10 +119,10 @@ class _DashboardTab extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: _HeaderBg(auth: auth),
             ),
-            title: Row(children: [
+            title: const Row(children: [
               HiDocsLogo(size: 28, showShadow: false),
-              const SizedBox(width: 10),
-              const Text('HiDocs!',
+              SizedBox(width: 10),
+              Text('HiDocs!',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -184,7 +184,7 @@ class _DashboardTab extends StatelessWidget {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (myForms.isEmpty)
-                  _EmptyState(
+                  const _EmptyState(
                     icon: Icons.article_outlined,
                     title: 'No forms yet',
                     subtitle: 'Tap "New Form" to get started',

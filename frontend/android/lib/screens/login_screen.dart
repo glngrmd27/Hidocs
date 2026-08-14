@@ -135,18 +135,18 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 0),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(32, 40, 32, 0),
                         child: Column(children: [
                           HiDocsLogo(size: 84),
-                          const SizedBox(height: 16),
-                          const Text('HiDocs!',
+                          SizedBox(height: 16),
+                          Text('HiDocs!',
                               style: TextStyle(
                                   fontSize: 38,
                                   fontWeight: FontWeight.w900,
                                   color: Colors.white,
                                   letterSpacing: -1.5)),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                         ]),
                       ),
                       const SizedBox(height: 36),

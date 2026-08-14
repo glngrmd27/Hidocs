@@ -4,6 +4,7 @@ import '../app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/gradient_button.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -201,6 +202,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24),
 
             _SettingsTile(
+              icon: Icons.person_rounded,
+              iconColor: AppTheme.info,
+              title: 'Mode User',
+              subtitle: 'Mengisi dan mengerjakan form / kuis',
+              onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/user-home',
+                  (_) => false,
+                );
+              },
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppTheme.textMuted,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            _SettingsTile(
               icon: isDark
                   ? Icons.dark_mode_rounded
                   : Icons.light_mode_rounded,
@@ -216,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (_) {
                   themeProvider.toggleTheme();
                 },
-                activeColor: AppTheme.primary,
+                activeThumbColor: AppTheme.primary,
               ),
             ),
 
@@ -225,6 +247,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               iconColor: AppTheme.info,
               title: 'About HiDocs!',
               subtitle: '',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AboutScreen(),
+                  ),
+                );
+              },
               trailing: const Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
@@ -249,9 +279,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
               fullWidth: true,
               icon: Icons.logout_rounded,
-              colors: [
+              colors: const [
                 AppTheme.error,
-                const Color(0xFFB71C1C),
+                Color(0xFFB71C1C),
               ],
             ),
           ],
@@ -298,12 +328,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               TextField(
                 controller: emailController,
+                readOnly: true,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: 'Email',
                   prefixIcon: Icon(
                     Icons.email_outlined,
                   ),
+                  helperText: 'Email tidak dapat diubah',
                 ),
               ),
             ],
@@ -368,6 +400,7 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget trailing;
+  final VoidCallback? onTap;
 
   const _SettingsTile({
     required this.icon,
@@ -375,6 +408,7 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.trailing,
+    this.onTap,
   });
 
   @override
@@ -396,6 +430,7 @@ class _SettingsTile extends StatelessWidget {
         ),
       ),
       child: ListTile(
+        onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 4,

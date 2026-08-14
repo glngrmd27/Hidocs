@@ -116,14 +116,14 @@ class _DashboardTab extends StatelessWidget {
                 auth: auth,
               ),
             ),
-            title: Row(
+            title: const Row(
               children: [
                 HiDocsLogo(
                   size: 28,
                   showShadow: false,
                 ),
-                const SizedBox(width: 10),
-                const Text(
+                SizedBox(width: 10),
+                Text(
                   'HiDocs!',
                   style: TextStyle(
                     fontSize: 20,

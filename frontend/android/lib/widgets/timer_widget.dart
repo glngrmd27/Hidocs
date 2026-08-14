@@ -18,7 +18,7 @@ class TimerWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isWarning ? AppTheme.error : AppTheme.primary;
     final bg    = isWarning
-        ? AppTheme.error.withOpacity(0.12)
+        ? AppTheme.error.withValues(alpha: 0.12)
         : AppTheme.primaryFaint;
 
     return AnimatedContainer(
@@ -27,7 +27,7 @@ class TimerWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color:        bg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.30)),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.timer_rounded, size: 17, color: color),

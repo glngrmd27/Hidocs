@@ -4,6 +4,7 @@ import 'app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/form_provider.dart';
+import 'providers/response_provider.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/creator_home_screen.dart';
 import 'screens/login_screen.dart';
@@ -25,6 +26,7 @@ class FormMakerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => FormProvider()),
+        ChangeNotifierProvider(create: (_) => ResponseProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

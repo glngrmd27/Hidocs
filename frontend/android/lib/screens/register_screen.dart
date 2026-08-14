@@ -316,14 +316,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            Row(
+                            const Row(
                               children: [
                                 HiDocsLogo(
                                   size: 30,
                                   showShadow: false,
                                 ),
-                                const SizedBox(width: 10),
-                                const Text(
+                                SizedBox(width: 10),
+                                Text(
                                   'HiDocs!',
                                   style: TextStyle(
                                     fontSize: 22,

@@ -24,18 +24,16 @@ class ImageZoomWidget extends StatelessWidget {
           height: height,
           color: AppTheme.primaryFaint,
           child: Stack(fit: StackFit.expand, children: [
-            // Placeholder / image
             Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.image_rounded, size: 52,
-                    color: AppTheme.primary.withOpacity(0.30)),
+                    color: AppTheme.primary.withValues(alpha: 0.30)),
                 const SizedBox(height: 8),
-                Text('Ketuk untuk zoom HD',
+                const Text('Ketuk untuk zoom HD',
                     style: TextStyle(fontSize: 13,
                         color: AppTheme.textMuted)),
               ]),
             ),
-            // HD badge
             Positioned(top: 10, left: 10,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -48,12 +46,11 @@ class ImageZoomWidget extends StatelessWidget {
                     fontWeight: FontWeight.w800, letterSpacing: 0.5)),
               ),
             ),
-            // Zoom indicator
             Positioned(bottom: 10, right: 10,
               child: Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.50),
+                  color: Colors.black.withValues(alpha: 0.50),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.zoom_in_rounded,
@@ -96,13 +93,13 @@ class _FullScreenZoom extends StatelessWidget {
               color: const Color(0xFF1A1A2A),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Center(
+            child: const Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.image_rounded, size: 100, color: Colors.white24),
-                const SizedBox(height: 16),
-                const Text('Gambar akan ditampilkan di sini',
+                Icon(Icons.image_rounded, size: 100, color: Colors.white24),
+                SizedBox(height: 16),
+                Text('Gambar akan ditampilkan di sini',
                     style: TextStyle(color: Colors.white54, fontSize: 14)),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text('Pinch to zoom  •  Drag to pan',
                     style: TextStyle(color: Colors.white38, fontSize: 12)),
               ]),
