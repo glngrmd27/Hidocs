@@ -1451,12 +1451,8 @@ function AdminDashboard() {
                   </span>
 
                 </button>
-
-
               </div>
-
             ) : (
-
               recentForms.map(
                 (
                   form
@@ -1477,84 +1473,46 @@ function AdminDashboard() {
                       )
                     }
                     onKeyDown={(event) => {
-
                       if (
                         event.key ===
                           "Enter" ||
                         event.key ===
                           " "
                       ) {
-
                         event.preventDefault();
-
-
                         openFormDetails(
                           form.id
                         );
-
                       }
-
                     }}
                   >
-
-
                     <div className="recent-card-main">
-
-
                       <div className="recent-card-icon">
-
                         {renderFormIcon(
                           form.type
                         )}
-
                       </div>
-
-
                       <div className="recent-card-content">
-
-
                         <span className="recent-card-type">
-
                           {form.type}
-
                         </span>
-
-
                         <h3>
                           {form.title}
                         </h3>
-
-
                         <p>
                           {form.description}
                         </p>
-
-
                         <div className="recent-card-date">
-
                           <FaCalendarAlt />
-
                           <span>
-
                             {formatRecentDate(
                               form.createdAt
                             )}
-
                           </span>
-
                         </div>
-
-
                       </div>
-
-
                     </div>
-
-
-
                     <div className="recent-card-side">
-
-
                       <span
                         className={
                           form.active
@@ -1562,20 +1520,13 @@ function AdminDashboard() {
                             : "recent-card-status inactive"
                         }
                       >
-
                         <span className="recent-status-dot"></span>
-
                         {form.active
                           ? "Active"
                           : "Inactive"
                         }
-
                       </span>
-
-
                       <div className="recent-card-buttons">
-
-
                         <button
                           type="button"
                           className="recent-qr-button"
@@ -1590,13 +1541,8 @@ function AdminDashboard() {
                             )
                           }
                         >
-
                           <FaQrcode />
-
                         </button>
-
-
-
                         <button
                           type="button"
                           className={
@@ -1616,22 +1562,13 @@ function AdminDashboard() {
                             )
                           }
                         >
-
                           {copiedFormId ===
                           form.id ? (
-
                             <FaCheckCircle />
-
                           ) : (
-
                             <FaCopy />
-
                           )}
-
                         </button>
-
-
-
                         <button
                           type="button"
                           className="recent-open-button"
@@ -1640,46 +1577,24 @@ function AdminDashboard() {
                             `Open details for ${form.title}`
                           }
                           onClick={(event) => {
-
                             event.stopPropagation();
-
-
                             openFormDetails(
                               form.id
                             );
-
                           }}
                         >
-
                           <FaChevronRight />
-
                         </button>
-
-
                       </div>
-
-
                     </div>
-
-
                   </article>
-
                 )
               )
-
             )}
-
-
           </div>
-
-
         </section>
-
-
       </main>
       <nav className="admin-bottom-nav">
-
-
         <button
           type="button"
           className="admin-nav-item active"
@@ -1689,17 +1604,11 @@ function AdminDashboard() {
             )
           }
         >
-
           <FaHome />
-
           <span>
             Home
           </span>
-
         </button>
-
-
-
         <button
           type="button"
           className="admin-nav-item"
@@ -1707,17 +1616,11 @@ function AdminDashboard() {
             goToManageForms
           }
         >
-
           <FaWpforms />
-
           <span>
             Forms
           </span>
-
         </button>
-
-
-
         <button
           type="button"
           className="admin-nav-item"
@@ -1725,74 +1628,45 @@ function AdminDashboard() {
             goToAdminProfile
           }
         >
-
           <FaUser />
-
           <span>
             Profile
           </span>
-
         </button>
-
-
       </nav>
-
       {selectedQrForm && (
-
         <div
           className="admin-qr-overlay"
           role="presentation"
           onMouseDown={(event) => {
-
             if (
               event.target ===
               event.currentTarget
             ) {
-
               closeQrModal();
-
             }
-
           }}
         >
-
           <section
             className="admin-qr-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="admin-qr-modal-title"
           >
-
-
             <div className="admin-qr-modal-header">
-
-
               <div className="admin-qr-modal-heading">
-
-
                 <div className="admin-qr-modal-icon">
-
                   <FaQrcode />
-
                 </div>
-
-
                 <div>
-
                   <span>
                     Form QR Code
                   </span>
-
                   <h2 id="admin-qr-modal-title">
                     Share Form
                   </h2>
-
                 </div>
-
-
               </div>
-
-
               <button
                 type="button"
                 className="admin-qr-close-btn"
@@ -1801,41 +1675,22 @@ function AdminDashboard() {
                 }
                 aria-label="Close QR modal"
               >
-
                 <FaTimes />
-
               </button>
-
-
             </div>
-
-
-
             <div className="admin-qr-form-info">
-
               <span className="admin-qr-form-type">
-
                 {selectedQrForm.type}
-
               </span>
-
               <h3>
                 {selectedQrForm.title}
               </h3>
-
               <p>
                 Scan this QR code to open the form.
               </p>
-
             </div>
-
-
-
             <div className="admin-qr-code-wrapper">
-
-
               <div className="admin-qr-code-box">
-
                 <QRCodeCanvas
                   id="admin-dashboard-qr-canvas"
                   value={
@@ -1851,39 +1706,22 @@ function AdminDashboard() {
                   bgColor="#ffffff"
                   fgColor="#17385f"
                 />
-
               </div>
-
-
               <span className="admin-qr-scan-label">
-
                 <FaQrcode />
-
                 Scan to open form
-
               </span>
-
-
             </div>
-
-
-
             <div className="admin-qr-link-preview">
-
               <span>
                 Public form link
               </span>
-
               <div>
-
                 <p>
-
                   {getCompleteFormLink(
                     selectedQrForm
                   )}
-
                 </p>
-
                 <button
                   type="button"
                   onClick={(event) =>
@@ -1894,29 +1732,16 @@ function AdminDashboard() {
                   }
                   title="Copy form link"
                 >
-
                   {copiedFormId ===
                   selectedQrForm.id ? (
-
                     <FaCheckCircle />
-
                   ) : (
-
                     <FaCopy />
-
                   )}
-
                 </button>
-
               </div>
-
             </div>
-
-
-
             <div className="admin-qr-modal-actions">
-
-
               <button
                 type="button"
                 className="admin-qr-cancel-btn"
@@ -1924,12 +1749,8 @@ function AdminDashboard() {
                   closeQrModal
                 }
               >
-
                 Close
-
               </button>
-
-
               <button
                 type="button"
                 className={
@@ -1941,44 +1762,23 @@ function AdminDashboard() {
                   downloadQrCode
                 }
               >
-
                 {qrDownloaded ? (
-
                   <FaCheckCircle />
-
                 ) : (
-
                   <FaDownload />
-
                 )}
-
                 <span>
-
                   {qrDownloaded
                     ? "Downloaded"
                     : "Download QR"
                   }
-
                 </span>
-
               </button>
-
-
             </div>
-
-
           </section>
-
         </div>
-
       )}
-
-
     </div>
-
   );
-
 }
-
-
 export default AdminDashboard;

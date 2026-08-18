@@ -1,0 +1,325 @@
+/* =========================================================
+   HIDOCS — FILL FORM IMAGE ZOOM
+   Add-on for FillForm.jsx
+========================================================= */
+
+.question-image-wrapper {
+  width: 100%;
+}
+
+button.question-image.question-image-clickable {
+  position: relative;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  display: block;
+  cursor: zoom-in;
+  font: inherit;
+  text-align: inherit;
+}
+
+button.question-image.question-image-clickable img {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+button.question-image.question-image-clickable:hover img {
+  transform: scale(1.012);
+  filter: brightness(0.94);
+}
+
+.question-image-zoom-hint {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 24, 45, 0.82);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.question-image-clickable:hover .question-image-zoom-hint,
+.question-image-clickable:focus-visible .question-image-zoom-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =========================================================
+   FULL SCREEN VIEWER
+========================================================= */
+
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  padding: 22px;
+  background: rgba(3, 10, 22, 0.86);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+}
+
+.image-preview-modal {
+  width: min(1180px, 100%);
+  height: min(850px, calc(100vh - 44px));
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  background: #111d2d;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.46);
+}
+
+.image-preview-header {
+  min-height: 66px;
+  padding: 13px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.image-preview-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.image-preview-header span {
+  color: #7d93ac;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.image-preview-header strong {
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.image-preview-close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #dce7f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.image-preview-close:hover {
+  background: #dc4444;
+  color: #ffffff;
+  transform: rotate(3deg);
+}
+
+.image-preview-toolbar {
+  min-height: 56px;
+  padding: 9px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #162437;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.image-preview-toolbar button {
+  min-width: 38px;
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #dce8f5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.image-preview-toolbar button:hover:not(:disabled) {
+  background: #2f7bc5;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.image-preview-toolbar button:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+}
+
+.image-preview-zoom-value {
+  min-width: 60px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 9px;
+  background: #0c1725;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* This area deliberately scrolls when the image is zoomed. */
+.image-preview-scroll-area {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
+  background: radial-gradient(circle at center, #1c2b3f, #09131f);
+  scrollbar-width: thin;
+  scrollbar-color: #55708d #111d2d;
+}
+
+.image-preview-scroll-area::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+.image-preview-scroll-area::-webkit-scrollbar-track {
+  background: #111d2d;
+}
+
+.image-preview-scroll-area::-webkit-scrollbar-thumb {
+  border: 3px solid #111d2d;
+  border-radius: 999px;
+  background: #55708d;
+}
+
+.image-preview-canvas {
+  min-height: 100%;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.16s ease, min-width 0.16s ease;
+}
+
+.image-preview-canvas img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  object-fit: contain;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.image-preview-footer {
+  min-height: 60px;
+  padding: 11px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #111d2d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.image-preview-footer span {
+  color: #8396ab;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.image-preview-footer button {
+  min-width: 88px;
+  height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: #2e79c3;
+  color: #ffffff;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .image-preview-overlay {
+    padding: 7px;
+  }
+
+  .image-preview-modal {
+    height: calc(100vh - 14px);
+    border-radius: 16px;
+  }
+
+  .image-preview-toolbar {
+    padding: 8px 10px;
+  }
+
+  .image-preview-reset span {
+    display: none;
+  }
+
+  .image-preview-scroll-area {
+    padding: 12px;
+  }
+
+  .image-preview-footer {
+    padding: 10px 12px;
+  }
+
+  .image-preview-footer span {
+    max-width: 72%;
+  }
+
+  .question-image-zoom-hint {
+    right: 9px;
+    bottom: 9px;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .question-image-clickable img,
+  .question-image-zoom-hint,
+  .image-preview-toolbar button,
+  .image-preview-close,
+  .image-preview-canvas {
+    transition: none !important;
+  }
+}

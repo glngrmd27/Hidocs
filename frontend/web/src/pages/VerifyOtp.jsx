@@ -926,79 +926,48 @@ function VerifyOtp() {
 
 
           {/* HEADER */}
-
           <div className="verify-header">
-
-
             <span className="verify-eyebrow">
-
               Email Verification
-
             </span>
-
-
             <h1>
               Verify your email
             </h1>
-
-
             <p>
-
               We sent a 4-digit verification
               code to
-
               <strong>
-
                 {maskEmail(
                   email
                 )}
-
               </strong>
-
             </p>
-
-
           </div>
-
-
-
-          {/* =================================================
-              OTP FORM
-          ================================================= */}
-
           <form
             className="verify-otp-form"
             onSubmit={
               handleVerifyOtp
             }
           >
-
-
             <label>
               Enter verification code
             </label>
-
-
             <div
               className="verify-otp-inputs"
               onPaste={
                 handleOtpPaste
               }
             >
-
               {otpValues.map(
                 (
                   value,
                   index
                 ) => (
-
                   <input
                     key={index}
                     ref={(element) => {
-
                       inputRefs.current[index] =
                         element;
-
                     }}
                     type="text"
                     inputMode="numeric"
@@ -1034,81 +1003,48 @@ function VerifyOtp() {
                       `OTP digit ${index + 1}`
                     }
                   />
-
                 )
               )}
-
             </div>
-
-
-
             {/* ERROR MESSAGE */}
-
             {error && (
-
               <div
                 className="verify-message error"
                 role="alert"
               >
-
                 <span>
                   !
                 </span>
-
                 <p>
                   {error}
                 </p>
-
               </div>
-
             )}
-
-
-
             {/* RESEND MESSAGE */}
-
             {resendMessage && (
-
               <div
                 className="verify-message success"
                 role="status"
               >
-
                 <FaCheckCircle />
-
                 <p>
                   {resendMessage}
                 </p>
-
               </div>
-
             )}
-
-
-
             {/* SUCCESS MESSAGE */}
-
             {successMessage && (
-
               <div
                 className="verify-message success"
                 role="status"
               >
-
                 <FaCheckCircle />
-
                 <p>
                   {successMessage}
                 </p>
-
               </div>
-
             )}
-
-
-
             {/* VERIFY BUTTON */}
-
             <button
               type="submit"
               className="verify-submit-btn"
@@ -1120,52 +1056,27 @@ function VerifyOtp() {
                 !registrationData
               }
             >
-
               {isVerifying ? (
-
                 <>
-
                   <span className="verify-button-spinner"></span>
-
                   <span>
                     Verifying...
                   </span>
-
                 </>
-
               ) : (
-
                 <>
-
                   <FaShieldAlt />
-
                   <span>
                     Verify OTP
                   </span>
-
                 </>
-
               )}
-
             </button>
-
-
           </form>
-
-
-
-          {/* =================================================
-              RESEND
-          ================================================= */}
-
           <div className="verify-resend-section">
-
-
             <p>
               Didn't receive the code?
             </p>
-
-
             <button
               type="button"
               className="verify-resend-btn"
@@ -1177,71 +1088,33 @@ function VerifyOtp() {
                 !registrationData
               }
             >
-
               {resendCountdown > 0 ? (
-
                 <span>
-
                   Resend in
                   {" "}
                   {resendCountdown}s
-
                 </span>
-
               ) : (
-
                 <>
-
                   <FaRedoAlt />
-
                   <span>
                     Resend Code
                   </span>
-
                 </>
-
               )}
-
             </button>
-
-
           </div>
-
-
-
-          {/* =================================================
-              SIMULATION INFORMATION
-          ================================================= */}
-
           <div className="verify-security-info">
-
-
             <FaPaperPlane />
-
-
             <p>
-
               This is a frontend OTP simulation.
               Enter any four-digit number to
               complete verification.
-
             </p>
-
-
           </div>
-
-
         </section>
-
-
       </main>
-
-
     </div>
-
   );
-
 }
-
-
 export default VerifyOtp;

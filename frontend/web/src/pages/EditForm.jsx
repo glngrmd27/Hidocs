@@ -1,9 +1,11 @@
 import {
   useContext,
+  useEffect,
   useState,
 } from "react";
 import {
   useNavigate,
+  useParams,
 } from "react-router-dom";
 import {
   FaAlignLeft,
@@ -40,8 +42,8 @@ import {
 import {
   ThemeContext,
 } from "../context/ThemeContext";
-import RichTextEditor from "../components/RichTextEditor";
 import "../assets/css/CreateForm.css";
+import "../assets/css/EditForm.css";
 // =========================================================
 // STORAGE KEYS
 // =========================================================
@@ -63,9 +65,12 @@ const ALLOWED_IMAGE_TYPES = [
 // =========================================================
 // CREATE FORM
 // =========================================================
-function CreateForm() {
+function EditForm() {
   const navigate =
     useNavigate();
+  const {
+    id,
+  } = useParams();
   const {
     darkMode,
   } = useContext(
@@ -125,6 +130,183 @@ function CreateForm() {
     questions,
     setQuestions,
   ] = useState([]);
+  // =========================================================
+  // EDIT FORM STATE
+  // =========================================================
+  const [
+    originalForm,
+    setOriginalForm,
+  ] = useState(null);
+  const [
+    loadingForm,
+    setLoadingForm,
+  ] = useState(true);
+  const [
+    formNotFound,
+    setFormNotFound,
+  ] = useState(false);
+  // =========================================================
+  // LOAD EXISTING FORM
+  // =========================================================
+  useEffect(() => {
+    try {
+      const storedValue =
+        localStorage.getItem(
+          FORMS_STORAGE_KEY
+        );
+      const storedForms =
+        storedValue
+          ? JSON.parse(storedValue)
+          : [];
+      const safeForms =
+        Array.isArray(storedForms)
+          ? storedForms
+          : [];
+      const selectedForm =
+        [...safeForms]
+          .reverse()
+          .find(
+            (item) =>
+              String(item.id) ===
+              String(id)
+          );
+      if (!selectedForm) {
+        setFormNotFound(true);
+        setLoadingForm(false);
+        return;
+      }
+      const settings =
+        selectedForm.settings &&
+        typeof selectedForm.settings === "object"
+          ? selectedForm.settings
+          : {};
+      const timerObject =
+        selectedForm.timer &&
+        typeof selectedForm.timer === "object"
+          ? selectedForm.timer
+          : {};
+      const timerEnabled =
+        settings.timerEnabled ??
+        settings.timer?.enabled ??
+        selectedForm.timerEnabled ??
+        timerObject.enabled ??
+        false;
+      const timerDuration =
+        Number(
+          settings.timerDuration ??
+          settings.timer?.duration ??
+          selectedForm.timerDuration ??
+          timerObject.duration ??
+          selectedForm.duration ??
+          20
+        ) || 20;
+      const accessMode =
+        settings.accessMode ||
+        selectedForm.accessMode ||
+        (selectedForm.qrOnly ? "qr-only" : "public");
+      const loadedQuestions =
+        Array.isArray(selectedForm.questions)
+          ? selectedForm.questions.map(
+              (question, index) => ({
+                ...question,
+                id:
+                  question.id ??
+                  `${selectedForm.id}-question-${index + 1}`,
+                title:
+                  String(
+                    question.title ||
+                    question.question ||
+                    ""
+                  ),
+                required:
+                  question.required !== false,
+                scoring:
+                  Boolean(
+                    question.scoring ??
+                    question.grading?.enabled
+                  ),
+                points:
+                  Number(
+                    question.points ??
+                    question.grading?.points ??
+                    1
+                  ) || 1,
+                correctAnswer:
+                  String(
+                    question.correctAnswer ??
+                    question.grading?.correctAnswer ??
+                    ""
+                  ),
+                options:
+                  Array.isArray(question.options)
+                    ? [...question.options]
+                    : question.type === "yesno"
+                    ? ["Yes", "No"]
+                    : [],
+                imageOptions:
+                  Array.isArray(question.imageOptions)
+                    ? [...question.imageOptions]
+                    : [],
+                imageAnswerType:
+                  question.imageAnswerType ||
+                  (question.type === "image"
+                    ? "multiple"
+                    : ""),
+                ratingMax:
+                  question.ratingMax ||
+                  (question.type === "rating" ? 5 : null),
+              })
+            )
+          : [];
+      setOriginalForm(selectedForm);
+      setFormData({
+        title:
+          String(selectedForm.title || ""),
+        customLink:
+          String(selectedForm.customLink || ""),
+        openDate:
+          selectedForm.openDate || "",
+        closeDate:
+          selectedForm.closeDate || "",
+        openTime:
+          selectedForm.openTime || "",
+        closeTime:
+          selectedForm.closeTime || "",
+        shuffleQuestions:
+          Boolean(settings.shuffleQuestions),
+        shuffleAnswers:
+          Boolean(settings.shuffleAnswers),
+        oneTimeOnly:
+          settings.oneTimeOnly !== false,
+        activateImmediately:
+          settings.activateImmediately !== false,
+        timerEnabled:
+          Boolean(timerEnabled),
+        timerDuration,
+        responseDays:
+          Number(
+            settings.responseDays ??
+            selectedForm.responseDays ??
+            30
+          ) || 30,
+        resultMode:
+          settings.resultMode ||
+          selectedForm.resultMode ||
+          "none",
+        accessMode,
+      });
+      setQuestions(loadedQuestions);
+      setFormNotFound(false);
+    } catch (error) {
+      console.error(
+        "Gagal memuat form untuk diedit:",
+        error
+      );
+      setFormNotFound(true);
+    } finally {
+      setLoadingForm(false);
+    }
+  }, [id]);
   // =========================================================
   // RANDOM LINK FEEDBACK
   // =========================================================
@@ -1191,97 +1373,15 @@ function CreateForm() {
   const validateInfo =
     () => {
       const cleanTitle =
-        formData.title
-          .trim();
-      const cleanLink =
-        formData.customLink
-          .trim();
+        formData.title.trim();
       if (!cleanTitle) {
-        alert(
-          "Silakan isi Form Title terlebih dahulu."
-        );
-        setActiveTab(
-          "info"
-        );
+        alert("Silakan isi Form Title terlebih dahulu.");
+        setActiveTab("info");
         return false;
       }
-      if (
-        cleanTitle.length <
-        3
-      ) {
-        alert(
-          "Form Title minimal 3 karakter."
-        );
-        setActiveTab(
-          "info"
-        );
-        return false;
-      }
-      if (!cleanLink) {
-        alert(
-          "Silakan isi Custom Link terlebih dahulu."
-        );
-        setActiveTab(
-          "info"
-        );
-        return false;
-      }
-      if (
-        !/^[a-zA-Z0-9-_]+$/.test(
-          cleanLink
-        )
-      ) {
-        alert(
-          "Custom Link hanya boleh berisi huruf, angka, tanda hubung, dan garis bawah."
-        );
-        setActiveTab(
-          "info"
-        );
-        return false;
-      }
-      if (
-        isCustomLinkUsed(
-          cleanLink
-        )
-      ) {
-        alert(
-          "Custom Link sudah digunakan. Silakan gunakan link lain."
-        );
-        setActiveTab(
-          "info"
-        );
-        return false;
-      }
-      if (
-        formData.openDate &&
-        formData.closeDate &&
-        formData.closeDate <
-          formData.openDate
-      ) {
-        alert(
-          "Close Date tidak boleh lebih awal dari Open Date."
-        );
-        setActiveTab(
-          "info"
-        );
-        return false;
-      }
-      if (
-        formData.openDate &&
-        formData.closeDate &&
-        formData.openDate ===
-          formData.closeDate &&
-        formData.openTime &&
-        formData.closeTime &&
-        formData.closeTime <=
-          formData.openTime
-      ) {
-        alert(
-          "Close Time harus lebih akhir dari Open Time."
-        );
-        setActiveTab(
-          "info"
-        );
+      if (cleanTitle.length < 3) {
+        alert("Form Title minimal 3 karakter.");
+        setActiveTab("info");
         return false;
       }
       return true;
@@ -1291,72 +1391,22 @@ function CreateForm() {
   // =========================================================
   const validateSettings =
     () => {
-      if (
-        !formData.activateImmediately &&
-        !formData.openDate
-      ) {
-        alert(
-          "Jika Activate immediately dimatikan, isi Open Date agar form dapat aktif otomatis sesuai jadwal."
-        );
-        setActiveTab(
-          "info"
-        );
-        return false;
-      }
-      if (
-        !formData.timerEnabled
-      ) {
+      if (!formData.timerEnabled) {
         return true;
       }
       const timerDuration =
-        Number(
-          formData.timerDuration
-        );
+        Number(formData.timerDuration);
       if (
-        !Number.isFinite(
-          timerDuration
-        ) ||
-        timerDuration <
-          1 ||
-        timerDuration >
-          1000
+        !Number.isFinite(timerDuration) ||
+        timerDuration < 1 ||
+        timerDuration > 1000
       ) {
-        alert(
-          "Durasi timer harus antara 1 sampai 1000 menit."
-        );
-        setActiveTab(
-          "settings"
-        );
+        alert("Durasi timer harus antara 1 sampai 1000 menit.");
+        setActiveTab("settings");
         return false;
       }
       return true;
     };
-  // =========================================================
-  // RICH TEXT HELPERS
-  // =========================================================
-  const getPlainTextFromHtml = (
-    html
-  ) => {
-    const temporaryElement =
-      document.createElement(
-        "div"
-      );
-    temporaryElement.innerHTML =
-      String(
-        html ||
-        ""
-      );
-    return String(
-      temporaryElement.textContent ||
-      temporaryElement.innerText ||
-      ""
-    )
-      .replace(
-        /\u00a0/g,
-        " "
-      )
-      .trim();
-  };
   // =========================================================
   // VALIDATE QUESTIONS
   // =========================================================
@@ -1379,9 +1429,10 @@ function CreateForm() {
           (
             question
           ) =>
-            !getPlainTextFromHtml(
-              question.title
-            )
+            !String(
+              question.title ||
+              ""
+            ).trim()
         );
       if (
         emptyQuestionIndex !==
@@ -1664,7 +1715,7 @@ function CreateForm() {
       });
     };
   // =========================================================
-  // SAVE FORM
+  // SAVE CHANGES
   // =========================================================
   const handleSave =
     () => {
@@ -1675,201 +1726,162 @@ function CreateForm() {
       ) {
         return;
       }
-      const normalizedLink =
-        formData.customLink
-          .trim()
-          .toLowerCase()
-          .replace(
-            /\s+/g,
-            "-"
-          );
-      const isPublicForm =
-        formData.accessMode ===
-        "public";
+      if (!originalForm) {
+        alert("Data form tidak ditemukan.");
+        return;
+      }
       const normalizedTimerDuration =
         formData.timerEnabled
           ? Math.min(
               Math.max(
                 Math.floor(
-                  Number(
-                    formData.timerDuration
-                  ) ||
-                  1
+                  Number(formData.timerDuration) || 1
                 ),
                 1
               ),
               1000
             )
           : null;
-      const schedule =
-        getScheduleValues();
       const responseDays =
-        Number(
-          formData.responseDays
-        ) ||
-        30;
-      const savedForm = {
-        id:
-          Date.now(),
+        Number(formData.responseDays) || 30;
+      const isPublicForm =
+        formData.accessMode === "public";
+      const normalizedQuestions =
+        questions.map((question, index) => {
+          const scoringEnabled =
+            Boolean(question.scoring);
+          const normalizedPoints =
+            scoringEnabled
+              ? Math.max(
+                  Number(question.points) || 1,
+                  1
+                )
+              : 0;
+          const normalizedCorrectAnswer =
+            scoringEnabled
+              ? String(
+                  question.correctAnswer ?? ""
+                ).trim()
+              : "";
+          const normalizedOptions =
+            (
+              question.type === "image" &&
+              question.imageAnswerType === "multiple"
+                ? question.imageOptions || []
+                : question.type === "yesno"
+                ? (
+                    Array.isArray(question.options) &&
+                    question.options.length
+                      ? question.options
+                      : ["Yes", "No"]
+                  )
+                : question.options || []
+            ).map((option) =>
+              String(option || "").trim()
+            );
+          return {
+            ...question,
+            number: index + 1,
+            title:
+              String(question.title || "").trim(),
+            question:
+              String(question.title || "").trim(),
+            required:
+              question.required !== false,
+            scoring:
+              scoringEnabled,
+            points:
+              normalizedPoints,
+            correctAnswer:
+              normalizedCorrectAnswer,
+            grading: {
+              enabled: scoringEnabled,
+              points: normalizedPoints,
+              correctAnswer: normalizedCorrectAnswer,
+            },
+            options:
+              normalizedOptions,
+            imageAnswerType:
+              question.type === "image"
+                ? question.imageAnswerType || "multiple"
+                : "",
+            imageOptions:
+              question.type === "image" &&
+              question.imageAnswerType === "multiple"
+                ? (question.imageOptions || []).map(
+                    (option) =>
+                      String(option || "").trim()
+                  )
+                : [],
+            image:
+              String(question.image || "").trim(),
+            imageName:
+              String(question.imageName || "").trim(),
+          };
+        });
+      const gradingEnabled =
+        normalizedQuestions.some(
+          (question) => question.scoring
+        );
+      const updatedForm = {
+        ...originalForm,
+        // Bagian yang boleh diubah dari Edit Form.
         title:
-          formData.title
-            .trim(),
-        description: "Form created using HiDocs Form Builder.",
-        type: "Form",
-        category: "Form",
-        customLink:
-          normalizedLink,
-        link: `hidocs.app/r/${normalizedLink}`,
-        openDate:
-          formData.openDate,
-        closeDate:
-          formData.closeDate,
-        openTime:
-          formData.openTime,
-        closeTime:
-          formData.closeTime,
-        // Active = status admin. Jadwal akses diproses terpisah melalui schedule.
-        // Dengan cara ini form yang dijadwalkan tidak menjadi inactive permanen.
-        active: true,
-        activationMode:
-          formData.activateImmediately
-            ? "immediate"
-            : "scheduled",
-        openAt:
-          schedule.openAt,
-        closeAt:
-          schedule.closeAt,
-        schedule: {
-          enabled:
-            schedule.enabled,
-          openAt:
-            schedule.openAt,
-          closeAt:
-            schedule.closeAt,
-        },
-        responseDays,
+          formData.title.trim(),
         accessMode:
           formData.accessMode,
         showInUserList:
           isPublicForm,
         qrOnly:
           !isPublicForm,
-        responses: 0,
-        // =====================================================
-        // INTERNAL GRADING
-        // Always available for admin when scored questions exist.
-        // This does NOT depend on the respondent resultMode.
-        // =====================================================
-        grading: {
-          enabled:
-            questions.some(
-              (
-                question
-              ) =>
-                Boolean(
-                  question.scoring
-                )
-            ),
-          scoredQuestions:
-            questions.filter(
-              (
-                question
-              ) =>
-                Boolean(
-                  question.scoring
-                )
-            ).length,
-          totalPoints:
-            questions.reduce(
-              (
-                total,
-                question
-              ) => {
-                if (
-                  !question.scoring
-                ) {
-                  return total;
-                }
-                return (
-                  total +
-                  Math.max(
-                    Number(
-                      question.points
-                    ) ||
-                    0,
-                    0
-                  )
-                );
-              },
-              0
-            ),
-          calculateForAdmin: true,
-          userResultMode:
-            formData.resultMode,
-        },
         timerEnabled:
-          Boolean(
-            formData.timerEnabled
-          ),
+          Boolean(formData.timerEnabled),
         timerDuration:
           normalizedTimerDuration,
         duration:
           normalizedTimerDuration,
         timer: {
+          ...(
+            originalForm.timer &&
+            typeof originalForm.timer === "object"
+              ? originalForm.timer
+              : {}
+          ),
           enabled:
-            Boolean(
-              formData.timerEnabled
-            ),
+            Boolean(formData.timerEnabled),
           mode: "custom",
           duration:
             normalizedTimerDuration,
         },
+        responseDays,
         settings: {
+          ...(
+            originalForm.settings &&
+            typeof originalForm.settings === "object"
+              ? originalForm.settings
+              : {}
+          ),
           shuffleQuestions:
-            Boolean(
-              formData.shuffleQuestions
-            ),
+            Boolean(formData.shuffleQuestions),
           shuffleAnswers:
-            Boolean(
-              formData.shuffleAnswers
-            ),
+            Boolean(formData.shuffleAnswers),
           oneTimeOnly:
-            Boolean(
-              formData.oneTimeOnly
-            ),
+            Boolean(formData.oneTimeOnly),
           activateImmediately:
-            Boolean(
-              formData.activateImmediately
-            ),
-          activationMode:
-            formData.activateImmediately
-              ? "immediate"
-              : "scheduled",
-          scheduleEnabled:
-            schedule.enabled,
-          openAt:
-            schedule.openAt,
-          closeAt:
-            schedule.closeAt,
-          schedule: {
-            enabled:
-              schedule.enabled,
-            openAt:
-              schedule.openAt,
-            closeAt:
-              schedule.closeAt,
-          },
+            Boolean(formData.activateImmediately),
           timerEnabled:
-            Boolean(
-              formData.timerEnabled
-            ),
+            Boolean(formData.timerEnabled),
           timerDuration:
             normalizedTimerDuration,
           timer: {
+            ...(
+              originalForm.settings?.timer &&
+              typeof originalForm.settings.timer === "object"
+                ? originalForm.settings.timer
+                : {}
+            ),
             enabled:
-              Boolean(
-                formData.timerEnabled
-              ),
+              Boolean(formData.timerEnabled),
             mode: "custom",
             duration:
               normalizedTimerDuration,
@@ -1884,227 +1896,95 @@ function CreateForm() {
           qrOnly:
             !isPublicForm,
         },
-        questions:
-          questions.map(
-            (
-              question,
-              index
-            ) => {
-              const scoringEnabled =
-                Boolean(
-                  question.scoring
-                );
-              const normalizedPoints =
-                scoringEnabled
-                  ? Math.max(
-                      Number(
-                        question.points
-                      ) ||
-                      1,
-                      1
-                    )
-                  : 0;
-              const normalizedCorrectAnswer =
-                scoringEnabled
-                  ? String(
-                      question.correctAnswer ??
-                      ""
-                    ).trim()
-                  : "";
-              const normalizedOptions =
-                (
-                  question.type ===
-                    "image" &&
-                  question.imageAnswerType ===
-                    "multiple"
-                    ? question.imageOptions ||
-                      []
-                    : question.type ===
-                      "yesno"
-                    ? (
-                        Array.isArray(
-                          question.options
-                        ) &&
-                        question.options.length
-                          ? question.options
-                          : [
-                              "Yes",
-                              "No",
-                            ]
-                      )
-                    : question.options ||
-                      []
-                ).map(
-                  (
-                    option
-                  ) =>
-                    String(
-                      option ||
-                      ""
-                    ).trim()
-                );
-              return {
-                ...question,
-                number:
-                  index +
-                  1,
-                title:
-                  String(
-                    question.title ||
-                    ""
-                  ).trim(),
-                question:
-                  String(
-                    question.title ||
-                    ""
-                  ).trim(),
-                required:
-                  question.required !==
-                  false,
-                // =================================================
-                // INTERNAL ADMIN GRADING
-                // =================================================
-                scoring:
-                  scoringEnabled,
-                points:
-                  normalizedPoints,
-                correctAnswer:
-                  normalizedCorrectAnswer,
-                grading: {
-                  enabled:
-                    scoringEnabled,
-                  points:
-                    normalizedPoints,
-                  correctAnswer:
-                    normalizedCorrectAnswer,
-                },
-                // =================================================
-                // ANSWER OPTIONS
-                // =================================================
-                options:
-                  normalizedOptions,
-                imageAnswerType:
-                  question.type ===
-                  "image"
-                    ? question.imageAnswerType ||
-                      "multiple"
-                    : "",
-                imageOptions:
-                  question.type ===
-                    "image" &&
-                  question.imageAnswerType ===
-                    "multiple"
-                    ? (
-                        question.imageOptions ||
-                        []
-                      ).map(
-                        (
-                          option
-                        ) =>
-                          String(
-                            option ||
-                            ""
-                          ).trim()
-                      )
-                    : [],
-                image:
-                  String(
-                    question.image ||
-                    ""
-                  ).trim(),
-                imageName:
-                  String(
-                    question.imageName ||
-                    ""
-                  ).trim(),
-              };
-            }
+        resultMode:
+          formData.resultMode,
+        grading: {
+          ...(
+            originalForm.grading &&
+            typeof originalForm.grading === "object"
+              ? originalForm.grading
+              : {}
           ),
-        createdAt:
-          new Date()
-            .toISOString(),
+          enabled:
+            gradingEnabled,
+          scoredQuestions:
+            normalizedQuestions.filter(
+              (question) => question.scoring
+            ).length,
+          totalPoints:
+            normalizedQuestions.reduce(
+              (total, question) =>
+                total +
+                (question.scoring
+                  ? Number(question.points) || 0
+                  : 0),
+              0
+            ),
+          calculateForAdmin: true,
+          userResultMode:
+            formData.resultMode,
+        },
+        questions:
+          normalizedQuestions,
+        // ID, link, customLink, createdAt, responses, dan schedule
+        // sengaja tidak diubah karena diambil dari originalForm.
+        updatedAt:
+          new Date().toISOString(),
       };
       try {
         const existingForms =
           getStoredForms();
-        const customLinkAlreadyUsed =
-          existingForms.some(
-            (
-              item
-            ) => {
-              return (
-                String(
-                  item.customLink ||
-                  ""
-                )
-                  .trim()
-                  .toLowerCase() ===
-                savedForm.customLink
-                  .trim()
-                  .toLowerCase()
-              );
-            }
+        const formIndex =
+          existingForms.findIndex(
+            (item) =>
+              String(item.id) ===
+              String(id)
           );
-        if (
-          customLinkAlreadyUsed
-        ) {
-          alert(
-            "Custom Link sudah digunakan. Silakan gunakan link lain."
-          );
-          setActiveTab(
-            "info"
-          );
+        if (formIndex === -1) {
+          alert("Form tidak ditemukan di penyimpanan.");
           return;
         }
-        const updatedForms = [
-          ...existingForms,
-          savedForm,
-        ];
+        const updatedForms =
+          existingForms.map((item) =>
+            String(item.id) === String(id)
+              ? updatedForm
+              : item
+          );
         localStorage.setItem(
           FORMS_STORAGE_KEY,
-          JSON.stringify(
-            updatedForms
-          )
+          JSON.stringify(updatedForms)
         );
         localStorage.setItem(
           NEW_FORM_STORAGE_KEY,
-          JSON.stringify(
-            savedForm
+          JSON.stringify(updatedForm)
+        );
+        window.dispatchEvent(
+          new CustomEvent(
+            "hidocs-forms-updated",
+            {
+              detail: {
+                formId: updatedForm.id,
+                type: "form-edited",
+              },
+            }
           )
         );
-        if (
-          isPublicForm
-        ) {
-          alert(
-            "Form berhasil disimpan dan akan tampil di halaman user."
-          );
-        } else {
-          alert(
-            "Form berhasil disimpan sebagai QR Code Only. Form hanya dapat dibuka melalui QR atau direct link."
-          );
-        }
+        alert("Perubahan form berhasil disimpan.");
         navigate(
-          "/admin/forms",
-          {
-            replace: true,
-          }
+          `/admin/forms/${id}`,
+          { replace: true }
         );
       } catch (error) {
         console.error(
-          "Gagal menyimpan form:",
+          "Gagal menyimpan perubahan form:",
           error
         );
-        if (
-          error?.name ===
-          "QuotaExceededError"
-        ) {
+        if (error?.name === "QuotaExceededError") {
           alert(
-            "Form gagal disimpan karena kapasitas penyimpanan browser penuh. Gunakan gambar yang lebih kecil atau hapus form lama."
+            "Perubahan gagal disimpan karena kapasitas penyimpanan browser penuh."
           );
         } else {
-          alert(
-            "Terjadi kesalahan saat menyimpan form."
-          );
+          alert("Perubahan form gagal disimpan.");
         }
       }
     };
@@ -2113,27 +1993,31 @@ function CreateForm() {
   // =========================================================
   const renderInfoTab =
     () => (
-      <div className="create-form-content">
+      <div className="create-form-content edit-form-info-content">
         <section className="create-section">
           <div className="create-section-title">
             <div className="create-section-icon">
               <FaInfoCircle />
             </div>
             <div>
+              <span>Step 1</span>
+              <h2>Basic Information</h2>
+            </div>
+          </div>
+          <div className="edit-form-information-note">
+            <FaInfoCircle />
+            <div>
+              <strong>Edit form title</strong>
               <span>
-                Step 1
+                Custom link dan jadwal buka/tutup tetap dipertahankan.
+                Jadwal dapat diubah dari Form Details.
               </span>
-              <h2>
-                Basic Information
-              </h2>
             </div>
           </div>
           <div className="create-field">
             <label htmlFor="form-title">
               Form Title
-              <span>
-                *
-              </span>
+              <span>*</span>
             </label>
             <div className="create-input-wrapper">
               <FaInfoCircle />
@@ -2141,165 +2025,23 @@ function CreateForm() {
                 id="form-title"
                 type="text"
                 name="title"
-                value={
-                  formData.title
-                }
-                onChange={
-                  handleChange
-                }
-                placeholder="e.g. Student Satisfaction Survey"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Form title"
                 maxLength={100}
               />
             </div>
           </div>
-          <div className="create-field">
-            <div className="create-field-label-row">
-              <label htmlFor="custom-link">
-                Custom Link
-                <span>
-                  *
-                </span>
-              </label>
-            </div>
-            <div className="create-input-wrapper create-link-input-wrapper">
-              <FaLink />
-              <input
-                id="custom-link"
-                type="text"
-                name="customLink"
-                value={
-                  formData.customLink
-                }
-                onChange={
-                  handleChange
-                }
-                placeholder="e.g. student-survey-2026"
-                maxLength={60}
-                autoComplete="off"
-              />
-              <button
-                type="button"
-                className={
-                  linkGenerated
-                    ? "create-random-link-btn generated"
-                    : "create-random-link-btn"
-                }
-                onClick={
-                  generateRandomLink
-                }
-                disabled={
-                  !formData.title
-                    .trim()
-                }
-                aria-label="Generate random custom link"
-                title="Random Link"
-              >
-                {linkGenerated
-                  ? <FaCheck />
-                  : <FaRandom />
-                }
-              </button>
-            </div>
-            <div className="create-link-information">
-              <small className="create-field-help">
-                Your form link will be:{" "}
-                <strong>
-                  hidocs.app/r/
-                  {
-                    formData.customLink ||
-                    "custom-link"
-                  }
-                </strong>
-              </small>
-              {linkGenerated && (
-                <span className="create-link-generated-message">
-                  <FaCheck />
-                  Link generated
-                </span>
-              )}
-            </div>
-          </div>
-        </section>
-        <section className="create-section">
-          <div className="create-section-title">
-            <div className="create-section-icon">
-              <FaClock />
-            </div>
+          <div className="edit-form-locked-info">
             <div>
-              <span>
-                Optional
-              </span>
-              <h2>
-                Schedule
-              </h2>
+              <span>Form Link</span>
+              <strong>
+                hidocs.app/r/{formData.customLink || "-"}
+              </strong>
             </div>
-          </div>
-          <div className="schedule-grid">
-            {[
-              {
-                id: "open-date",
-                label: "Open Date",
-                name: "openDate",
-                type: "date",
-                icon:
-                  <FaCalendarAlt />,
-              },
-              {
-                id: "close-date",
-                label: "Close Date",
-                name: "closeDate",
-                type: "date",
-                icon:
-                  <FaCalendarAlt />,
-              },
-              {
-                id: "open-time",
-                label: "Open Time",
-                name: "openTime",
-                type: "time",
-                icon:
-                  <FaClock />,
-              },
-              {
-                id: "close-time",
-                label: "Close Time",
-                name: "closeTime",
-                type: "time",
-                icon:
-                  <FaClock />,
-              },
-            ].map(
-              (
-                field
-              ) => (
-                <div
-                  className="create-field"
-                  key={
-                    field.name
-                  }
-                >
-                  <label htmlFor={field.id}>
-                    {field.label}
-                  </label>
-                  <div className="create-input-wrapper">
-                    {field.icon}
-                    <input
-                      id={field.id}
-                      type={field.type}
-                      name={field.name}
-                      value={
-                        formData[
-                          field.name
-                        ]
-                      }
-                      onChange={
-                        handleChange
-                      }
-                    />
-                  </div>
-                </div>
-              )
-            )}
+            <span className="edit-form-locked-badge">
+              Locked
+            </span>
           </div>
         </section>
       </div>
@@ -3318,25 +3060,24 @@ function CreateForm() {
           )}
         </select>
       </div>
-      <div className="question-rich-editor-section">
-        <div className="question-rich-editor-label">
+      <div className="question-main-input">
+        <div className="question-input-icon">
           <FaQuestionCircle />
-          <span>
-            Question
-          </span>
         </div>
-        <RichTextEditor
+        <textarea
           value={
             question.title
           }
-          onChange={(html) =>
+          onChange={(event) =>
             updateQuestion(
               question.id,
               "title",
-              html
+              event.target.value
             )
           }
           placeholder="Write your question here..."
+          rows={2}
+          maxLength={500}
         />
       </div>
       {renderQuestionBody(
@@ -3629,6 +3370,37 @@ function CreateForm() {
       </div>
     );
   // =========================================================
+  // LOADING / NOT FOUND
+  // =========================================================
+  if (loadingForm) {
+    return (
+      <div className={darkMode ? "edit-form-state-page dark" : "edit-form-state-page"}>
+        <div className="edit-form-state-card">
+          <span className="edit-form-loader"></span>
+          <h2>Loading Form</h2>
+          <p>Preparing the form data for editing.</p>
+        </div>
+      </div>
+    );
+  }
+  if (formNotFound || !originalForm) {
+    return (
+      <div className={darkMode ? "edit-form-state-page dark" : "edit-form-state-page"}>
+        <div className="edit-form-state-card">
+          <FaQuestionCircle />
+          <h2>Form not found</h2>
+          <p>The form may have been deleted or is no longer available.</p>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/forms")}
+          >
+            Back to Forms
+          </button>
+        </div>
+      </div>
+    );
+  }
+  // =========================================================
   // RETURN
   // =========================================================
   return (
@@ -3645,7 +3417,7 @@ function CreateForm() {
           className="create-back-btn"
           onClick={() =>
             navigate(
-              "/admin"
+              `/admin/forms/${id}`
             )
           }
           title="Back"
@@ -3657,7 +3429,7 @@ function CreateForm() {
             Form Builder
           </span>
           <h1>
-            Create Form
+            Edit Form
           </h1>
         </div>
         <div className="create-header-actions">
@@ -3680,7 +3452,7 @@ function CreateForm() {
                 handleSave
               }
             >
-              Save Form
+              Save Changes
             </button>
           ) : (
             <button
@@ -3762,4 +3534,4 @@ function CreateForm() {
     </div>
   );
 }
-export default CreateForm;
+export default EditForm;

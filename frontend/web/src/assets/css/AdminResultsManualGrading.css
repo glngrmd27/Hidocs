@@ -1,0 +1,116 @@
+/* =========================================================
+   HIDOCS — ADMIN MANUAL GRADING ADD-ON
+========================================================= */
+
+.admin-grading-progress {
+  margin: 0 28px 18px;
+  padding: 15px 17px;
+  border: 1px solid #dce7f3;
+  border-radius: 15px;
+  background: #f7faff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-grading-progress > div { display: flex; flex-direction: column; gap: 3px; }
+.admin-grading-progress span { color: #8493a6; font-size: 9px; font-weight: 700; }
+.admin-grading-progress strong { color: #29415e; font-size: 12px; }
+.admin-grading-progress.pending { border-color: #f0d59d; background: #fffaf0; }
+.admin-grading-progress.complete { border-color: #cce8d9; background: #f1fbf6; }
+
+.admin-grading-pending-badge {
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: #fff0cf;
+  color: #b57900 !important;
+  white-space: nowrap;
+}
+.admin-grading-progress.complete .admin-grading-pending-badge { background: #dff5e9; color: #238457 !important; }
+
+.admin-manual-grade-box {
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px solid #f0d69f;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fffaf0, #fffdf8);
+}
+
+.admin-manual-grade-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+.admin-manual-grade-heading > div { display: flex; flex-direction: column; gap: 3px; }
+.admin-manual-grade-heading > div > span { color: #a17b30; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
+.admin-manual-grade-heading strong { color: #60491d; font-size: 11px; }
+
+.manual-grade-status { min-height: 27px; padding: 0 9px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 8px; font-weight: 800; }
+.manual-grade-status.pending { background: #fff0cd; color: #b57900; }
+.manual-grade-status.graded { background: #e4f6ec; color: #22875a; }
+
+.admin-manual-grade-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr);
+  align-items: end;
+  gap: 10px;
+}
+.admin-manual-grade-inputs label { display: flex; flex-direction: column; gap: 6px; }
+.admin-manual-grade-inputs label span { color: #806b42; font-size: 8px; font-weight: 700; }
+.admin-manual-grade-inputs input {
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid #e5cf9f;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+  color: #33465d;
+  font: inherit;
+  font-size: 10px;
+}
+.admin-manual-grade-inputs input:focus { border-color: #d9a63a; box-shadow: 0 0 0 3px rgba(217,166,58,.12); }
+.manual-grade-divider { padding-bottom: 10px; color: #a1844c; font-size: 14px; font-weight: 800; text-align: center; }
+
+.admin-answer-footer-actions { display: flex; align-items: center; gap: 9px; }
+.admin-answer-modal-footer .admin-save-grades-btn,
+.admin-answer-modal-footer .admin-close-answers-btn {
+  min-width: 130px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.admin-answer-modal-footer .admin-save-grades-btn { border: none; background: #2563eb; color: #fff; }
+.admin-answer-modal-footer .admin-save-grades-btn:disabled { opacity: .65; cursor: wait; }
+.admin-answer-modal-footer .admin-close-answers-btn { border: 1px solid #dce5ef; background: #fff; color: #6d7e91; }
+
+.admin-results-page.dark .admin-grading-progress { background: #172436; border-color: #31445c; }
+.admin-results-page.dark .admin-grading-progress.pending { background: #352d1e; border-color: #5d4b26; }
+.admin-results-page.dark .admin-grading-progress.complete { background: #173026; border-color: #28533e; }
+.admin-results-page.dark .admin-grading-progress strong { color: #e9f0f8; }
+.admin-results-page.dark .admin-manual-grade-box { background: #30291d; border-color: #594824; }
+.admin-results-page.dark .admin-manual-grade-heading strong { color: #f3ddb0; }
+.admin-results-page.dark .admin-manual-grade-inputs input { background: #172335; border-color: #5a4c2e; color: #edf3fa; }
+.admin-results-page.dark .admin-answer-modal-footer .admin-close-answers-btn { background: #1a2739; border-color: #34465d; color: #a8b6c7; }
+
+@media (max-width: 700px) {
+  .admin-grading-progress { margin: 0 18px 15px; align-items: flex-start; flex-direction: column; }
+  .admin-manual-grade-inputs { grid-template-columns: 1fr 16px 1fr; }
+  .admin-answer-footer-actions { width: 100%; flex-direction: column; }
+  .admin-answer-modal-footer .admin-save-grades-btn,
+  .admin-answer-modal-footer .admin-close-answers-btn { width: 100%; }
+}

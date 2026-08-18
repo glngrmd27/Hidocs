@@ -6,8 +6,18 @@ import {
   useState,
 } from "react";
 
+
+// =========================================================
+// CONTEXT
+// =========================================================
+
 export const FormContext =
   createContext(null);
+
+
+// =========================================================
+// STORAGE KEYS
+// =========================================================
 
 const FORMS_STORAGE_KEY =
   "hidocs_forms";
@@ -17,6 +27,11 @@ const SUBMISSIONS_STORAGE_KEY =
 
 const DELETED_FORMS_STORAGE_KEY =
   "hidocs_deleted_forms";
+
+
+// =========================================================
+// DEFAULT FORMS
+// =========================================================
 
 const defaultForms = [
 
@@ -399,6 +414,12 @@ const defaultForms = [
   },
 
 ];
+
+
+// =========================================================
+// SAFE STORAGE READER
+// =========================================================
+
 const getStoredArray = (
   key
 ) => {
@@ -443,6 +464,12 @@ const getStoredArray = (
   }
 
 };
+
+
+// =========================================================
+// CURRENT USER
+// =========================================================
+
 const getCurrentUser = () => {
 
   try {
@@ -577,6 +604,11 @@ const getCurrentUser = () => {
 
 };
 
+
+// =========================================================
+// USER IDENTITY
+// =========================================================
+
 const getUserIdentity = (
   user
 ) => {
@@ -615,6 +647,11 @@ const getUserIdentity = (
     .toLowerCase();
 
 };
+
+
+// =========================================================
+// CHECK ANSWER
+// =========================================================
 
 const hasAnswer = (
   answer
@@ -658,6 +695,12 @@ const hasAnswer = (
   );
 
 };
+
+
+// =========================================================
+// NORMALIZE RESULT MODE
+// =========================================================
+
 const normalizeResultMode = (
   value
 ) => {
@@ -704,6 +747,11 @@ const normalizeResultMode = (
   return "none";
 
 };
+
+
+// =========================================================
+// NORMALIZE TIMER
+// =========================================================
 
 const normalizeTimer = (
   form
@@ -770,6 +818,11 @@ const normalizeTimer = (
 
 };
 
+
+// =========================================================
+// NORMALIZE QUESTION
+// =========================================================
+
 const normalizeQuestion = (
   question,
   index
@@ -783,39 +836,10 @@ const normalizeQuestion = (
       : [];
 
 
-  const grading =
-    question.grading &&
-    typeof question.grading ===
-      "object"
-      ? question.grading
-      : {};
-
-
-  const correctAnswer =
-    grading.correctAnswer ??
-    question.correctAnswer ??
-    "";
-
-
   const scoring =
     Boolean(
-      grading.enabled ===
-        true ||
-      question.scoring ===
-        true
+      question.scoring
     );
-
-
-  const points =
-    scoring
-      ? Math.max(
-          Number(
-            grading.points ??
-            question.points
-          ) || 1,
-          0
-        )
-      : 0;
 
 
   return {
@@ -866,37 +890,32 @@ const normalizeQuestion = (
       question.imageAnswerType ||
       "",
 
-    imageOptions:
-      Array.isArray(
-        question.imageOptions
-      )
-        ? question.imageOptions
-        : [],
-
     options,
 
     scoring,
 
-    points,
+    points:
+      scoring
+        ? Math.max(
+            Number(
+              question.points
+            ) || 1,
+            0
+          )
+        : 0,
 
-    correctAnswer,
-
-    grading: {
-
-      ...grading,
-
-      enabled:
-        scoring,
-
-      points,
-
-      correctAnswer,
-
-    },
+    correctAnswer:
+      question.correctAnswer ??
+      "",
 
   };
 
 };
+
+
+// =========================================================
+// NORMALIZE FORM
+// =========================================================
 
 const normalizeForm = (
   form
@@ -1063,79 +1082,23 @@ const normalizeForm = (
 
 };
 
+
+// =========================================================
+// NORMALIZE QUESTION RESULT
+// =========================================================
+
 const normalizeQuestionResult = (
   item,
   index
 ) => {
-
-  const questionId =
-    item.questionId ??
-    item.id ??
-    `result-question-${index + 1}`;
-
-
-  const grading =
-    item.grading &&
-    typeof item.grading ===
-      "object"
-      ? item.grading
-      : {};
-
-
-  const scoring =
-    Boolean(
-      item.scoring ===
-        true ||
-      grading.enabled ===
-        true
-    );
-
-
-  const maxPoints =
-    scoring
-      ? Math.max(
-          Number(
-            item.maxPoints ??
-            item.points ??
-            grading.points
-          ) || 0,
-          0
-        )
-      : 0;
-
-
-  const earnedPoints =
-    scoring
-      ? Math.max(
-          Number(
-            item.earnedPoints
-          ) || 0,
-          0
-        )
-      : 0;
-
-
-  const isCorrect =
-    typeof item.isCorrect ===
-      "boolean"
-      ? item.isCorrect
-      : null;
-
-
-  const correctAnswer =
-    item.correctAnswer ??
-    grading.correctAnswer ??
-    "";
-
 
   return {
 
     ...item,
 
     id:
-      questionId,
-
-    questionId,
+      item.id ||
+      `result-question-${index + 1}`,
 
     title:
       String(
@@ -1163,12 +1126,6 @@ const normalizeQuestionResult = (
         ""
       ).trim(),
 
-    imageName:
-      String(
-        item.imageName ||
-        ""
-      ).trim(),
-
     options:
       Array.isArray(
         item.options
@@ -1180,36 +1137,54 @@ const normalizeQuestionResult = (
       item.userAnswer ??
       "",
 
-    correctAnswer,
+    correctAnswer:
+      item.correctAnswer ??
+      "",
 
-    scoring,
+    scoring:
+      Boolean(
+        item.scoring
+      ),
 
     points:
-      maxPoints,
+      Number(
+        item.points
+      ) || 0,
 
-    maxPoints,
+    earnedPoints:
+      Number(
+        item.earnedPoints
+      ) || 0,
 
-    earnedPoints,
+    isCorrect:
+      typeof item.isCorrect === "boolean"
+        ? item.isCorrect
+        : null,
 
-    isCorrect,
+    gradingMode:
+      item.gradingMode ||
+      (item.scoring ? "auto" : "manual"),
 
-    grading: {
+    manuallyGraded:
+      item.manuallyGraded === true,
 
-      ...grading,
+    manualMaxPoints:
+      Number(item.manualMaxPoints) || 0,
 
-      enabled:
-        scoring,
+    manualEarnedPoints:
+      Number(item.manualEarnedPoints) || 0,
 
-      points:
-        maxPoints,
-
-      correctAnswer,
-
-    },
+    gradedAt:
+      item.gradedAt || "",
 
   };
 
 };
+
+
+// =========================================================
+// NORMALIZE SUBMISSION
+// =========================================================
 
 const normalizeSubmission = (
   submission,
@@ -1232,209 +1207,31 @@ const normalizeSubmission = (
       "Time Expired";
 
 
-  const normalizedQuestionResults =
-    Array.isArray(
-      submission.questionResults
-    )
-      ? submission.questionResults.map(
-          normalizeQuestionResult
-        )
-      : [];
-
-
-  const calculatedScore =
-    normalizedQuestionResults.reduce(
-      (
-        total,
-        item
-      ) =>
-        total +
-        (
-          Number(
-            item.earnedPoints
-          ) || 0
-        ),
-      0
-    );
-
-
-  const calculatedMaxScore =
-    normalizedQuestionResults.reduce(
-      (
-        total,
-        item
-      ) =>
-        total +
-        (
-          item.scoring
-            ? Number(
-                item.maxPoints ??
-                item.points
-              ) || 0
-            : 0
-        ),
-      0
-    );
-
-
-  const hasStoredScore =
-    submission.score !==
-      undefined &&
-    submission.score !==
-      null &&
-    submission.score !==
-      "";
-
-
-  const hasStoredMaxScore =
-    submission.maxScore !==
-      undefined &&
-    submission.maxScore !==
-      null &&
-    submission.maxScore !==
-      "";
-
-
-  const storedScore =
-    hasStoredScore
-      ? Number(
-          submission.score
-        )
-      : Number.NaN;
-
-
-  const storedMaxScore =
-    hasStoredMaxScore
-      ? Number(
-          submission.maxScore
-        )
-      : Number.NaN;
-
-
   const score =
-    Number.isFinite(
-      storedScore
-    )
-      ? storedScore
-      : calculatedScore;
+    Number(
+      submission.score
+    ) || 0;
 
 
   const maxScore =
-    Number.isFinite(
-      storedMaxScore
-    ) &&
-    storedMaxScore >=
-      0
-      ? storedMaxScore
-      : calculatedMaxScore;
-
-
-  const calculatedCorrectAnswers =
-    normalizedQuestionResults.filter(
-      (
-        item
-      ) =>
-        item.scoring &&
-        item.isCorrect ===
-          true
-    ).length;
-
-
-  const calculatedIncorrectAnswers =
-    normalizedQuestionResults.filter(
-      (
-        item
-      ) =>
-        item.scoring &&
-        item.isCorrect ===
-          false
-    ).length;
-
-
-  const calculatedScoredQuestions =
-    normalizedQuestionResults.filter(
-      (
-        item
-      ) =>
-        item.scoring
-    ).length;
-
-
-  const hasStoredPercentage =
-    submission.percentage !==
-      undefined &&
-    submission.percentage !==
-      null &&
-    submission.percentage !==
-      "";
-
-
-  const storedPercentage =
-    hasStoredPercentage
-      ? Number(
-          submission.percentage
-        )
-      : Number.NaN;
+    Number(
+      submission.maxScore
+    ) || 0;
 
 
   const percentage =
-    Number.isFinite(
-      storedPercentage
-    )
-      ? Math.min(
-          Math.max(
-            Math.round(
-              storedPercentage
-            ),
-            0
-          ),
+    maxScore >
+      0
+      ? Math.round(
+          (
+            score /
+            maxScore
+          ) *
           100
         )
-      : (
-          maxScore >
-            0
-            ? Math.round(
-                (
-                  score /
-                  maxScore
-                ) *
-                100
-              )
-            : 0
-        );
-
-
-  const correctAnswers =
-    submission.correctAnswers !==
-      undefined &&
-    submission.correctAnswers !==
-      null
-      ? Number(
-          submission.correctAnswers
-        ) || 0
-      : calculatedCorrectAnswers;
-
-
-  const incorrectAnswers =
-    submission.incorrectAnswers !==
-      undefined &&
-    submission.incorrectAnswers !==
-      null
-      ? Number(
-          submission.incorrectAnswers
-        ) || 0
-      : calculatedIncorrectAnswers;
-
-
-  const scoredQuestions =
-    submission.scoredQuestions !==
-      undefined &&
-    submission.scoredQuestions !==
-      null
-      ? Number(
-          submission.scoredQuestions
-        ) || 0
-      : calculatedScoredQuestions;
+      : Number(
+          submission.percentage
+        ) || 0;
 
 
   return {
@@ -1485,42 +1282,24 @@ const normalizeSubmission = (
 
     percentage,
 
-    correctAnswers,
+    correctAnswers:
+      Number(
+        submission.correctAnswers
+      ) || 0,
 
-    incorrectAnswers,
-
-    scoredQuestions,
+    scoredQuestions:
+      Number(
+        submission.scoredQuestions
+      ) || 0,
 
     questionResults:
-      normalizedQuestionResults,
-
-    grading: {
-
-      ...(
-        submission.grading &&
-        typeof submission.grading ===
-          "object"
-          ? submission.grading
-          : {}
-      ),
-
-      enabled:
-        scoredQuestions >
-        0,
-
-      score,
-
-      maxScore,
-
-      percentage,
-
-      correctAnswers,
-
-      incorrectAnswers,
-
-      scoredQuestions,
-
-    },
+      Array.isArray(
+        submission.questionResults
+      )
+        ? submission.questionResults.map(
+            normalizeQuestionResult
+          )
+        : [],
 
     submittedAt:
       submission.submittedAt ||
@@ -1530,6 +1309,11 @@ const normalizeSubmission = (
   };
 
 };
+
+
+// =========================================================
+// MERGE FORMS
+// =========================================================
 
 const mergeForms = (
   baseForms,
@@ -1619,6 +1403,11 @@ const mergeForms = (
 
 };
 
+
+// =========================================================
+// LOAD INITIAL FORMS
+// =========================================================
+
 const loadInitialForms =
   () => {
 
@@ -1657,6 +1446,11 @@ const loadInitialForms =
 
   };
 
+
+// =========================================================
+// LOAD INITIAL SUBMISSIONS
+// =========================================================
+
 const loadInitialSubmissions =
   () => {
 
@@ -1667,6 +1461,11 @@ const loadInitialSubmissions =
     );
 
   };
+
+
+// =========================================================
+// PROVIDER
+// =========================================================
 
 export function FormProvider({
   children,
@@ -1687,6 +1486,11 @@ export function FormProvider({
     loadInitialSubmissions
   );
 
+
+  // =========================================================
+  // ACTIVE USER IDENTITY
+  // =========================================================
+
   const [
     activeUserIdentity,
     setActiveUserIdentity,
@@ -1701,6 +1505,11 @@ export function FormProvider({
     );
 
   });
+
+
+  // =========================================================
+  // SYNC ACTIVE USER
+  // =========================================================
 
   const syncActiveUser =
     useCallback(
@@ -1731,6 +1540,11 @@ export function FormProvider({
       []
     );
 
+
+  // =========================================================
+  // SAVE FORMS
+  // =========================================================
+
   useEffect(() => {
 
     localStorage.setItem(
@@ -1747,6 +1561,11 @@ export function FormProvider({
     forms,
   ]);
 
+
+  // =========================================================
+  // SAVE SUBMISSIONS
+  // =========================================================
+
   useEffect(() => {
 
     localStorage.setItem(
@@ -1762,6 +1581,12 @@ export function FormProvider({
   }, [
     allSubmissions,
   ]);
+
+
+  // =========================================================
+  // STORAGE SYNC
+  // =========================================================
+
   useEffect(() => {
 
     const handleStorageChange =
@@ -1833,6 +1658,11 @@ export function FormProvider({
   }, [
     syncActiveUser,
   ]);
+
+
+  // =========================================================
+  // SAME-TAB USER SYNC
+  // =========================================================
 
   useEffect(() => {
 
@@ -1957,6 +1787,11 @@ export function FormProvider({
     syncActiveUser,
   ]);
 
+
+  // =========================================================
+  // CURRENT USER SUBMISSIONS
+  // =========================================================
+
   const submittedForms =
     useMemo(() => {
 
@@ -1990,6 +1825,11 @@ export function FormProvider({
       activeUserIdentity,
     ]);
 
+
+  // =========================================================
+  // REFRESH FORMS
+  // =========================================================
+
   const refreshForms =
     useCallback(
       () => {
@@ -2008,6 +1848,11 @@ export function FormProvider({
       },
       []
     );
+
+
+  // =========================================================
+  // CREATE FORM
+  // =========================================================
 
   const createForm =
     useCallback(
@@ -2100,6 +1945,12 @@ export function FormProvider({
       },
       []
     );
+
+
+  // =========================================================
+  // UPDATE FORM
+  // =========================================================
+
   const updateForm =
     useCallback(
       (
@@ -2155,6 +2006,12 @@ export function FormProvider({
       },
       []
     );
+
+
+  // =========================================================
+  // GET FORM BY ID
+  // =========================================================
+
   const getFormById =
     useCallback(
       (
@@ -2211,6 +2068,11 @@ export function FormProvider({
         forms,
       ]
     );
+
+
+  // =========================================================
+  // DELETE FORM
+  // =========================================================
 
   const deleteForm =
     useCallback(
@@ -2301,6 +2163,12 @@ export function FormProvider({
       },
       []
     );
+
+
+  // =========================================================
+  // BUILD QUESTION RESULTS
+  // =========================================================
+
   const buildQuestionResults =
     (
       selectedForm,
@@ -2319,131 +2187,92 @@ export function FormProvider({
             "";
 
 
-          const grading =
-            question.grading &&
-            typeof question.grading ===
-              "object"
-              ? question.grading
-              : {};
-
-
-          const correctAnswer =
-            grading.correctAnswer ??
-            question.correctAnswer ??
-            "";
-
-
           const scoring =
             Boolean(
-              grading.enabled ===
-                true ||
-              question.scoring ===
-                true
+              question.scoring
             );
 
 
           const points =
             scoring
-              ? Math.max(
-                  Number(
-                    grading.points ??
-                    question.points
-                  ) || 0,
-                  0
-                )
+              ? Number(
+                  question.points
+                ) || 0
               : 0;
 
 
+          const correctAnswer =
+            question.correctAnswer ??
+            "";
+
+
           let isCorrect =
-            null;
+            false;
 
 
           if (
-            scoring
+            scoring &&
+            hasAnswer(
+              userAnswer
+            ) &&
+            hasAnswer(
+              correctAnswer
+            )
           ) {
 
-            isCorrect =
-              false;
-
-
             if (
-              hasAnswer(
-                userAnswer
-              ) &&
-              hasAnswer(
+              Array.isArray(
                 correctAnswer
               )
             ) {
 
-              if (
+              const userArray =
                 Array.isArray(
+                  userAnswer
+                )
+                  ? userAnswer
+                  : [
+                      userAnswer,
+                    ];
+
+
+              const normalizedUser =
+                [...userArray]
+                  .map(
+                    String
+                  )
+                  .sort();
+
+
+              const normalizedCorrect =
+                [...correctAnswer]
+                  .map(
+                    String
+                  )
+                  .sort();
+
+
+              isCorrect =
+                JSON.stringify(
+                  normalizedUser
+                ) ===
+                JSON.stringify(
+                  normalizedCorrect
+                );
+
+            } else {
+
+              isCorrect =
+                String(
+                  userAnswer
+                )
+                  .trim()
+                  .toLowerCase() ===
+                String(
                   correctAnswer
                 )
-              ) {
-
-                const userArray =
-                  Array.isArray(
-                    userAnswer
-                  )
-                    ? userAnswer
-                    : [
-                        userAnswer,
-                      ];
-
-
-                const normalizedUser =
-                  [...userArray]
-                    .map(
-                      (
-                        value
-                      ) =>
-                        String(
-                          value
-                        )
-                          .trim()
-                          .toLowerCase()
-                    )
-                    .sort();
-
-
-                const normalizedCorrect =
-                  [...correctAnswer]
-                    .map(
-                      (
-                        value
-                      ) =>
-                        String(
-                          value
-                        )
-                          .trim()
-                          .toLowerCase()
-                    )
-                    .sort();
-
-
-                isCorrect =
-                  JSON.stringify(
-                    normalizedUser
-                  ) ===
-                  JSON.stringify(
-                    normalizedCorrect
-                  );
-
-              } else {
-
-                isCorrect =
-                  String(
-                    userAnswer
-                  )
-                    .trim()
-                    .toLowerCase() ===
-                  String(
-                    correctAnswer
-                  )
-                    .trim()
-                    .toLowerCase();
-
-              }
+                  .trim()
+                  .toLowerCase();
 
             }
 
@@ -2453,9 +2282,6 @@ export function FormProvider({
           return {
 
             id:
-              question.id,
-
-            questionId:
               question.id,
 
             title:
@@ -2488,28 +2314,12 @@ export function FormProvider({
 
             points,
 
-            maxPoints:
-              points,
-
             earnedPoints:
-              scoring &&
-              isCorrect ===
-                true
+              isCorrect
                 ? points
                 : 0,
 
             isCorrect,
-
-            grading: {
-
-              enabled:
-                scoring,
-
-              points,
-
-              correctAnswer,
-
-            },
 
           };
 
@@ -2517,6 +2327,12 @@ export function FormProvider({
       );
 
     };
+
+
+  // =========================================================
+  // SUBMIT FORM
+  // =========================================================
+
   const submitForm =
     useCallback(
       (
@@ -2636,6 +2452,12 @@ export function FormProvider({
           };
 
         }
+
+
+        // =====================================================
+        // STATUS
+        // =====================================================
+
         const requestedExpiredStatus =
           submission.isTimeExpired ===
             true ||
@@ -2651,6 +2473,11 @@ export function FormProvider({
           requestedExpiredStatus
             ? "time-expired"
             : "completed";
+
+
+        // =====================================================
+        // ONE TIME ONLY
+        // =====================================================
 
         const oneTimeOnly =
           selectedForm.settings
@@ -2713,6 +2540,11 @@ export function FormProvider({
 
         }
 
+
+        // =====================================================
+        // ANSWERS
+        // =====================================================
+
         const answers =
           submission.answers &&
           typeof submission.answers ===
@@ -2734,6 +2566,11 @@ export function FormProvider({
           submission.totalQuestions ??
           selectedForm.questions.length;
 
+
+        // =====================================================
+        // QUESTION RESULTS
+        // =====================================================
+
         const questionResults =
           Array.isArray(
             submission.questionResults
@@ -2747,6 +2584,11 @@ export function FormProvider({
                 selectedForm,
                 answers
               );
+
+
+        // =====================================================
+        // SCORE
+        // =====================================================
 
         const calculatedScore =
           questionResults.reduce(
@@ -2788,19 +2630,7 @@ export function FormProvider({
               item
             ) =>
               item.scoring &&
-              item.isCorrect ===
-                true
-          ).length;
-
-
-        const calculatedIncorrectAnswers =
-          questionResults.filter(
-            (
-              item
-            ) =>
-              item.scoring &&
-              item.isCorrect ===
-                false
+              item.isCorrect
           ).length;
 
 
@@ -2839,6 +2669,11 @@ export function FormProvider({
           submission.submittedAt ||
           new Date()
             .toISOString();
+
+
+        // =====================================================
+        // CREATE SUBMISSION
+        // =====================================================
 
         const newSubmission =
           normalizeSubmission({
@@ -2933,55 +2768,17 @@ export function FormProvider({
               submission.correctAnswers ??
               calculatedCorrectAnswers,
 
-            incorrectAnswers:
-              submission.incorrectAnswers ??
-              calculatedIncorrectAnswers,
-
             scoredQuestions:
               submission.scoredQuestions ??
               calculatedScoredQuestions,
 
-            grading: {
-
-              ...(
-                submission.grading &&
-                typeof submission.grading ===
-                  "object"
-                  ? submission.grading
-                  : {}
-              ),
-
-              enabled:
-                calculatedScoredQuestions >
-                0,
-
-              score:
-                submission.score ??
-                calculatedScore,
-
-              maxScore:
-                submission.maxScore ??
-                calculatedMaxScore,
-
-              percentage:
-                submission.percentage ??
-                calculatedPercentage,
-
-              correctAnswers:
-                submission.correctAnswers ??
-                calculatedCorrectAnswers,
-
-              incorrectAnswers:
-                submission.incorrectAnswers ??
-                calculatedIncorrectAnswers,
-
-              scoredQuestions:
-                submission.scoredQuestions ??
-                calculatedScoredQuestions,
-
-            },
-
           });
+
+
+        // =====================================================
+        // SAVE SUBMISSION
+        // =====================================================
+
         setAllSubmissions(
           (
             previous
@@ -2993,6 +2790,11 @@ export function FormProvider({
 
           ]
         );
+
+
+        // =====================================================
+        // UPDATE FORM RESPONSES
+        // =====================================================
 
         setForms(
           (
@@ -3110,20 +2912,8 @@ export function FormProvider({
           percentage:
             newSubmission.percentage,
 
-          correctAnswers:
-            newSubmission.correctAnswers,
-
-          incorrectAnswers:
-            newSubmission.incorrectAnswers,
-
-          scoredQuestions:
-            newSubmission.scoredQuestions,
-
           questionResults:
             newSubmission.questionResults,
-
-          grading:
-            newSubmission.grading,
 
           submission:
             newSubmission,
@@ -3136,6 +2926,11 @@ export function FormProvider({
         forms,
       ]
     );
+
+
+  // =========================================================
+  // CHECK USER SUBMISSION
+  // =========================================================
 
   const hasSubmitted =
     useCallback(
@@ -3189,6 +2984,11 @@ export function FormProvider({
         activeUserIdentity,
       ]
     );
+
+
+  // =========================================================
+  // GET CURRENT USER SUBMISSION BY FORM
+  // =========================================================
 
   const getUserSubmissionByForm =
     useCallback(
@@ -3252,6 +3052,12 @@ export function FormProvider({
         activeUserIdentity,
       ]
     );
+
+
+  // =========================================================
+  // GET SUBMISSION BY ID
+  // =========================================================
+
   const getSubmissionById =
     useCallback(
       (
@@ -3277,6 +3083,11 @@ export function FormProvider({
       ]
     );
 
+
+  // =========================================================
+  // ADMIN SUBMISSIONS
+  // =========================================================
+
   const getSubmissionsByForm =
     useCallback(
       (
@@ -3301,6 +3112,119 @@ export function FormProvider({
         allSubmissions,
       ]
     );
+
+
+  // =========================================================
+  // ADMIN MANUAL GRADING
+  // =========================================================
+
+  const updateSubmissionGrading =
+    useCallback(
+      (submissionId, grades = {}) => {
+
+        let updatedSubmission = null;
+
+        setAllSubmissions((previous) =>
+          previous.map((submission) => {
+
+            if (String(submission.submissionId) !== String(submissionId)) {
+              return submission;
+            }
+
+            const selectedForm =
+              forms.find((form) =>
+                String(form.id) === String(submission.formId ?? submission.id)
+              ) || null;
+
+            const answers =
+              submission.answers && typeof submission.answers === "object"
+                ? submission.answers
+                : {};
+
+            const baseResults =
+              Array.isArray(submission.questionResults) &&
+              submission.questionResults.length > 0
+                ? submission.questionResults.map(normalizeQuestionResult)
+                : selectedForm
+                  ? buildQuestionResults(selectedForm, answers)
+                  : [];
+
+            const nextResults = baseResults.map((result, index) => {
+              const questionId = result.questionId ?? result.id ?? `question-${index + 1}`;
+              const grade = grades[String(questionId)] ?? grades[questionId];
+
+              if (!grade) {
+                return normalizeQuestionResult(result, index);
+              }
+
+              const maxPoints = Math.max(Number(grade.maxPoints) || 0, 0);
+              const earnedPoints = Math.min(
+                Math.max(Number(grade.earnedPoints) || 0, 0),
+                maxPoints
+              );
+
+              return normalizeQuestionResult({
+                ...result,
+                questionId,
+                gradingMode: "manual",
+                manuallyGraded: grade.graded === true,
+                manualMaxPoints: maxPoints,
+                manualEarnedPoints: earnedPoints,
+                points: maxPoints,
+                earnedPoints,
+                scoring: grade.graded === true,
+                isCorrect: null,
+                gradedAt: grade.graded === true ? new Date().toISOString() : "",
+              }, index);
+            });
+
+            const totalScore = nextResults.reduce((total, item) => {
+              const isCounted = item.scoring || item.manuallyGraded;
+              return total + (isCounted ? Number(item.earnedPoints) || 0 : 0);
+            }, 0);
+
+            const totalMaxScore = nextResults.reduce((total, item) => {
+              const isCounted = item.scoring || item.manuallyGraded;
+              return total + (isCounted ? Number(item.points) || Number(item.manualMaxPoints) || 0 : 0);
+            }, 0);
+
+            const gradedQuestions = nextResults.filter(
+              (item) => item.scoring || item.manuallyGraded
+            ).length;
+
+            const ungradedQuestions = nextResults.filter(
+              (item) => !item.scoring && !item.manuallyGraded
+            ).length;
+
+            const percentage = totalMaxScore > 0
+              ? Math.round((totalScore / totalMaxScore) * 100)
+              : 0;
+
+            updatedSubmission = normalizeSubmission({
+              ...submission,
+              questionResults: nextResults,
+              score: totalScore,
+              maxScore: totalMaxScore,
+              percentage,
+              gradedQuestions,
+              ungradedQuestions,
+              gradingComplete: ungradedQuestions === 0,
+              gradingUpdatedAt: new Date().toISOString(),
+            });
+
+            return updatedSubmission;
+          })
+        );
+
+        return updatedSubmission;
+      },
+      [forms]
+    );
+
+
+  // =========================================================
+  // CLEAR SUBMISSIONS
+  // =========================================================
 
   const clearFormSubmissions =
     useCallback(
@@ -3371,6 +3295,11 @@ export function FormProvider({
       []
     );
 
+
+  // =========================================================
+  // CONTEXT VALUE
+  // =========================================================
+
   const contextValue =
     useMemo(
       () => ({
@@ -3403,6 +3332,8 @@ export function FormProvider({
 
         getSubmissionsByForm,
 
+        updateSubmissionGrading,
+
         clearFormSubmissions,
 
         refreshForms,
@@ -3423,10 +3354,17 @@ export function FormProvider({
         getUserSubmissionByForm,
         getSubmissionById,
         getSubmissionsByForm,
+        updateSubmissionGrading,
         clearFormSubmissions,
         refreshForms,
       ]
     );
+
+
+  // =========================================================
+  // PROVIDER
+  // =========================================================
+
   return (
 
     <FormContext.Provider

@@ -10,7 +10,6 @@ import {
   useLocation,
 } from "react-router-dom";
 
-
 // =========================================
 // AUTH PAGES
 // =========================================
@@ -18,7 +17,6 @@ import {
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
-
 
 // =========================================
 // USER PAGES
@@ -33,7 +31,6 @@ import FillForm from "./pages/FillForm";
 import SubmitSuccess from "./pages/SubmitSuccess";
 import FormResult from "./pages/FormResult";
 
-
 // =========================================
 // ADMIN PAGES
 // =========================================
@@ -43,9 +40,9 @@ import AdminFormDetails from "./pages/AdminFormDetails";
 import AdminResults from "./pages/AdminResults";
 import ManageForms from "./pages/ManageForms";
 import CreateForm from "./pages/CreateForm";
+import EditForm from "./pages/EditForm";
 import ImportWord from "./pages/ImportWord";
 import AdminProfile from "./pages/AdminProfile";
-
 
 // =========================================================
 // SCROLL MANAGER
@@ -57,36 +54,23 @@ function ScrollManager() {
   const location =
     useLocation();
 
-
   useEffect(() => {
 
     const html =
       document.documentElement;
 
-
     const body =
       document.body;
-
 
     const root =
       document.getElementById(
         "root"
       );
 
-
-    // =====================================================
-    // HAPUS CLASS BOOTSTRAP YANG DAPAT MENGUNCI SCROLL
-    // =====================================================
-
     body.classList.remove(
       "modal-open",
       "offcanvas-open"
     );
-
-
-    // =====================================================
-    // HAPUS STYLE INLINE LAMA
-    // =====================================================
 
     html.style.removeProperty(
       "overflow"
@@ -99,7 +83,6 @@ function ScrollManager() {
     html.style.removeProperty(
       "position"
     );
-
 
     body.style.removeProperty(
       "overflow"
@@ -129,7 +112,6 @@ function ScrollManager() {
       "padding-right"
     );
 
-
     if (root) {
 
       root.style.removeProperty(
@@ -150,11 +132,6 @@ function ScrollManager() {
 
     }
 
-
-    // =====================================================
-    // PASTIKAN DOCUMENT DAPAT DI-SCROLL
-    // =====================================================
-
     html.style.overflowX =
       "hidden";
 
@@ -167,7 +144,6 @@ function ScrollManager() {
     html.style.minHeight =
       "100%";
 
-
     body.style.overflowX =
       "hidden";
 
@@ -179,7 +155,6 @@ function ScrollManager() {
 
     body.style.minHeight =
       "100vh";
-
 
     if (root) {
 
@@ -197,32 +172,18 @@ function ScrollManager() {
 
     }
 
-
-    // =====================================================
-    // SELALU MULAI DARI ATAS SAAT PINDAH HALAMAN
-    // =====================================================
-
     window.scrollTo(
       0,
       0
     );
-
-
-    // =====================================================
-    // BERSIHKAN BACKDROP BOOTSTRAP YANG TERTINGGAL
-    // =====================================================
 
     document
       .querySelectorAll(
         ".modal-backdrop, .offcanvas-backdrop"
       )
       .forEach(
-        (
-          element
-        ) => {
-
+        (element) => {
           element.remove();
-
         }
       );
 
@@ -230,11 +191,9 @@ function ScrollManager() {
     location.pathname,
   ]);
 
-
   return null;
 
 }
-
 
 // =========================================================
 // APPLICATION ROUTES
@@ -248,13 +207,7 @@ function AppRoutes() {
 
       <ScrollManager />
 
-
       <Routes>
-
-
-        {/* =========================================
-            DEFAULT
-        ========================================= */}
 
         <Route
           path="/"
@@ -266,186 +219,101 @@ function AppRoutes() {
           }
         />
 
-
-        {/* =========================================
-            AUTH
-        ========================================= */}
-
         <Route
           path="/login"
-          element={
-            <Login />
-          }
+          element={<Login />}
         />
-
 
         <Route
           path="/register"
-          element={
-            <Register />
-          }
+          element={<Register />}
         />
-
 
         <Route
           path="/verify-otp"
-          element={
-            <VerifyOtp />
-          }
+          element={<VerifyOtp />}
         />
-
-
-        {/* =========================================
-            USER
-        ========================================= */}
 
         <Route
           path="/dashboard"
-          element={
-            <Dashboard />
-          }
+          element={<Dashboard />}
         />
-
 
         <Route
           path="/forms"
-          element={
-            <UserForms />
-          }
+          element={<UserForms />}
         />
-
 
         <Route
           path="/history"
-          element={
-            <History />
-          }
+          element={<History />}
         />
-
 
         <Route
           path="/profile"
-          element={
-            <Profile />
-          }
+          element={<Profile />}
         />
-
 
         <Route
           path="/form-details/:id"
-          element={
-            <FormDetails />
-          }
+          element={<FormDetails />}
         />
-
 
         <Route
           path="/fill-form/:id"
-          element={
-            <FillForm />
-          }
+          element={<FillForm />}
         />
-
 
         <Route
           path="/submit-success"
-          element={
-            <SubmitSuccess />
-          }
+          element={<SubmitSuccess />}
         />
-
-
-        {/* =========================================
-            USER FORM RESULT
-        ========================================= */}
 
         <Route
           path="/form-result/:id"
-          element={
-            <FormResult />
-          }
+          element={<FormResult />}
         />
-
-
-        {/* =========================================
-            ADMIN
-        ========================================= */}
 
         <Route
           path="/admin"
-          element={
-            <AdminDashboard />
-          }
+          element={<AdminDashboard />}
         />
-
 
         <Route
           path="/admin/profile"
-          element={
-            <AdminProfile />
-          }
+          element={<AdminProfile />}
         />
-
 
         <Route
           path="/admin/forms"
-          element={
-            <ManageForms />
-          }
+          element={<ManageForms />}
         />
-
-
-        {/* =========================================
-            CREATE FORM
-        ========================================= */}
 
         <Route
           path="/create-form"
-          element={
-            <CreateForm />
-          }
+          element={<CreateForm />}
         />
-
-
-        {/* =========================================
-            IMPORT WORD
-        ========================================= */}
 
         <Route
           path="/admin/import-word"
-          element={
-            <ImportWord />
-          }
+          element={<ImportWord />}
         />
 
-
-        {/* =========================================
-            ADMIN FORM DETAILS
-        ========================================= */}
-
+        {/* IMPORTANT: taruh route edit sebelum detail agar jelas */}
         <Route
-          path="/admin/forms/:id"
-          element={
-            <AdminFormDetails />
-          }
+          path="/admin/forms/:id/edit"
+          element={<EditForm />}
         />
-
-
-        {/* =========================================
-            ADMIN RESULTS
-        ========================================= */}
 
         <Route
           path="/admin/forms/:id/results"
-          element={
-            <AdminResults />
-          }
+          element={<AdminResults />}
         />
 
-
-        {/* =========================================
-            FALLBACK
-        ========================================= */}
+        <Route
+          path="/admin/forms/:id"
+          element={<AdminFormDetails />}
+        />
 
         <Route
           path="*"
@@ -457,7 +325,6 @@ function AppRoutes() {
           }
         />
 
-
       </Routes>
 
     </>
@@ -465,7 +332,6 @@ function AppRoutes() {
   );
 
 }
-
 
 // =========================================================
 // APP
@@ -476,14 +342,11 @@ function App() {
   return (
 
     <BrowserRouter>
-
       <AppRoutes />
-
     </BrowserRouter>
 
   );
 
 }
-
 
 export default App;

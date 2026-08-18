@@ -2099,6 +2099,45 @@
     color: #93a3b7;
 }
 
+.question-title-html {
+  display: inline;
+}
+
+.question-title-html p {
+  margin: 0;
+  display: inline;
+}
+
+.question-title-html .ql-video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 12px 0;
+  border: none;
+  border-radius: 10px;
+}
+
+.question-title-html a {
+  color: #2874bc;
+  text-decoration: underline;
+  word-break: break-word;
+}
+
+.question-title-html .katex {
+  font-size: 1.05em;
+}
+
+.question-title-html .ql-video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 12px 0;
+  border: none;
+  border-radius: 10px;
+}
+
 
 /* =========================================================
    MOBILE
