@@ -160,7 +160,7 @@ select {
 
 .results-header-label {
     color: rgba(255, 255, 255, .78);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: .3px;
 }
@@ -187,7 +187,7 @@ select {
     justify-content: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -202,7 +202,7 @@ select {
 }
 
 .results-export-trigger svg:last-child {
-    font-size: 8px;
+    font-size: 10px;
 }
 
 .results-export-menu {
@@ -247,7 +247,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .export-menu-icon.excel {
@@ -268,12 +268,12 @@ select {
 
 .results-export-menu strong {
     color: #30435a;
-    font-size: 10px;
+    font-size: 12px;
 }
 
 .results-export-menu small {
     color: #8c9aab;
-    font-size: 8px;
+    font-size: 10px;
 }
 
 
@@ -302,7 +302,7 @@ select {
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 23px;
+    font-size: 25px;
     backdrop-filter: blur(9px);
     -webkit-backdrop-filter: blur(9px);
 }
@@ -320,7 +320,7 @@ select {
     background: rgba(255, 255, 255, .11);
     border: 1px solid rgba(255, 255, 255, .15);
     color: rgba(255, 255, 255, .82);
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.1px;
     text-transform: uppercase;
@@ -329,7 +329,7 @@ select {
 .results-header-information h1 {
     margin: 13px 0 7px;
     color: #ffffff;
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1.25;
     font-weight: 700;
     letter-spacing: -.55px;
@@ -339,7 +339,7 @@ select {
     margin: 0;
     max-width: 580px;
     color: rgba(255, 255, 255, .75);
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.65;
 }
 
@@ -378,7 +378,7 @@ select {
     display: block;
     margin-bottom: 4px;
     color: #7f91a8;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.2px;
     text-transform: uppercase;
@@ -389,7 +389,7 @@ select {
 .respondents-header h2 {
     margin: 0;
     color: #26394f;
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 700;
     letter-spacing: -.2px;
 }
@@ -403,7 +403,7 @@ select {
     color: #467ba9;
     display: inline-flex;
     align-items: center;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 }
 
@@ -455,7 +455,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 17px;
 }
 
 .result-stat-card.responses .result-stat-icon {
@@ -487,20 +487,20 @@ select {
 
 .result-stat-info > span {
     color: #7f8fa3;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 }
 
 .result-stat-info strong {
     color: #273b52;
-    font-size: 24px;
+    font-size: 26px;
     line-height: 1;
     font-weight: 800;
 }
 
 .result-stat-info small {
     color: #96a2b2;
-    font-size: 7px;
+    font-size: 9px;
     line-height: 1.45;
 }
 
@@ -546,7 +546,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -580,12 +580,12 @@ select {
 
 .score-row-label strong {
     color: #33475e;
-    font-size: 10px;
+    font-size: 12px;
 }
 
 .score-row-label span {
     color: #8f9cad;
-    font-size: 7px;
+    font-size: 9px;
 }
 
 .score-bar-area {
@@ -627,7 +627,7 @@ select {
 
 .score-percentage {
     color: #61758b;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 }
 
@@ -640,12 +640,12 @@ select {
 
 .score-count strong {
     color: #30445b;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .score-count span {
     color: #8e9aac;
-    font-size: 7px;
+    font-size: 9px;
 }
 
 
@@ -675,7 +675,7 @@ select {
 .respondents-search svg,
 .respondents-sort svg {
     color: #8aa0b7;
-    font-size: 11px;
+    font-size: 13px;
     flex-shrink: 0;
 }
 
@@ -687,7 +687,7 @@ select {
     outline: none;
     background: transparent;
     color: #3c4f65;
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .respondents-search input::placeholder {
@@ -837,7 +837,7 @@ select {
     align-items: center;
     justify-content: center;
 
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 800;
 }
 
@@ -865,7 +865,7 @@ select {
     align-items: center;
     justify-content: center;
 
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 800;
 
     box-shadow:
@@ -890,7 +890,7 @@ select {
 
     color: #263b55;
 
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 800;
 
     white-space: nowrap;
@@ -904,7 +904,7 @@ select {
 
     color: #71839a;
 
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 500;
 
     white-space: nowrap;
@@ -933,13 +933,13 @@ select {
 
     gap: 4px;
 
-    font-size: 7px;
+    font-size: 9px;
     font-weight: 700;
 }
 
 
 .respondent-status svg {
-    font-size: 6px;
+    font-size: 8px;
 }
 
 
@@ -978,7 +978,7 @@ select {
 
     color: #4d88c7;
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -995,7 +995,7 @@ select {
 .respondent-meta-chip span {
     color: #99a6b6;
 
-    font-size: 6px;
+    font-size: 8px;
     font-weight: 700;
 
     text-transform: uppercase;
@@ -1007,7 +1007,7 @@ select {
 .respondent-meta-chip strong {
     color: #52667e;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 
     white-space: nowrap;
@@ -1054,7 +1054,7 @@ select {
 
 
 .respondent-score span {
-    font-size: 6px;
+    font-size: 8px;
     font-weight: 800;
 
     text-transform: uppercase;
@@ -1066,7 +1066,7 @@ select {
 
 
 .respondent-score strong {
-    font-size: 15px;
+    font-size: 17px;
     line-height: 1;
 
     font-weight: 800;
@@ -1155,7 +1155,7 @@ select {
 
     font-family: inherit;
 
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 800;
 
     white-space: nowrap;
@@ -1171,7 +1171,7 @@ select {
 
 
 .respondent-view-answers-btn svg {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1224,19 +1224,19 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .respondents-empty h3 {
     margin: 0 0 5px;
     color: #30445b;
-    font-size: 13px;
+    font-size: 15px;
 }
 
 .respondents-empty p {
     margin: 0;
     color: #8d9aac;
-    font-size: 9px;
+    font-size: 11px;
 }
 
 
@@ -1268,7 +1268,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .results-export-card-content {
@@ -1278,7 +1278,7 @@ select {
 
 .results-export-card-content > span {
     color: rgba(255, 255, 255, .72);
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -1287,7 +1287,7 @@ select {
 .results-export-card-content h2 {
     margin: 4px 0 5px;
     color: #ffffff;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
 }
 
@@ -1295,7 +1295,7 @@ select {
     margin: 0;
     max-width: 610px;
     color: rgba(255, 255, 255, .72);
-    font-size: 8px;
+    font-size: 10px;
     line-height: 1.55;
 }
 
@@ -1315,7 +1315,7 @@ select {
     justify-content: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 800;
     transition:
         transform .2s ease,
@@ -1369,20 +1369,20 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 30px;
 }
 
 .results-not-found h2 {
     margin: 0 0 7px;
     color: #2a3e55;
-    font-size: 21px;
+    font-size: 23px;
 }
 
 .results-not-found p {
     max-width: 420px;
     margin: 0 0 16px;
     color: #8795a7;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.6;
 }
 
@@ -1397,7 +1397,7 @@ select {
     align-items: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -1561,7 +1561,7 @@ select {
     }
 
     .results-header-information h1 {
-        font-size: 25px;
+        font-size: 27px;
     }
 
     .results-content {
@@ -1601,11 +1601,11 @@ select {
         width: 34px;
         height: 34px;
         border-radius: 10px;
-        font-size: 13px;
+        font-size: 15px;
     }
 
     .results-header-label {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .results-export-trigger {
@@ -1632,16 +1632,16 @@ select {
         width: 48px;
         height: 48px;
         border-radius: 14px;
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .results-header-information h1 {
         margin-top: 10px;
-        font-size: 20px;
+        font-size: 22px;
     }
 
     .results-header-information p {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .results-header-dots {
@@ -1663,7 +1663,7 @@ select {
     .results-section-heading h2,
     .results-panel-heading h2,
     .respondents-header h2 {
-        font-size: 15px;
+        font-size: 17px;
     }
 
     .results-stats {
@@ -1748,7 +1748,7 @@ select {
     }
 
     .results-header-information h1 {
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .results-header-information p {
@@ -1769,11 +1769,11 @@ select {
     }
 
     .respondents-count {
-        font-size: 7px;
+        font-size: 9px;
     }
 
     .respondent-info > strong {
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .respondent-score {
@@ -1823,7 +1823,7 @@ select {
   gap: 8px;
 
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 
   cursor: pointer;
@@ -1932,7 +1932,7 @@ select {
   align-items: center;
   justify-content: center;
 
-  font-size: 21px;
+  font-size: 23px;
   font-weight: 800;
 }
 
@@ -1941,7 +1941,7 @@ select {
 
   color: #7c8ba1;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 
   text-transform: uppercase;
@@ -1955,7 +1955,7 @@ select {
 
   color: #1e3555;
 
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .admin-answer-modal-user p {
@@ -1963,7 +1963,7 @@ select {
 
   color: #8390a3;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .admin-answer-close-btn {
@@ -2024,7 +2024,7 @@ select {
 .admin-answer-summary span {
   color: #8a97a9;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 
   margin-bottom: 5px;
@@ -2033,7 +2033,7 @@ select {
 .admin-answer-summary strong {
   color: #273d5b;
 
-  font-size: 13px;
+  font-size: 15px;
 }
 
 
@@ -2077,7 +2077,7 @@ select {
   align-items: center;
   justify-content: center;
 
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .admin-answer-score-card span {
@@ -2085,7 +2085,7 @@ select {
 
   color: #96742e;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -2096,7 +2096,7 @@ select {
 
   color: #624716;
 
-  font-size: 23px;
+  font-size: 25px;
 }
 
 .admin-answer-score-percentage {
@@ -2208,7 +2208,7 @@ select {
   align-items: center;
   justify-content: center;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -2219,7 +2219,7 @@ select {
 
   color: #748197;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 
   text-transform: capitalize;
@@ -2238,7 +2238,7 @@ select {
   align-items: center;
   gap: 6px;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -2257,7 +2257,7 @@ select {
 
   color: #263b58;
 
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
@@ -2320,14 +2320,14 @@ select {
 
   color: #8895a8;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .admin-answer-user-answer strong {
   color: #32465f;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 
@@ -2354,7 +2354,7 @@ select {
 
   color: #1d8250;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 
@@ -2377,13 +2377,13 @@ select {
 .admin-answer-points span {
   color: #8693a6;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .admin-answer-points strong {
   color: #315785;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 
@@ -2409,7 +2409,7 @@ select {
 .admin-answer-modal-footer span {
   color: #8592a5;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .admin-answer-modal-footer button {
@@ -2423,7 +2423,7 @@ select {
   color: #ffffff;
 
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 
   cursor: pointer;

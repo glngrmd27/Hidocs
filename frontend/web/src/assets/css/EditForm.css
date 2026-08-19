@@ -25,7 +25,7 @@
   flex-shrink: 0;
   margin-top: 2px;
   color: #337bc1;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .edit-form-information-note > div {
@@ -37,13 +37,13 @@
 
 .edit-form-information-note strong {
   color: #2b4058;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .edit-form-information-note span {
   color: #7f90a5;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.6;
 }
 
@@ -70,14 +70,14 @@
 
 .edit-form-locked-info span {
   color: #8796a9;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 600;
 }
 
 .edit-form-locked-info strong {
   max-width: 100%;
   color: #30445c;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -94,7 +94,7 @@
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  font-size: 7px !important;
+  font-size: 9px !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: .5px;
@@ -124,19 +124,19 @@
 .edit-form-state-card > svg {
   margin-bottom: 13px;
   color: #347bc1;
-  font-size: 32px;
+  font-size: 34px;
 }
 
 .edit-form-state-card h2 {
   margin: 0 0 7px;
   color: #293e56;
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .edit-form-state-card p {
   margin: 0;
   color: #8494a7;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.6;
 }
 
@@ -150,7 +150,7 @@
   background: #256bb0;
   color: #ffffff;
   font-family: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
 }

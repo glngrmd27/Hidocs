@@ -47,7 +47,7 @@ button.question-image.question-image-clickable:hover img {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   opacity: 0;
   transform: translateY(5px);
@@ -111,7 +111,7 @@ button.question-image.question-image-clickable:hover img {
 
 .image-preview-header span {
   color: #7d93ac;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -119,7 +119,7 @@ button.question-image.question-image-clickable:hover img {
 
 .image-preview-header strong {
   color: #ffffff;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .image-preview-close {
@@ -166,7 +166,7 @@ button.question-image.question-image-clickable:hover img {
   justify-content: center;
   gap: 6px;
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
@@ -194,7 +194,7 @@ button.question-image.question-image-clickable:hover img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -259,7 +259,7 @@ button.question-image.question-image-clickable:hover img {
 
 .image-preview-footer span {
   color: #8396ab;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -271,7 +271,7 @@ button.question-image.question-image-clickable:hover img {
   background: #2e79c3;
   color: #ffffff;
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
 }

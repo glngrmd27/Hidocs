@@ -54,7 +54,10 @@ select {
     position: relative;
     width: 100%;
     min-height: 250px;
-    overflow: hidden;
+
+    /* Allow the three-dot dropdown to extend below the blue header. */
+    overflow: visible;
+
     padding: 22px 30px 34px;
     color: #ffffff;
     background:
@@ -77,6 +80,10 @@ select {
 .detail-header-decoration {
     position: absolute;
     inset: 0;
+
+    /* Decorative circles stay inside the blue header. */
+    overflow: hidden;
+
     pointer-events: none;
 }
 
@@ -128,7 +135,7 @@ select {
 
 .detail-header-top {
     position: relative;
-    z-index: 2;
+    z-index: 30;
     display: grid;
     grid-template-columns: 42px 1fr 42px;
     align-items: center;
@@ -165,7 +172,7 @@ select {
 
 .detail-header-label {
     color: rgba(255, 255, 255, .78);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: .3px;
 }
@@ -196,7 +203,7 @@ select {
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 23px;
+    font-size: 25px;
     backdrop-filter: blur(9px);
     -webkit-backdrop-filter: blur(9px);
 }
@@ -216,7 +223,7 @@ select {
     background: rgba(42, 186, 119, .16);
     border: 1px solid rgba(70, 217, 151, .23);
     color: #8af0b8;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
 }
 
@@ -231,7 +238,7 @@ select {
 .detail-header-information h1 {
     margin: 13px 0 7px;
     color: #ffffff;
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1.25;
     font-weight: 700;
     letter-spacing: -.55px;
@@ -241,7 +248,7 @@ select {
     margin: 0;
     max-width: 580px;
     color: rgba(255, 255, 255, .75);
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.65;
 }
 
@@ -289,7 +296,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 17px;
 }
 
 .detail-link-information {
@@ -302,13 +309,13 @@ select {
 
 .detail-small-label {
     color: #8c9aad;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
 }
 
 .detail-link-information strong {
     color: #2b4058;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -328,7 +335,7 @@ select {
     justify-content: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     transition:
         background .2s ease,
@@ -367,7 +374,7 @@ select {
     display: block;
     margin-bottom: 4px;
     color: #7f91a8;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.2px;
     text-transform: uppercase;
@@ -377,7 +384,7 @@ select {
 .detail-panel-heading h2 {
     margin: 0;
     color: #26394f;
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 700;
     letter-spacing: -.2px;
 }
@@ -390,12 +397,12 @@ select {
     align-items: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
 .detail-inline-action svg {
-    font-size: 9px;
+    font-size: 11px;
     transition: transform .2s ease;
 }
 
@@ -450,7 +457,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .detail-stat-card.responses .detail-stat-icon {
@@ -477,14 +484,14 @@ select {
 
 .detail-stat-content strong {
     color: #263a51;
-    font-size: 23px;
+    font-size: 25px;
     line-height: 1;
     font-weight: 800;
 }
 
 .detail-stat-content span {
     color: #8493a6;
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .detail-stat-decoration {
@@ -536,7 +543,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -578,7 +585,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .feature-content {
@@ -591,13 +598,13 @@ select {
 
 .feature-content strong {
     color: #30445b;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
 .feature-content span {
     color: #8d9bad;
-    font-size: 8px;
+    font-size: 10px;
     line-height: 1.45;
 }
 
@@ -609,7 +616,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 8px;
+    font-size: 10px;
 }
 
 .feature-card.blue {
@@ -725,18 +732,18 @@ select {
 
 .schedule-timeline-content > span {
     color: #8796a8;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
 }
 
 .schedule-timeline-content strong {
     color: #2d4259;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .schedule-timeline-content small {
     color: #98a4b3;
-    font-size: 7px;
+    font-size: 9px;
     line-height: 1.45;
 }
 
@@ -770,12 +777,12 @@ select {
 
 .schedule-duration-card strong {
     color: #33495f;
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .schedule-duration-card span {
     color: #8d9aac;
-    font-size: 7px;
+    font-size: 9px;
     line-height: 1.45;
 }
 
@@ -808,7 +815,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .detail-results-content {
@@ -818,7 +825,7 @@ select {
 
 .detail-results-content > span {
     color: rgba(255, 255, 255, .72);
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -827,7 +834,7 @@ select {
 .detail-results-content h2 {
     margin: 4px 0 5px;
     color: #ffffff;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
 }
 
@@ -835,7 +842,7 @@ select {
     margin: 0;
     max-width: 610px;
     color: rgba(255, 255, 255, .72);
-    font-size: 8px;
+    font-size: 10px;
     line-height: 1.55;
 }
 
@@ -852,7 +859,7 @@ select {
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
     transition:
         transform .2s ease,
@@ -889,20 +896,20 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 30px;
 }
 
 .detail-not-found h2 {
     margin: 0 0 7px;
     color: #2a3e55;
-    font-size: 21px;
+    font-size: 23px;
 }
 
 .detail-not-found p {
     max-width: 420px;
     margin: 0 0 16px;
     color: #8795a7;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.6;
 }
 
@@ -917,7 +924,7 @@ select {
     align-items: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -1051,7 +1058,7 @@ select {
     }
 
     .detail-header-information h1 {
-        font-size: 25px;
+        font-size: 27px;
     }
 
     .detail-content {
@@ -1084,11 +1091,11 @@ select {
         width: 34px;
         height: 34px;
         border-radius: 10px;
-        font-size: 13px;
+        font-size: 15px;
     }
 
     .detail-header-label {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .detail-header-content {
@@ -1100,16 +1107,16 @@ select {
         width: 48px;
         height: 48px;
         border-radius: 14px;
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .detail-header-information h1 {
         margin-top: 10px;
-        font-size: 20px;
+        font-size: 22px;
     }
 
     .detail-header-information p {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .detail-header-dots {
@@ -1133,13 +1140,13 @@ select {
     .detail-link-icon {
         width: 38px;
         height: 38px;
-        font-size: 13px;
+        font-size: 15px;
     }
 
     .detail-copy-btn {
         min-width: 88px;
         height: 35px;
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .detail-stats {
@@ -1189,7 +1196,7 @@ select {
     }
 
     .detail-header-information h1 {
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .detail-header-information p {
@@ -1197,7 +1204,7 @@ select {
     }
 
     .detail-link-information strong {
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .detail-copy-btn span {
@@ -1216,15 +1223,15 @@ select {
 
     .detail-section-heading h2,
     .detail-panel-heading h2 {
-        font-size: 15px;
+        font-size: 17px;
     }
 
     .detail-inline-action {
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .feature-content span {
-        font-size: 7px;
+        font-size: 9px;
     }
 }
 
@@ -1360,7 +1367,7 @@ select {
     align-items: center;
     justify-content: center;
 
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
 
     box-shadow:
@@ -1400,7 +1407,7 @@ select {
     display: inline-flex;
     align-items: center;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 
     letter-spacing: .35px;
@@ -1416,7 +1423,7 @@ select {
 
     color: #243850;
 
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.55;
     font-weight: 700;
 
@@ -1453,7 +1460,7 @@ select {
     display: inline-flex;
     align-items: center;
 
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.4;
     font-weight: 600;
 
@@ -1496,7 +1503,7 @@ select {
 
     gap: 5px;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 
     white-space: nowrap;
@@ -1505,7 +1512,7 @@ select {
 .detail-question-required::before {
     content: "★";
 
-    font-size: 8px;
+    font-size: 10px;
 }
 
 
@@ -1550,7 +1557,7 @@ select {
 
     color: #2d4159;
 
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
 }
 
@@ -1559,7 +1566,7 @@ select {
 
     color: #8c9bac;
 
-    font-size: 10px;
+    font-size: 12px;
 }
 
 
@@ -1597,7 +1604,7 @@ select {
     align-items: center;
     justify-content: center;
 
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
 }
 
@@ -1721,7 +1728,7 @@ select {
 
         border-radius: 12px;
 
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .detail-question-required {
@@ -1766,7 +1773,7 @@ select {
 
         border-radius: 10px;
 
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .detail-question-information {
@@ -1778,11 +1785,11 @@ select {
 
         padding: 0 8px;
 
-        font-size: 7px;
+        font-size: 9px;
     }
 
     .detail-question-information > strong {
-        font-size: 11px;
+        font-size: 13px;
         line-height: 1.55;
     }
 
@@ -1795,7 +1802,7 @@ select {
 
         padding: 5px 9px;
 
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .detail-question-required {
@@ -1805,7 +1812,7 @@ select {
 
         padding: 0 9px;
 
-        font-size: 7px;
+        font-size: 9px;
     }
 
 }
@@ -1815,6 +1822,7 @@ select {
 
 .detail-more-wrapper {
   position: relative;
+  z-index: 40;
   margin-left: auto;
 }
 
@@ -1829,9 +1837,12 @@ select {
 
 .detail-more-menu {
   position: absolute;
-  top: calc(100% + 12px);
+
+  /* Open neatly below the three-dot button. */
+  top: calc(100% + 10px);
   right: 0;
-  z-index: 100;
+
+  z-index: 999;
 
   width: 270px;
 
@@ -1867,7 +1878,7 @@ select {
 .detail-more-menu-header span {
   color: #94a3b8;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 
   text-transform: uppercase;
@@ -1917,7 +1928,7 @@ select {
 
   border-radius: 11px;
 
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .detail-menu-icon.deactivate {
@@ -1941,14 +1952,14 @@ select {
 .detail-menu-text strong {
   color: #172033;
 
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .detail-menu-text small {
   color: #94a3b8;
 
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -2021,14 +2032,14 @@ select {
 .detail-inactive-alert strong {
   color: #9a3412;
 
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .detail-inactive-alert span {
   color: #c2410c;
 
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -2152,7 +2163,7 @@ select {
 
   color: #2475c8;
 
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 
   cursor: pointer;
@@ -2177,7 +2188,7 @@ select {
 
 
 .schedule-edit-btn svg {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 
@@ -2235,7 +2246,7 @@ select {
 
   color: #2779c9;
 
-  font-size: 16px;
+  font-size: 18px;
 }
 
 
@@ -2250,7 +2261,7 @@ select {
 .schedule-editor-header strong {
   color: #172b4d;
 
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -2258,7 +2269,7 @@ select {
 .schedule-editor-header span {
   color: #8190a7;
 
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -2288,7 +2299,7 @@ select {
 .schedule-editor-field label {
   color: #304563;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -2327,7 +2338,7 @@ select {
 
   color: #8ca0ba;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 
@@ -2342,7 +2353,7 @@ select {
   color: #253c5c;
 
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -2373,7 +2384,7 @@ select {
 
   color: #2c7fce;
 
-  font-size: 13px;
+  font-size: 15px;
 }
 
 
@@ -2388,7 +2399,7 @@ select {
 .schedule-editor-info strong {
   color: #2469ac;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -2396,7 +2407,7 @@ select {
 .schedule-editor-info span {
   color: #6382a4;
 
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2428,7 +2439,7 @@ select {
   border-radius: 11px;
 
   font-family: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 
   cursor: pointer;
@@ -2630,7 +2641,10 @@ select {
     position: relative;
     width: 100%;
     min-height: 250px;
-    overflow: hidden;
+
+    /* Allow the three-dot dropdown to extend below the blue header. */
+    overflow: visible;
+
     padding: 22px 30px 34px;
     color: #ffffff;
     background:
@@ -2653,6 +2667,10 @@ select {
 .detail-header-decoration {
     position: absolute;
     inset: 0;
+
+    /* Decorative circles stay inside the blue header. */
+    overflow: hidden;
+
     pointer-events: none;
 }
 
@@ -2704,7 +2722,7 @@ select {
 
 .detail-header-top {
     position: relative;
-    z-index: 2;
+    z-index: 30;
     display: grid;
     grid-template-columns: 42px 1fr 42px;
     align-items: center;
@@ -2741,7 +2759,7 @@ select {
 
 .detail-header-label {
     color: rgba(255, 255, 255, .78);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: .3px;
 }
@@ -2772,7 +2790,7 @@ select {
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 23px;
+    font-size: 25px;
     backdrop-filter: blur(9px);
     -webkit-backdrop-filter: blur(9px);
 }
@@ -2792,7 +2810,7 @@ select {
     background: rgba(42, 186, 119, .16);
     border: 1px solid rgba(70, 217, 151, .23);
     color: #8af0b8;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
 }
 
@@ -2807,7 +2825,7 @@ select {
 .detail-header-information h1 {
     margin: 13px 0 7px;
     color: #ffffff;
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1.25;
     font-weight: 700;
     letter-spacing: -.55px;
@@ -2817,7 +2835,7 @@ select {
     margin: 0;
     max-width: 580px;
     color: rgba(255, 255, 255, .75);
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.65;
 }
 
@@ -2865,7 +2883,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 17px;
 }
 
 .detail-link-information {
@@ -2878,13 +2896,13 @@ select {
 
 .detail-small-label {
     color: #8c9aad;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
 }
 
 .detail-link-information strong {
     color: #2b4058;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -2904,7 +2922,7 @@ select {
     justify-content: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     transition:
         background .2s ease,
@@ -2943,7 +2961,7 @@ select {
     display: block;
     margin-bottom: 4px;
     color: #7f91a8;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.2px;
     text-transform: uppercase;
@@ -2953,7 +2971,7 @@ select {
 .detail-panel-heading h2 {
     margin: 0;
     color: #26394f;
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 700;
     letter-spacing: -.2px;
 }
@@ -2966,12 +2984,12 @@ select {
     align-items: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
 .detail-inline-action svg {
-    font-size: 9px;
+    font-size: 11px;
     transition: transform .2s ease;
 }
 
@@ -3026,7 +3044,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .detail-stat-card.responses .detail-stat-icon {
@@ -3053,14 +3071,14 @@ select {
 
 .detail-stat-content strong {
     color: #263a51;
-    font-size: 23px;
+    font-size: 25px;
     line-height: 1;
     font-weight: 800;
 }
 
 .detail-stat-content span {
     color: #8493a6;
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .detail-stat-decoration {
@@ -3112,7 +3130,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -3154,7 +3172,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .feature-content {
@@ -3167,13 +3185,13 @@ select {
 
 .feature-content strong {
     color: #30445b;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
 .feature-content span {
     color: #8d9bad;
-    font-size: 8px;
+    font-size: 10px;
     line-height: 1.45;
 }
 
@@ -3185,7 +3203,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 8px;
+    font-size: 10px;
 }
 
 .feature-card.blue {
@@ -3301,18 +3319,18 @@ select {
 
 .schedule-timeline-content > span {
     color: #8796a8;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
 }
 
 .schedule-timeline-content strong {
     color: #2d4259;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .schedule-timeline-content small {
     color: #98a4b3;
-    font-size: 7px;
+    font-size: 9px;
     line-height: 1.45;
 }
 
@@ -3346,12 +3364,12 @@ select {
 
 .schedule-duration-card strong {
     color: #33495f;
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .schedule-duration-card span {
     color: #8d9aac;
-    font-size: 7px;
+    font-size: 9px;
     line-height: 1.45;
 }
 
@@ -3384,7 +3402,7 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .detail-results-content {
@@ -3394,7 +3412,7 @@ select {
 
 .detail-results-content > span {
     color: rgba(255, 255, 255, .72);
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -3403,7 +3421,7 @@ select {
 .detail-results-content h2 {
     margin: 4px 0 5px;
     color: #ffffff;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
 }
 
@@ -3411,7 +3429,7 @@ select {
     margin: 0;
     max-width: 610px;
     color: rgba(255, 255, 255, .72);
-    font-size: 8px;
+    font-size: 10px;
     line-height: 1.55;
 }
 
@@ -3428,7 +3446,7 @@ select {
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
     transition:
         transform .2s ease,
@@ -3465,20 +3483,20 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 30px;
 }
 
 .detail-not-found h2 {
     margin: 0 0 7px;
     color: #2a3e55;
-    font-size: 21px;
+    font-size: 23px;
 }
 
 .detail-not-found p {
     max-width: 420px;
     margin: 0 0 16px;
     color: #8795a7;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.6;
 }
 
@@ -3493,7 +3511,7 @@ select {
     align-items: center;
     gap: 7px;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -3627,7 +3645,7 @@ select {
     }
 
     .detail-header-information h1 {
-        font-size: 25px;
+        font-size: 27px;
     }
 
     .detail-content {
@@ -3660,11 +3678,11 @@ select {
         width: 34px;
         height: 34px;
         border-radius: 10px;
-        font-size: 13px;
+        font-size: 15px;
     }
 
     .detail-header-label {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .detail-header-content {
@@ -3676,16 +3694,16 @@ select {
         width: 48px;
         height: 48px;
         border-radius: 14px;
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .detail-header-information h1 {
         margin-top: 10px;
-        font-size: 20px;
+        font-size: 22px;
     }
 
     .detail-header-information p {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .detail-header-dots {
@@ -3709,13 +3727,13 @@ select {
     .detail-link-icon {
         width: 38px;
         height: 38px;
-        font-size: 13px;
+        font-size: 15px;
     }
 
     .detail-copy-btn {
         min-width: 88px;
         height: 35px;
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .detail-stats {
@@ -3765,7 +3783,7 @@ select {
     }
 
     .detail-header-information h1 {
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .detail-header-information p {
@@ -3773,7 +3791,7 @@ select {
     }
 
     .detail-link-information strong {
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .detail-copy-btn span {
@@ -3792,15 +3810,15 @@ select {
 
     .detail-section-heading h2,
     .detail-panel-heading h2 {
-        font-size: 15px;
+        font-size: 17px;
     }
 
     .detail-inline-action {
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .feature-content span {
-        font-size: 7px;
+        font-size: 9px;
     }
 }
 
@@ -3847,4 +3865,60 @@ select {
 .admin-form-details.dark .detail-menu-icon.edit {
   background: #213b5a;
   color: #6cb1ff;
+}
+
+/* =========================================================
+   THREE-DOT MENU — OVERFLOW / STACKING FIX
+   Keeps Form Options fully visible below the header.
+========================================================= */
+
+.detail-more-wrapper {
+    overflow: visible;
+}
+
+.detail-more-menu {
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.detail-content {
+    /* Content stays below the open header menu. */
+    z-index: 4;
+}
+
+@media (max-width: 680px) {
+    .detail-more-menu {
+        top: calc(100% + 8px);
+        right: 0;
+        max-width: calc(100vw - 30px);
+    }
+}
+
+/* =========================================================
+   THREE-DOT MENU — FINAL STACKING FIX
+   The header must NOT create an isolated stacking context,
+   otherwise the link card can paint above the dropdown.
+========================================================= */
+
+.detail-header {
+    overflow: visible;
+}
+
+.detail-header-decoration {
+    overflow: hidden;
+}
+
+.detail-header-top {
+    position: relative;
+    z-index: 30;
+}
+
+.detail-more-wrapper {
+    position: relative;
+    z-index: 1000;
+    overflow: visible;
+}
+
+.detail-more-menu {
+    z-index: 9999;
 }

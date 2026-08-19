@@ -1,348 +1,234 @@
 /* =========================================================
    BOTTOM NAVIGATION — HIDOCS
 ========================================================= */
-
 .bottom-navigation {
     position: fixed;
-
     left: 50%;
     bottom: 12px;
-
     transform: translateX(-50%);
-
     width: calc(100% - 40px);
     max-width: 1180px;
     height: 72px;
-
     padding: 0 10px;
-
     border: 1px solid #dfe7f0;
     border-radius: 22px;
-
     background: rgba(255, 255, 255, 0.98);
-
     display: grid;
-
     /* Empat menu:
        Home, Forms, History, Profile */
     grid-template-columns:
         repeat(4, minmax(0, 1fr));
-
     align-items: center;
-
     box-shadow:
         0 12px 30px rgba(25, 50, 85, 0.15),
         0 2px 6px rgba(25, 50, 85, 0.05);
-
     z-index: 9999;
-
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
 }
-
-
 /* =========================================================
    NAV BUTTON
 ========================================================= */
-
 .nav-button {
     position: relative;
-
     width: 100%;
     min-width: 0;
     height: 54px;
-
     margin: 0;
     padding: 0 8px;
-
     border: none;
     border-radius: 14px;
-
     background: transparent;
     color: #a5b2c3;
-
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-
     gap: 5px;
-
     font-family: inherit;
-
     cursor: pointer;
-
     overflow: hidden;
-
     transition:
         background 0.2s ease,
         color 0.2s ease,
         transform 0.2s ease;
 }
-
 .nav-button:hover {
     background: #f3f7fb;
     color: #4a7fb5;
-
     transform: translateY(-1px);
 }
-
 .nav-button:active {
     transform: translateY(0);
 }
-
-
 /* =========================================================
    NAV ICON
 ========================================================= */
-
 .nav-button svg {
     width: 18px;
     height: 18px;
-
     display: block;
     flex-shrink: 0;
-
-    font-size: 18px;
+    font-size: 20px;
 }
-
-
 /* =========================================================
    NAV TEXT
 ========================================================= */
-
 .nav-button span {
     display: block;
-
     width: 100%;
-
     margin: 0;
-
     overflow: hidden;
-
     color: inherit;
-
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1;
-
     font-weight: 600;
-
     text-align: center;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
-
-
 /* =========================================================
    ACTIVE NAVIGATION
 ========================================================= */
-
 .nav-button.active {
     background: #edf5fd;
     color: #256fc0;
 }
-
 .nav-button.active::before {
     content: "";
-
     position: absolute;
-
     top: 0;
     left: 50%;
-
     width: 34px;
     height: 3px;
-
     border-radius: 999px;
-
     background: #2f76bf;
-
     transform: translateX(-50%);
 }
-
-
 /* =========================================================
    KEYBOARD FOCUS
 ========================================================= */
-
 .nav-button:focus {
     outline: none;
 }
-
 .nav-button:focus-visible {
     outline: 2px solid rgba(47, 118, 191, 0.45);
     outline-offset: 2px;
 }
-
-
 /* =========================================================
    DARK MODE
 ========================================================= */
-
 .dark .bottom-navigation {
     background: rgba(23, 34, 52, 0.98);
-
     border-color: #2d3d52;
-
     box-shadow:
         0 12px 30px rgba(0, 0, 0, 0.35),
         0 2px 6px rgba(0, 0, 0, 0.12);
 }
-
 .dark .nav-button {
     color: #8293a7;
 }
-
 .dark .nav-button:hover {
     background: #1d2b3e;
     color: #a8bdd5;
 }
-
 .dark .nav-button.active {
     background: #203955;
     color: #69adf8;
 }
-
 .dark .nav-button.active::before {
     background: #69adf8;
 }
-
 .dark .nav-button:focus-visible {
     outline-color: rgba(105, 173, 248, 0.55);
 }
-
-
 /* =========================================================
    TABLET
 ========================================================= */
-
 @media (max-width: 900px) {
-
     .bottom-navigation {
         width: calc(100% - 30px);
-
         padding: 0 8px;
     }
-
 }
-
-
 /* =========================================================
    MOBILE
 ========================================================= */
-
 @media (max-width: 680px) {
-
     .bottom-navigation {
         width: calc(100% - 20px);
         height: 68px;
-
         bottom: 10px;
-
         padding: 0 6px;
-
         border-radius: 18px;
     }
-
     .nav-button {
         height: 50px;
-
         padding: 0 4px;
-
         border-radius: 12px;
-
         gap: 4px;
     }
-
     .nav-button svg {
         width: 17px;
         height: 17px;
 
-        font-size: 17px;
+        font-size: 19px;
     }
-
     .nav-button span {
-        font-size: 8px;
+        font-size: 10px;
     }
-
     .nav-button.active::before {
         width: 30px;
     }
-
 }
-
-
 /* =========================================================
    SMALL PHONE
 ========================================================= */
-
 @media (max-width: 420px) {
-
     .bottom-navigation {
         width: calc(100% - 16px);
         height: 66px;
-
         bottom: 8px;
-
         padding: 0 4px;
-
         border-radius: 17px;
     }
-
     .nav-button {
         height: 48px;
-
         padding: 0 2px;
-
         border-radius: 11px;
     }
-
     .nav-button svg {
         width: 16px;
         height: 16px;
 
-        font-size: 16px;
+        font-size: 18px;
     }
-
     .nav-button span {
-        font-size: 7px;
+        font-size: 9px;
     }
-
     .nav-button.active::before {
         width: 27px;
     }
-
 }
-
-
 /* =========================================================
    VERY SMALL PHONE
 ========================================================= */
-
 @media (max-width: 340px) {
-
     .nav-button {
         gap: 3px;
     }
-
     .nav-button svg {
         width: 15px;
         height: 15px;
-
-        font-size: 15px;
+        font-size: 17px;
     }
-
     .nav-button span {
-        font-size: 6.5px;
+        font-size: 8.5px;
     }
-
 }
-
-
 /* =========================================================
    REDUCED MOTION
 ========================================================= */
-
 @media (prefers-reduced-motion: reduce) {
 
     .bottom-navigation,
@@ -350,10 +236,7 @@
     .bottom-navigation *::before,
     .bottom-navigation *::after {
         animation: none !important;
-
         transition: none !important;
-
         scroll-behavior: auto !important;
     }
-
 }

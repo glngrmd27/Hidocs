@@ -50,7 +50,7 @@
   align-items: center;
   justify-content: center;
 
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .special-answer-icon.math {
@@ -75,7 +75,7 @@
 .special-answer-heading > div:nth-child(2) > span {
   color: #8796aa;
 
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 700;
 
   letter-spacing: 0.9px;
@@ -86,7 +86,7 @@
 .special-answer-heading > div:nth-child(2) > strong {
   color: #2c4058;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -106,7 +106,7 @@
 
   color: #52677f;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -129,7 +129,7 @@
     "Courier New",
     monospace;
 
-  font-size: 12px;
+  font-size: 14px;
 
   transition:
     border-color 0.2s ease,
@@ -156,7 +156,7 @@
 
   color: #8897aa;
 
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.6;
 }
 
@@ -174,7 +174,7 @@
     "Courier New",
     monospace;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 
@@ -219,7 +219,7 @@
 .math-preview-heading span {
   color: #536a82;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 
   text-transform: uppercase;
@@ -239,7 +239,7 @@
   display: inline-flex;
   align-items: center;
 
-  font-size: 6px;
+  font-size: 8px;
   font-weight: 800;
 }
 
@@ -278,7 +278,7 @@
 
   gap: 8px;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 
@@ -301,7 +301,7 @@
   display: inline-flex;
   align-items: center;
 
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 700;
 }
 
@@ -359,7 +359,7 @@
 
   color: #8799ae;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -384,7 +384,7 @@
     "Courier New",
     monospace;
 
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
 
   tab-size: 2;
@@ -415,7 +415,7 @@
 
   gap: 7px;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .code-answer-help svg {
@@ -575,7 +575,7 @@
   }
 
   .code-answer-lines {
-    font-size: 6px;
+    font-size: 8px;
   }
 
   .code-editor-shell textarea {
@@ -583,7 +583,7 @@
 
     padding: 13px;
 
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .math-preview-content {

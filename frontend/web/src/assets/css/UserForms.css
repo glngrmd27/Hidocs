@@ -218,7 +218,7 @@ input {
   color:
     rgba(255, 255, 255, 0.84);
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 
   letter-spacing: 1.2px;
@@ -231,7 +231,7 @@ input {
 
   color: #ffffff;
 
-  font-size: 31px;
+  font-size: 33px;
   line-height: 1.2;
   font-weight: 700;
 
@@ -246,7 +246,7 @@ input {
   color:
     rgba(255, 255, 255, 0.76);
 
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.65;
 }
 
@@ -280,7 +280,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 
   backdrop-filter: blur(10px);
@@ -293,7 +293,7 @@ input {
 }
 
 .user-forms-scan-btn svg {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .user-forms-scan-btn:hover {
@@ -365,7 +365,7 @@ input {
 
   color: #7f91a8;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 
   letter-spacing: 1.1px;
@@ -378,7 +378,7 @@ input {
 
   color: #26394f;
 
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
 }
 
@@ -387,7 +387,7 @@ input {
 
   color: #8b99aa;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 
@@ -435,7 +435,7 @@ input {
 
   color: #8aa0b7;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .user-forms-search input {
@@ -449,7 +449,7 @@ input {
 
   color: #3c4f65;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .user-forms-search input::placeholder {
@@ -476,7 +476,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .user-forms-search button:hover {
@@ -597,7 +597,7 @@ input {
   align-items: center;
   justify-content: center;
 
-  font-size: 17px;
+  font-size: 19px;
 }
 
 .user-form-card.purple
@@ -650,7 +650,7 @@ input {
 
   flex-shrink: 0;
 
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 700;
 }
 
@@ -713,12 +713,12 @@ input {
 
   color: #5982ab;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .user-form-category svg {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .user-form-card-content h3 {
@@ -726,7 +726,7 @@ input {
 
   color: #2d4158;
 
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.45;
 
   font-weight: 700;
@@ -746,7 +746,7 @@ input {
 
   color: #8695a8;
 
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.65;
 
   display: -webkit-box;
@@ -790,13 +790,13 @@ input {
 
   color: #7f90a3;
 
-  font-size: 7px;
+  font-size: 9px;
 }
 
 .user-form-meta svg {
   color: #4f89c5;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 
@@ -834,7 +834,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 
   box-shadow:
@@ -910,7 +910,7 @@ input {
   align-items: center;
   justify-content: center;
 
-  font-size: 24px;
+  font-size: 26px;
 }
 
 .user-forms-empty h3 {
@@ -918,7 +918,7 @@ input {
 
   color: #2d4058;
 
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .user-forms-empty p {
@@ -926,7 +926,7 @@ input {
 
   color: #8b99aa;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .user-forms-empty button {
@@ -942,7 +942,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -1025,7 +1025,7 @@ input {
 
   color: #3b7ec1;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 
   letter-spacing: 1.1px;
@@ -1038,7 +1038,7 @@ input {
 
   color: #273b52;
 
-  font-size: 19px;
+  font-size: 21px;
 }
 
 .user-qr-close-btn {
@@ -1063,7 +1063,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .user-qr-close-btn:hover {
@@ -1076,7 +1076,7 @@ input {
 
   color: #8291a4;
 
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.65;
 }
 
@@ -1173,7 +1173,7 @@ input {
 .user-qr-loading p {
   margin: 0;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 
@@ -1196,7 +1196,7 @@ input {
 
   gap: 9px;
 
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.55;
 }
 
@@ -1234,7 +1234,7 @@ input {
   align-items: center;
   justify-content: center;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -1276,7 +1276,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -1481,13 +1481,13 @@ input {
   }
 
   .user-forms-header-content h1 {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .user-forms-header-content p {
     max-width: 270px;
 
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .user-forms-scan-btn {
@@ -1560,7 +1560,7 @@ input {
 @media (max-width: 430px) {
 
   .user-forms-header-content h1 {
-    font-size: 21px;
+    font-size: 23px;
   }
 
   .user-form-card-header {
@@ -1573,11 +1573,11 @@ input {
 
     border-radius: 11px;
 
-    font-size: 15px;
+    font-size: 17px;
   }
 
   .user-form-card-content h3 {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .user-form-status-group {
@@ -1588,7 +1588,7 @@ input {
   .user-form-saved-badge {
     padding: 0 7px;
 
-    font-size: 6px;
+    font-size: 8px;
   }
 
 }

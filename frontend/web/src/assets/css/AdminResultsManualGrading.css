@@ -15,8 +15,8 @@
 }
 
 .admin-grading-progress > div { display: flex; flex-direction: column; gap: 3px; }
-.admin-grading-progress span { color: #8493a6; font-size: 9px; font-weight: 700; }
-.admin-grading-progress strong { color: #29415e; font-size: 12px; }
+.admin-grading-progress span { color: #8493a6; font-size: 11px; font-weight: 700; }
+.admin-grading-progress strong { color: #29415e; font-size: 14px; }
 .admin-grading-progress.pending { border-color: #f0d59d; background: #fffaf0; }
 .admin-grading-progress.complete { border-color: #cce8d9; background: #f1fbf6; }
 
@@ -48,10 +48,10 @@
   margin-bottom: 13px;
 }
 .admin-manual-grade-heading > div { display: flex; flex-direction: column; gap: 3px; }
-.admin-manual-grade-heading > div > span { color: #a17b30; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
-.admin-manual-grade-heading strong { color: #60491d; font-size: 11px; }
+.admin-manual-grade-heading > div > span { color: #a17b30; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
+.admin-manual-grade-heading strong { color: #60491d; font-size: 13px; }
 
-.manual-grade-status { min-height: 27px; padding: 0 9px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 8px; font-weight: 800; }
+.manual-grade-status { min-height: 27px; padding: 0 9px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 10px; font-weight: 800; }
 .manual-grade-status.pending { background: #fff0cd; color: #b57900; }
 .manual-grade-status.graded { background: #e4f6ec; color: #22875a; }
 
@@ -62,7 +62,7 @@
   gap: 10px;
 }
 .admin-manual-grade-inputs label { display: flex; flex-direction: column; gap: 6px; }
-.admin-manual-grade-inputs label span { color: #806b42; font-size: 8px; font-weight: 700; }
+.admin-manual-grade-inputs label span { color: #806b42; font-size: 10px; font-weight: 700; }
 .admin-manual-grade-inputs input {
   width: 100%;
   height: 40px;
@@ -73,10 +73,10 @@
   background: #fff;
   color: #33465d;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
 }
 .admin-manual-grade-inputs input:focus { border-color: #d9a63a; box-shadow: 0 0 0 3px rgba(217,166,58,.12); }
-.manual-grade-divider { padding-bottom: 10px; color: #a1844c; font-size: 14px; font-weight: 800; text-align: center; }
+.manual-grade-divider { padding-bottom: 10px; color: #a1844c; font-size: 16px; font-weight: 800; text-align: center; }
 
 .admin-answer-footer-actions { display: flex; align-items: center; gap: 9px; }
 .admin-answer-modal-footer .admin-save-grades-btn,
@@ -90,7 +90,7 @@
   justify-content: center;
   gap: 7px;
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
 }
