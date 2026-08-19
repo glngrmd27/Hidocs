@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'app_theme.dart';
 import 'providers/auth_provider.dart';
@@ -33,6 +35,16 @@ class FormMakerApp extends StatelessWidget {
           return MaterialApp(
             title: 'HiDocs!',
             debugShowCheckedModeBanner: false,
+            localizationsDelegates: const [
+              FlutterQuillLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en'),
+              Locale('id'),
+            ],
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
@@ -41,7 +53,7 @@ class FormMakerApp extends StatelessWidget {
               '/login': (context) => const LoginScreen(),
               '/register': (context) => const RegisterScreen(),
               '/role-select': (context) => const RoleSelectionScreen(),
-              '/user-home': (context) => UserHomeScreen(),
+              '/user-home': (context) => const UserHomeScreen(),
               '/creator-home': (context) => const CreatorHomeScreen(),
               '/admin-home': (context) => const AdminDashboardScreen(),
               '/super-admin-home': (context) => const AdminDashboardScreen(),

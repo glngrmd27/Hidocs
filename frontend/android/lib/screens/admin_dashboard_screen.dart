@@ -212,7 +212,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void _showSnack(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Row(children: [
-        Icon(Icons.info_outline_rounded,
+        const Icon(Icons.info_outline_rounded,
             color: Colors.white, size: 18),
         const SizedBox(width: 10),
         Expanded(
@@ -339,7 +339,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           isSuper ? 'Super Admin' : 'Admin',
         ),
         flexibleSpace: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
                 AppTheme.primaryDark,

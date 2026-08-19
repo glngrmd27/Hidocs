@@ -19,6 +19,8 @@ class FormModel {
 
   final int timerMinutes;
 
+  final bool isPublic;
+
   final bool shuffleQuestions;
   final bool shuffleOptions;
   final bool oneTimeOnly;
@@ -40,6 +42,7 @@ class FormModel {
     required this.scheduledOpen,
     required this.scheduledClose,
     this.timerMinutes = 0,
+    this.isPublic = true,
     this.shuffleQuestions = false,
     this.shuffleOptions = false,
     this.oneTimeOnly = true,
@@ -53,6 +56,18 @@ class FormModel {
   String get fullLink => customLinkAlias.isNotEmpty
       ? 'hidocs.app/f/$customLinkAlias'
       : 'hidocs.app/f/$shortLink';
+
+  String get slug => customLinkAlias.isNotEmpty ? customLinkAlias : shortLink;
+
+  double get maxScore {
+    var total = 0.0;
+    for (final q in questions) {
+      if (q.hasScore || q.score > 0) {
+        total += q.score;
+      }
+    }
+    return total;
+  }
 
   bool get isScheduled =>
       scheduledOpen != scheduledClose;
@@ -80,6 +95,13 @@ class FormModel {
 
     final status = (json['status'] ?? '').toString();
 
+    final accessMode = (json['access_mode'] ??
+            settings['access_mode'] ??
+            'public')
+        .toString();
+
+    final isPublic = accessMode == 'public';
+
     return FormModel(
       id: (json['id'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
@@ -91,6 +113,7 @@ class FormModel {
       timerMinutes: settings['duration_minutes'] is int
           ? (settings['duration_minutes'] as int).clamp(0, 100000)
           : 0,
+      isPublic: isPublic,
       shuffleQuestions: settings['randomize_questions'] == true,
       shuffleOptions: settings['randomize_options'] == true,
       oneTimeOnly: settings['is_one_time_submission'] == true,
@@ -109,12 +132,37 @@ class FormModel {
     );
   }
 
+  FormModel withCustomUrl(String slug) {
+    return FormModel(
+      id: id,
+      title: title,
+      creatorId: creatorId,
+      shortLink: slug,
+      customLinkAlias: slug,
+      scheduledOpen: scheduledOpen,
+      scheduledClose: scheduledClose,
+      timerMinutes: timerMinutes,
+      isPublic: isPublic,
+      shuffleQuestions: shuffleQuestions,
+      shuffleOptions: shuffleOptions,
+      oneTimeOnly: oneTimeOnly,
+      isActive: isActive,
+      resultVisibility: resultVisibility,
+      questions: questions,
+      totalResponses: totalResponses,
+      createdAt: createdAt,
+    );
+  }
+
   Map<String, dynamic> toCreateJson() {
     return {
       'title': title,
       'description': '',
       'type': typeForApi,
       'custom_url': customLinkAlias.isEmpty ? shortLink : customLinkAlias,
+      'access_mode': isPublic ? 'public' : 'qr-only',
+      'show_in_user_list': isPublic,
+      'qr_only': !isPublic,
       'is_template': false,
     };
   }
@@ -125,6 +173,9 @@ class FormModel {
       'description': '',
       'type': typeForApi,
       'custom_url': customLinkAlias.isEmpty ? shortLink : customLinkAlias,
+      'access_mode': isPublic ? 'public' : 'qr-only',
+      'show_in_user_list': isPublic,
+      'qr_only': !isPublic,
       'status': isActive ? 'ACTIVE' : 'CLOSED',
       'is_template': false,
     };
@@ -138,14 +189,15 @@ class FormModel {
       'is_one_time_submission': oneTimeOnly,
       'randomize_questions': shuffleQuestions,
       'randomize_options': shuffleOptions,
-      'start_time': scheduledOpen.toIso8601String(),
-      'end_time': scheduledClose.toIso8601String(),
+      'start_time': scheduledOpen.toUtc().toIso8601String(),
+      'end_time': scheduledClose.toUtc().toIso8601String(),
     };
   }
 }
 
 FormModel copyFormModel(
   FormModel source, {
+  bool? isPublic,
   bool? isActive,
   ResultVisibility? resultVisibility,
 }) {
@@ -158,6 +210,7 @@ FormModel copyFormModel(
     scheduledOpen: source.scheduledOpen,
     scheduledClose: source.scheduledClose,
     timerMinutes: source.timerMinutes,
+    isPublic: isPublic ?? source.isPublic,
     shuffleQuestions: source.shuffleQuestions,
     shuffleOptions: source.shuffleOptions,
     oneTimeOnly: source.oneTimeOnly,

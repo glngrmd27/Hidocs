@@ -1,490 +1,806 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../app_theme.dart';
 import '../models/form_model.dart';
-import '../providers/form_provider.dart';
-import '../widgets/gradient_button.dart';
+import '../models/question_model.dart';
+import '../models/response_model.dart';
+import '../providers/response_provider.dart';
+import 'grading_screen.dart';
+import 'response_detail_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final FormModel form;
-  const ResultsScreen({required this.form, super.key});
+
+  const ResultsScreen({
+    required this.form,
+    super.key,
+  });
 
   @override
   State<ResultsScreen> createState() => _ResultsScreenState();
 }
 
 class _ResultsScreenState extends State<ResultsScreen> {
-  List<Map<String, dynamic>> _responses = [];
-  bool _loading = true;
-  bool _exporting = false;
-
   @override
   void initState() {
     super.initState();
-    _load();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadResponses();
+    });
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-    });
-
-    final provider = Provider.of<FormProvider>(context, listen: false);
-    final responses = await provider.loadResponses(widget.form.id);
-
+  Future<void> _loadResponses() async {
     if (!mounted) return;
-
-    setState(() {
-      _responses = responses;
-      _loading = false;
-    });
+    await Provider.of<ResponseProvider>(context, listen: false)
+        .loadResponsesForForm(widget.form.id, form: widget.form);
   }
 
-  List<Map<String, dynamic>> get _rows {
-    return _responses.map((r) {
-      final submittedAt =
-          DateTime.tryParse(r['submitted_at']?.toString() ?? '');
-      final score = (r['total_score'] as num?)?.toDouble() ?? 0;
-
-      return {
-        'name': (r['respondent_email'] ?? 'Respondent').toString(),
-        'date': submittedAt != null
-            ? '${submittedAt.day}/${submittedAt.month}/${submittedAt.year}'
-            : '-',
-        'score': score,
-        'duration': '-',
-      };
-    }).toList();
+  bool _isManuallyGraded(QuestionModel q) {
+    return q.type == QuestionType.longText ||
+        q.type == QuestionType.shortText ||
+        q.type == QuestionType.codeInput ||
+        q.type == QuestionType.mathFormula;
   }
 
-  double? get _average {
-    if (_rows.isEmpty) return 0;
-    final total = _rows.fold(0.0, (s, r) => s + (r['score'] as double));
-    return total / _rows.length;
+  bool _isFullyGraded(ResponseModel r) {
+    final essays = widget.form.questions.where(_isManuallyGraded).toList();
+    if (essays.isEmpty) return true;
+    final gradedCount =
+        essays.where((q) => r.essayScores[q.id] != null).length;
+    return gradedCount >= essays.length;
   }
 
-  double? get _highest {
-    if (_rows.isEmpty) return 0;
-    return _rows
-        .map((r) => r['score'] as double)
-        .reduce((a, b) => a > b ? a : b);
-  }
-
-  double? get _lowest {
-    if (_rows.isEmpty) return 0;
-    return _rows
-        .map((r) => r['score'] as double)
-        .reduce((a, b) => a < b ? a : b);
-  }
-
-  Future<void> _exportExcel() async {
-    setState(() {
-      _exporting = true;
-    });
-
-    try {
-      final provider = Provider.of<FormProvider>(context, listen: false);
-      final bytes = await provider.exportResponses(widget.form.id,
-          format: 'xlsx');
-
-      if (!mounted) return;
-
-      final file = XFile.fromData(
-        bytes,
-        mimeType:
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        name: 'responses_${widget.form.id}.xlsx',
-      );
-
-      await Share.shareXFiles(
-        [file],
-        text: 'Ekspor respon form: ${widget.form.title}',
-      );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Gagal mengekspor data. Periksa jaringan Anda.',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-      }
-    }
-
-    if (mounted) {
-      setState(() {
-        _exporting = false;
-      });
-    }
+  String _formatDate(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day}/${dt.month}/${dt.year} $h:$m';
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 140,
-            pinned: true,
-            backgroundColor: AppTheme.primary,
-            elevation: 0,
+    final responses = Provider.of<ResponseProvider>(context)
+        .getResponsesByForm(widget.form.id)
+        .toList()
+      ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primaryDark, AppTheme.primaryLight],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(20, 52, 20, 14),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                      const Text('Form Results',
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white60,
-                              fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 4),
-                      Text(widget.form.title,
-                          style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                    ]),
-                  ),
-                ),
+    final total = responses.length;
+
+    var avgScore = 0.0;
+    if (total > 0) {
+      final sum = responses.fold<double>(0, (prev, r) => prev + r.percentage);
+      avgScore = sum / total;
+    }
+
+    final essays = widget.form.questions.where(_isManuallyGraded).toList();
+    final pendingGradingResponses =
+        responses.where((r) => !_isFullyGraded(r)).length;
+
+    // Calculate score brackets for legend breakdown
+    var count90_100 = 0;
+    var count75_89 = 0;
+    var count60_74 = 0;
+    var countUnder60 = 0;
+
+    for (final r in responses) {
+      final p = r.percentage;
+      if (p >= 90) {
+        count90_100++;
+      } else if (p >= 75) {
+        count75_89++;
+      } else if (p >= 60) {
+        count60_74++;
+      } else {
+        countUnder60++;
+      }
+    }
+
+    final primaryTxt = isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+    final cardBg = isDark ? AppTheme.darkCard : AppTheme.surfaceCard;
+    final borderClr = isDark ? AppTheme.darkBorder : AppTheme.border;
+
+    return Scaffold(
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Form Results',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            Text(
+              widget.form.title,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontWeight: FontWeight.w400,
               ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+      body: responses.isEmpty
+          ? const _EmptyState()
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+              children: [
+                // 1. Top Stats Cards Row (2 equal side-by-side cards)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TopStatCard(
+                        icon: Icons.people_alt_outlined,
+                        value: '$total',
+                        label: 'Total Responses',
+                        isDark: isDark,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _TopStatCard(
+                        icon: Icons.trending_up_rounded,
+                        value: '${avgScore.round()}%',
+                        label: 'Average Score',
+                        isDark: isDark,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 2. Banner Card (Needs Grading Alert)
+                if (essays.isNotEmpty && pendingGradingResponses > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF2A2008)
+                          : const Color(0xFFFFF9E6),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFFFFE599),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.warning.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.assignment_outlined,
+                            color: AppTheme.warning,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$pendingGradingResponses response needs grading',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark
+                                      ? AppTheme.darkTextPrimary
+                                      : AppTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${essays.length} questions require manual grading',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    GradingScreen(form: widget.form),
+                              ),
+                            ).then((_) {
+                              if (mounted) _loadResponses();
+                            });
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
+                            child: Text(
+                              'Open Grading',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // 3. Score Distribution Card with Donut Chart
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: borderClr),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.donut_large_rounded,
+                            size: 20,
+                            color: AppTheme.info,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Score Distribution',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: primaryTxt,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          // Left side: Donut Chart
+                          Expanded(
+                            flex: 5,
+                            child: SizedBox(
+                              height: 140,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CustomPaint(
+                                    size: const Size(130, 130),
+                                    painter: _DonutChartPainter(
+                                      c90: count90_100,
+                                      c75: count75_89,
+                                      c60: count60_74,
+                                      cUnder60: countUnder60,
+                                      total: total,
+                                    ),
+                                  ),
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '${avgScore.round()}%',
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          color: primaryTxt,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'average',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Right side: Legend table with count badges
+                          Expanded(
+                            flex: 6,
+                            child: Column(
+                              children: [
+                                _LegendRow(
+                                  color: AppTheme.success,
+                                  label: '90-100%',
+                                  count: count90_100,
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(height: 8),
+                                _LegendRow(
+                                  color: AppTheme.info,
+                                  label: '75-89%',
+                                  count: count75_89,
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(height: 8),
+                                _LegendRow(
+                                  color: AppTheme.warning,
+                                  label: '60-74%',
+                                  count: count60_74,
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(height: 8),
+                                _LegendRow(
+                                  color: AppTheme.error,
+                                  label: '< 60%',
+                                  count: countUnder60,
+                                  isDark: isDark,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 4. Respondents Header & List
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Respondents',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: primaryTxt,
+                      ),
+                    ),
+                    Text(
+                      '$total participants',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                ...responses.map((r) {
+                  final fullyGraded = _isFullyGraded(r);
+                  final initial = r.respondentName.isEmpty
+                      ? '?'
+                      : r.respondentName.substring(0, 1).toUpperCase();
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderClr),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ResponseDetailScreen(
+                                form: widget.form,
+                                response: r,
+                              ),
+                            ),
+                          ).then((_) {
+                            if (mounted) _loadResponses();
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              // Avatar Box
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: (!fullyGraded
+                                          ? AppTheme.warning
+                                          : AppTheme.primary)
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    initial,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: !fullyGraded
+                                          ? AppTheme.warning
+                                          : AppTheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Info Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      r.respondentName,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: primaryTxt,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${_formatDate(r.submittedAt)} • ${r.durationText}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppTheme.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Status / Score Badge
+                              if (!fullyGraded)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.warning
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    'Pending',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.warning,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.info
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${r.percentage.round()}%',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.info,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 20,
+                                color: AppTheme.textMuted,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+
+                // 5. Action Buttons (Export to Excel & Export to PDF)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Exporting to Excel...'),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.table_chart_rounded, size: 20),
+                  label: const Text(
+                    'Export to Excel',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B9E5E),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Exporting to PDF...'),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.picture_as_pdf_outlined,
+                      size: 20, color: AppTheme.primary),
+                  label: const Text(
+                    'Export to PDF',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: cardBg,
+                    minimumSize: const Size(double.infinity, 50),
+                    side: BorderSide(color: borderClr, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _TopStatCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final bool isDark;
+
+  const _TopStatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkCard : AppTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? AppTheme.darkBorder : AppTheme.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.info.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppTheme.info, size: 20),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary,
             ),
           ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                Row(children: [
-                  _SummaryCard(
-                      label: 'Total Responses',
-                      value: '${widget.form.totalResponses}',
-                      icon: Icons.people_rounded,
-                      color: AppTheme.primary),
-                  const SizedBox(width: 10),
-                  _SummaryCard(
-                      label: 'Average',
-                      value: '${_average?.toStringAsFixed(0) ?? 0}%',
-                      icon: Icons.trending_up_rounded,
-                      color: AppTheme.success),
-                ]),
-                const SizedBox(height: 10),
-                Row(children: [
-                  _SummaryCard(
-                      label: 'Highest',
-                      value: '${_highest?.toStringAsFixed(0) ?? 0}%',
-                      icon: Icons.emoji_events_rounded,
-                      color: AppTheme.warning),
-                  const SizedBox(width: 10),
-                  _SummaryCard(
-                      label: 'Lowest',
-                      value: '${_lowest?.toStringAsFixed(0) ?? 0}%',
-                      icon: Icons.arrow_downward_rounded,
-                      color: AppTheme.error),
-                ]),
-                const SizedBox(height: 24),
-
-                Text('Score Distribution',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 14),
-                if (_loading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else
-                  ..._buildDistribution(context, isDark),
-                const SizedBox(height: 24),
-
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                  Text('Respondents',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  Text('${_rows.length} participants',
-                      style: const TextStyle(
-                          fontSize: 13, color: AppTheme.textMuted)),
-                ]),
-                const SizedBox(height: 12),
-                if (_loading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (_rows.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text('Belum ada respon.',
-                          style: TextStyle(color: AppTheme.textMuted)),
-                    ),
-                  )
-                else
-                  ..._rows.map((r) =>
-                      _RespondentRow(data: r, isDark: isDark)),
-                const SizedBox(height: 28),
-
-                GradientButton(
-                  text: 'Export to Excel',
-                  onPressed: _exportExcel,
-                  isLoading: _exporting,
-                  fullWidth: true,
-                  icon: Icons.table_chart_rounded,
-                  colors: const [AppTheme.success, Color(0xFF0D8A4B)],
-                ),
-                const SizedBox(height: 12),
-              ]),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppTheme.textMuted,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  List<Widget> _buildDistribution(BuildContext context, bool isDark) {
-    final scores = _rows.map((r) => r['score'] as double).toList();
+class _LegendRow extends StatelessWidget {
+  final Color color;
+  final String label;
+  final int count;
+  final bool isDark;
 
-    int countInRange(double min, double max) {
-      return scores
-          .where((s) => s >= min && (max == 100 ? s <= max : s < max))
-          .length;
-    }
+  const _LegendRow({
+    required this.color,
+    required this.label,
+    required this.count,
+    required this.isDark,
+  });
 
-    final ranges = [
-      {'label': '90–100%', 'count': countInRange(90, 100), 'color': AppTheme.success},
-      {'label': '75–89%',  'count': countInRange(75, 90), 'color': AppTheme.info},
-      {'label': '60–74%',  'count': countInRange(60, 75), 'color': AppTheme.warning},
-      {'label': '< 60%',   'count': countInRange(0, 60), 'color': AppTheme.error},
-    ];
-    final max = ranges
-        .map((r) => r['count'] as int)
-        .fold(0, (a, b) => a > b ? a : b);
-
-    return ranges.map((r) {
-      final count = r['count'] as int;
-      final color = r['color'] as Color;
-      final frac  = max == 0 ? 0.0 : count / max;
-
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(children: [
-          SizedBox(
-            width: 66,
-            child: Text(r['label'] as String,
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textMuted,
-                    fontWeight: FontWeight.w500)),
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: frac,
-                minHeight: 12,
-                backgroundColor: isDark
-                    ? AppTheme.darkBorder
-                    : AppTheme.border,
-                valueColor: AlwaysStoppedAnimation(color),
-              ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary,
             ),
           ),
-          const SizedBox(width: 10),
-          Text('$count',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? AppTheme.darkTextPrimary
-                      : AppTheme.textPrimary)),
-        ]),
-      );
-    }).toList();
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.darkSurface : const Color(0xFFF0F4FA),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  const _SummaryCard(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
+class _DonutChartPainter extends CustomPainter {
+  final int c90;
+  final int c75;
+  final int c60;
+  final int cUnder60;
+  final int total;
+
+  _DonutChartPainter({
+    required this.c90,
+    required this.c75,
+    required this.c60,
+    required this.cUnder60,
+    required this.total,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = min(size.width, size.height) / 2 - 8;
+    const strokeWidth = 14.0;
+
+    final bgPaint = Paint()
+      ..color = const Color(0xFFEAEFF5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, bgPaint);
+
+    if (total == 0) return;
+
+    var startAngle = -pi / 2;
+
+    void drawArc(int count, Color color) {
+      if (count <= 0) return;
+      final sweepAngle = (count / total) * 2 * pi;
+      final paint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = strokeWidth;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+      startAngle += sweepAngle;
+    }
+
+    drawArc(c90, AppTheme.success);
+    drawArc(c75, AppTheme.info);
+    drawArc(c60, AppTheme.warning);
+    drawArc(cUnder60, AppTheme.error);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) => true;
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark
-              ? color.withValues(alpha: 0.12)
-              : color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.20)),
-        ),
-        child: Row(children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(11),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.assessment_outlined,
+              size: 64,
+              color: AppTheme.primary.withValues(alpha: 0.3),
             ),
-            child: Icon(icon, size: 20, color: color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              Text(value,
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: isDark
-                          ? AppTheme.darkTextPrimary
-                          : AppTheme.textPrimary)),
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppTheme.textMuted),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-            ]),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _RespondentRow extends StatelessWidget {
-  final Map<String, dynamic> data;
-  final bool isDark;
-  const _RespondentRow({required this.data, required this.isDark});
-
-  Color _scoreColor(double s) {
-    if (s >= 90) return AppTheme.success;
-    if (s >= 75) return AppTheme.info;
-    if (s >= 60) return AppTheme.warning;
-    return AppTheme.error;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final score = data['score'] as double;
-    final color = _scoreColor(score);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCard : AppTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: isDark ? AppTheme.darkBorder : AppTheme.border),
-      ),
-      child: Row(children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.09),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              (data['name'] as String).substring(0, 1).toUpperCase(),
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primary),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-            Text(data['name'] as String,
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppTheme.darkTextPrimary
-                        : AppTheme.textPrimary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Row(children: [
-              const Icon(Icons.calendar_today_outlined,
-                  size: 11, color: AppTheme.textMuted),
-              const SizedBox(width: 4),
-              Text(data['date'] as String,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppTheme.textMuted)),
-              const SizedBox(width: 10),
-              const Icon(Icons.timer_outlined,
-                  size: 11, color: AppTheme.textMuted),
-              const SizedBox(width: 4),
-              Text(data['duration'] as String,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppTheme.textMuted)),
-            ]),
-          ]),
-        ),
-
-        Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withValues(alpha: 0.25)),
-          ),
-          child: Text('${score.toStringAsFixed(0)}%',
+            const SizedBox(height: 16),
+            Text(
+              'No Responses Yet',
               style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: color)),
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Responses submitted by users will appear here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppTheme.textMuted,
+              ),
+            ),
+          ],
         ),
-      ]),
+      ),
     );
   }
 }

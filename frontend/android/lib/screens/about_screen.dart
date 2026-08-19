@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 
 class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key});
+  final bool isCreatorMode;
+
+  const AboutScreen({
+    super.key,
+    this.isCreatorMode = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -56,16 +58,16 @@ class AboutScreen extends StatelessWidget {
             const _SectionCard(
               title: "About",
               child: Text(
-                "HiDocs adalah aplikasi Form & Online Quiz Engine berbasis web modern yang dirancang untuk mempermudah pembuatan, pengelolaan, dan pengisian formulir interaktif serta kuis otomatis secara terstruktur."
+                "HiDocs! (Form & Exam Maker) is a multi-platform application (Web & Mobile) that provides an efficient solution for creating, managing, and completing digital forms, quizzes, and online exams. The platform features two user modes: Creator Mode for designing forms, managing questions, and analyzing responses, and User Mode for accessing forms via links or QR Codes, submitting answers, and viewing submission history."
               ),
             ),
 
             const SizedBox(height: 16),
 
             _SectionCard(
-            title: auth.isAdmin ? "Administrator Features" : "User Features",
+            title: isCreatorMode ? "Creator Features" : "User Features",
             child: Column(
-                children: auth.isAdmin
+                children: isCreatorMode
                     ? const [
                         _FeatureTile(
                         Icons.add_box_rounded,

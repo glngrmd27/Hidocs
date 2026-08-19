@@ -47,9 +47,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
 
   Future<void> _logout() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    await auth.logout();
-    if (!mounted) return;
     _goTo('/login');
+    await auth.logout();
   }
 
   @override

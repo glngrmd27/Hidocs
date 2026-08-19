@@ -6,12 +6,14 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/form_provider.dart';
+import '../providers/response_provider.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/math_formula_widget.dart';
 import '../widgets/code_block_widget.dart';
 import '../widgets/image_zoom_widget.dart';
+import '../widgets/timer_widget.dart';
 
 class FillFormScreen extends StatefulWidget {
   final FormModel form;
@@ -38,7 +40,6 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
   bool _submitted = false;
   bool _isSubmitting = false;
-  double? _score;
 
   @override
   void initState() {
@@ -121,16 +122,6 @@ class _FillFormScreenState extends State<FillFormScreen> {
     }
 
     return _controllers[questionId]!;
-  }
-
-  String _fmtTime(int seconds) {
-    final minutes =
-        (seconds ~/ 60).toString().padLeft(2, '0');
-
-    final secs =
-        (seconds % 60).toString().padLeft(2, '0');
-
-    return '$minutes:$secs';
   }
 
   void _autoSubmit() {
@@ -233,7 +224,8 @@ class _FillFormScreenState extends State<FillFormScreen> {
       }
 
       if (q.type == QuestionType.multipleChoice ||
-          q.type == QuestionType.imageChoice) {
+          q.type == QuestionType.imageChoice ||
+          q.type == QuestionType.yesNo) {
         answers.add({
           'question_id': q.id,
           'selected_option_id': value,
@@ -302,8 +294,22 @@ class _FillFormScreenState extends State<FillFormScreen> {
     setState(() {
       _isSubmitting = true;
       _submitted = true;
-      _score = (result['total_score'] as num?)?.toDouble();
     });
+
+    Provider.of<ResponseProvider>(
+      context,
+      listen: false,
+    ).recordSubmission(
+      formId: widget.form.id,
+      responseId: (result['response_id'] ?? '').toString(),
+      respondentId: auth.currentUser?.id ?? '',
+      respondentEmail: auth.currentUser?.email ?? '',
+      answers: Map<String, dynamic>.from(_answers),
+      totalScore: (result['total_score'] as num?)?.toDouble(),
+      submittedAt:
+          DateTime.tryParse(result['submitted_at']?.toString() ?? ''),
+      maxScore: widget.form.maxScore,
+    );
 
     if (auto && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -367,7 +373,6 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
     if (_submitted) {
       return _SuccessScreen(
-        score: _score,
         onBack: () => Navigator.pop(context),
       );
     }
@@ -401,61 +406,15 @@ class _FillFormScreenState extends State<FillFormScreen> {
         ),
         actions: [
           if (widget.form.hasTimer)
-            Container(
-              constraints: const BoxConstraints(
-                minWidth: 82,
-              ),
-              margin: const EdgeInsets.only(
+            Padding(
+              padding: const EdgeInsets.only(
                 right: 12,
                 top: 8,
                 bottom: 8,
               ),
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color: isWarn
-                    ? AppTheme.error.withValues(
-                        alpha: 0.15,
-                      )
-                    : AppTheme.primaryFaint,
-                borderRadius:
-                    BorderRadius.circular(20),
-                border: Border.all(
-                  color: isWarn
-                      ? AppTheme.error.withValues(
-                          alpha: 0.35,
-                        )
-                      : AppTheme.primary.withValues(
-                          alpha: 0.20,
-                        ),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.timer_rounded,
-                    size: 15,
-                    color: isWarn
-                        ? AppTheme.error
-                        : AppTheme.primary,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _fmtTime(_remaining),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          FontWeight.w800,
-                      color: isWarn
-                          ? AppTheme.error
-                          : AppTheme.primary,
-                    ),
-                  ),
-                ],
+              child: TimerWidget(
+                remainingSeconds: _remaining,
+                isWarning: isWarn,
               ),
             ),
         ],
@@ -734,35 +693,59 @@ class _FillFormScreenState extends State<FillFormScreen> {
         return _YesNoAnswer(
           value:
               _answers[q.id] as String?,
-          onSelect: (v) {
+          onSelect: (yes) {
             setState(() {
-              _answers[q.id] = v;
+              _answers[q.id] =
+                  _yesNoOptionId(q, yes);
             });
           },
         );
 
       case QuestionType.imageChoice:
-        return _TextAnswer(
-          controller:
-              _getController(q.id),
-          hint:
-              'Image choices will appear here...',
-          maxLines: 1,
-          onChanged: (v) {
-            _answers[q.id] = v;
+        return _MCAnswer(
+          q: q,
+          answers: _answers,
+          isDark: isDark,
+          onSelect: (id) {
+            setState(() {
+              _answers[q.id] = id;
+            });
           },
         );
     }
+  }
+
+  String? _yesNoOptionId(
+    QuestionModel q,
+    bool yes,
+  ) {
+    for (final opt in q.options) {
+      final t = opt.text.trim().toLowerCase();
+      if (yes &&
+          (t == 'yes' || t == 'ya')) {
+        return opt.id;
+      }
+      if (!yes &&
+          (t == 'no' || t == 'tidak')) {
+        return opt.id;
+      }
+    }
+
+    if (q.options.isNotEmpty) {
+      return yes
+          ? q.options.first.id
+          : q.options.last.id;
+    }
+
+    return null;
   }
 }
 
 class _SuccessScreen
     extends StatelessWidget {
-  final double? score;
   final VoidCallback onBack;
 
   const _SuccessScreen({
-    this.score,
     required this.onBack,
   });
 
@@ -843,57 +826,6 @@ class _SuccessScreen
                 textAlign:
                     TextAlign.center,
               ),
-
-              if (score != null) ...[
-                const SizedBox(
-                  height: 24,
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary
-                        .withValues(
-                      alpha: 0.08,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(18),
-                    border: Border.all(
-                      color: AppTheme.primary
-                          .withValues(
-                        alpha: 0.25,
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Your Score',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color:
-                              AppTheme.textMuted,
-                          fontWeight:
-                              FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 6,
-                      ),
-                      Text(
-                        '${score!.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 34,
-                          fontWeight:
-                              FontWeight.w900,
-                          color:
-                              AppTheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
 
               const SizedBox(
                 height: 36,
@@ -1265,26 +1197,58 @@ class _MCAnswer
                   ),
 
                   Expanded(
-                    child: Text(
-                      opt.text,
-                      style:
-                          TextStyle(
-                        fontSize: 15,
-                        fontWeight:
-                            selected
-                                ? FontWeight
-                                    .w600
-                                : FontWeight
-                                    .w400,
-                        color: selected
-                            ? AppTheme
-                                .primary
-                            : (isDark
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        if (opt.imageUrl != null) ...[
+                          ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(10),
+                            child: Image.network(
+                              opt.imageUrl!,
+                              width: double.infinity,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder:
+                                  (_, __, ___) => const SizedBox(
+                                height: 60,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color:
+                                        AppTheme.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 8,
+                          ),
+                        ],
+                        Text(
+                          opt.text,
+                          style:
+                              TextStyle(
+                            fontSize: 15,
+                            fontWeight:
+                                selected
+                                    ? FontWeight
+                                        .w600
+                                    : FontWeight
+                                        .w400,
+                            color: selected
                                 ? AppTheme
-                                    .darkTextSecondary
-                                : AppTheme
-                                    .textSecondary),
-                      ),
+                                    .primary
+                                : (isDark
+                                    ? AppTheme
+                                        .darkTextSecondary
+                                    : AppTheme
+                                        .textSecondary),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1481,7 +1445,7 @@ class _RatingAnswer
 class _YesNoAnswer
     extends StatelessWidget {
   final String? value;
-  final void Function(String) onSelect;
+  final void Function(bool) onSelect;
 
   const _YesNoAnswer({
     required this.value,
@@ -1502,9 +1466,9 @@ class _YesNoAnswer
             color:
                 AppTheme.success,
             selected:
-                value == 'yes',
+                value == 'yes' || value == 'Yes',
             onTap: () =>
-                onSelect('yes'),
+                onSelect(true),
           ),
         ),
 
@@ -1520,9 +1484,9 @@ class _YesNoAnswer
             color:
                 AppTheme.error,
             selected:
-                value == 'no',
+                value == 'no' || value == 'No',
             onTap: () =>
-                onSelect('no'),
+                onSelect(false),
           ),
         ),
       ],

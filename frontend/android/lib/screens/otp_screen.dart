@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../providers/auth_provider.dart';
-import '../models/user_model.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/hidocs_logo.dart';
 import 'login_screen.dart';
@@ -13,14 +12,12 @@ class OtpVerificationScreen extends StatefulWidget {
   final String email;
   final String username;
   final String password;
-  final UserRole role;
 
   const OtpVerificationScreen({
     super.key,
     required this.email,
     required this.username,
     required this.password,
-    required this.role,
   });
 
   @override
@@ -87,7 +84,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         widget.email,
         widget.username,
         widget.password,
-        widget.role,
     );
 
     if (!mounted) return;

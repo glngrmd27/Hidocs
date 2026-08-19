@@ -17,8 +17,6 @@ class _ScanFormScreenState extends State<ScanFormScreen> {
   final MobileScannerController _scannerController = MobileScannerController(
     formats: BarcodeFormat.values,
   );
-  final TextEditingController _linkController = TextEditingController();
-  final FocusNode _linkFocus = FocusNode();
 
   bool _isResolving = false;
   bool _hasHandled = false;
@@ -27,8 +25,6 @@ class _ScanFormScreenState extends State<ScanFormScreen> {
   @override
   void dispose() {
     _scannerController.dispose();
-    _linkController.dispose();
-    _linkFocus.dispose();
     super.dispose();
   }
 
@@ -85,12 +81,6 @@ class _ScanFormScreenState extends State<ScanFormScreen> {
     _hasHandled = false;
   }
 
-  void _handleLinkSubmit() {
-    final raw = _linkController.text;
-    _linkFocus.unfocus();
-    _resolveCode(raw);
-  }
-
   void _showMessage(String message, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -128,61 +118,49 @@ class _ScanFormScreenState extends State<ScanFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan or Enter Link'),
+        title: const Text('Scan QR Code'),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: Stack(
-              children: [
-                MobileScanner(
-                  controller: _scannerController,
-                  onDetect: (capture) {
-                    final code = capture.barcodes.isNotEmpty
-                        ? capture.barcodes.first.rawValue ?? ''
-                        : '';
-                    if (code.isNotEmpty) {
-                      _resolveCode(code);
-                    }
-                  },
-                ),
-                const _ScannerOverlay(),
-                SafeArea(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: _ScannerHintCard(),
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  child: Align(
-                    alignment: Alignment.bottomRight,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: _RoundIconButton(
-                        icon: _torchEnabled
-                            ? Icons.flash_on_rounded
-                            : Icons.flash_off_rounded,
-                        onPressed: () async {
-                          await _scannerController.toggleTorch();
-                          setState(() {
-                            _torchEnabled = !_torchEnabled;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          MobileScanner(
+            controller: _scannerController,
+            onDetect: (capture) {
+              final code = capture.barcodes.isNotEmpty
+                  ? capture.barcodes.first.rawValue ?? ''
+                  : '';
+              if (code.isNotEmpty) {
+                _resolveCode(code);
+              }
+            },
+          ),
+          const _ScannerOverlay(),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: _ScannerHintCard(),
+              ),
             ),
           ),
-          _LinkInputPanel(
-            controller: _linkController,
-            focusNode: _linkFocus,
-            isResolving: _isResolving,
-            onSubmit: _handleLinkSubmit,
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _RoundIconButton(
+                  icon: _torchEnabled
+                      ? Icons.flash_on_rounded
+                      : Icons.flash_off_rounded,
+                  onPressed: () async {
+                    await _scannerController.toggleTorch();
+                    setState(() {
+                      _torchEnabled = !_torchEnabled;
+                    });
+                  },
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -325,162 +303,6 @@ class _RoundIconButton extends StatelessWidget {
       child: IconButton(
         onPressed: onPressed,
         icon: Icon(icon, color: Colors.white),
-      ),
-    );
-  }
-}
-
-class _LinkInputPanel extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final bool isResolving;
-  final VoidCallback onSubmit;
-
-  const _LinkInputPanel({
-    required this.controller,
-    required this.focusNode,
-    required this.isResolving,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCard : AppTheme.surfaceCard,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppTheme.darkBorder : AppTheme.border,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDark ? 0.30 : 0.06,
-            ),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 28,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: isDark ? AppTheme.darkBorder : AppTheme.border,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                const Icon(Icons.link_rounded, size: 18, color: AppTheme.info),
-                const SizedBox(width: 8),
-                Text(
-                  'Atau masukkan link form',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? AppTheme.darkTextPrimary
-                        : AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    keyboardType: TextInputType.url,
-                    textInputAction: TextInputAction.go,
-                    onSubmitted: (_) => onSubmit(),
-                    decoration: InputDecoration(
-                      hintText: 'hidocs.app/f/<slug> atau URL lengkap',
-                      hintStyle: TextStyle(
-                        fontSize: 13,
-                        color: isDark
-                            ? AppTheme.darkTextSecondary
-                            : AppTheme.textMuted,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.qr_code_2_rounded,
-                        size: 20,
-                      ),
-                      filled: true,
-                      fillColor: isDark
-                          ? AppTheme.darkSurface
-                          : AppTheme.surfaceCard,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? AppTheme.darkBorder
-                              : AppTheme.border,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(
-                          color: AppTheme.primary,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: isResolving ? null : onSubmit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: isResolving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.arrow_forward_rounded),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

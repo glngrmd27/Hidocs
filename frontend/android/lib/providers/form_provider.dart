@@ -9,17 +9,28 @@ import '../services/api_client.dart';
 class FormProvider extends ChangeNotifier {
   final List<FormModel> _forms = [];
   final Set<String> _submittedForms = {};
+  final Set<String> _deletedFormIds = {};
   bool _isLoading = false;
   String? _error;
 
-  List<FormModel> get forms => List.unmodifiable(_forms);
+  List<FormModel> get forms =>
+      List.unmodifiable(_forms.where((f) => !_deletedFormIds.contains(f.id)));
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<FormModel> get activeForms =>
-      _forms.where((f) => f.isActive).toList();
+      _forms.where((f) => f.isActive && !_deletedFormIds.contains(f.id)).toList();
 
   FormProvider() {
     _loadSubmitted();
+  }
+
+  Future<Set<String>> _getDeletedIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final deletedIds = prefs.getStringList('deleted_forms') ?? [];
+      _deletedFormIds.addAll(deletedIds);
+    } catch (_) {}
+    return _deletedFormIds;
   }
 
   Future<void> _loadSubmitted() async {
@@ -27,6 +38,8 @@ class FormProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final ids = prefs.getStringList('submitted_forms') ?? [];
       _submittedForms.addAll(ids);
+      await _getDeletedIds();
+      _forms.removeWhere((f) => _deletedFormIds.contains(f.id));
       notifyListeners();
     } catch (_) {}
   }
@@ -35,6 +48,13 @@ class FormProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('submitted_forms', _submittedForms.toList());
+    } catch (_) {}
+  }
+
+  Future<void> _saveDeleted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('deleted_forms', _deletedFormIds.toList());
     } catch (_) {}
   }
 
@@ -51,6 +71,8 @@ class FormProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    final deletedIds = await _getDeletedIds();
+
     try {
       final data = await ApiClient.get('/forms');
       final list = (data is List) ? data : <dynamic>[];
@@ -59,6 +81,7 @@ class FormProvider extends ChangeNotifier {
         ..clear()
         ..addAll(
             list.whereType<Map>().map((e) => FormModel.fromJson({...e})));
+      _forms.removeWhere((f) => deletedIds.contains(f.id));
 
       _isLoading = false;
     } on ApiException catch (e) {
@@ -69,6 +92,7 @@ class FormProvider extends ChangeNotifier {
       _isLoading = false;
     }
 
+    _forms.removeWhere((f) => deletedIds.contains(f.id));
     notifyListeners();
   }
 
@@ -151,7 +175,17 @@ class FormProvider extends ChangeNotifier {
   }
 
   List<FormModel> getFormsByCreator(String creatorId) {
-    return _forms.where((f) => f.creatorId == creatorId).toList();
+    return _forms
+        .where((f) =>
+            !_deletedFormIds.contains(f.id) &&
+            (creatorId.isEmpty || f.creatorId.isEmpty || f.creatorId == creatorId))
+        .toList();
+  }
+
+  FormModel? getFormById(String formId) {
+    if (_deletedFormIds.contains(formId)) return null;
+    final index = _forms.indexWhere((f) => f.id == formId);
+    return index >= 0 ? _forms[index] : null;
   }
 
   Future<bool> createForm(FormModel form) async {
@@ -160,9 +194,27 @@ class FormProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final created = await ApiClient.post('/forms', body: form.toCreateJson());
+      var current = form;
+      Map<String, dynamic>? created;
 
-      if (created is! Map) {
+      for (var attempt = 0; attempt < 5; attempt++) {
+        try {
+          final res = await ApiClient.post('/forms', body: current.toCreateJson());
+          if (res is Map) {
+            created = Map<String, dynamic>.from(res);
+            break;
+          }
+        } on ApiException catch (e) {
+          if (attempt < 4 && _isDuplicateUrl(e.message)) {
+            current =
+                current.withCustomUrl('${_slugBase(current.slug)}-${attempt + 2}');
+            continue;
+          }
+          rethrow;
+        }
+      }
+
+      if (created == null) {
         _error = 'Gagal membuat form.';
         _isLoading = false;
         notifyListeners();
@@ -172,7 +224,7 @@ class FormProvider extends ChangeNotifier {
       final formId = (created['id'] ?? '').toString();
 
       var orderIndex = 1;
-      for (final question in form.questions) {
+      for (final question in current.questions) {
         await ApiClient.post(
           '/forms/$formId/questions',
           body: question.toQuestionJson(orderIndex: orderIndex),
@@ -182,7 +234,7 @@ class FormProvider extends ChangeNotifier {
 
       await ApiClient.put(
         '/forms/$formId/settings',
-        body: form.toSettingsJson(),
+        body: current.toSettingsJson(),
       );
 
       await loadForms();
@@ -204,16 +256,61 @@ class FormProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> deleteForm(String formId) async {
+  Future<bool> updateForm(FormModel form) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await ApiClient.delete('/forms/$formId');
-      _forms.removeWhere((f) => f.id == formId);
+      var current = form;
+
+      for (var attempt = 0; attempt < 5; attempt++) {
+        try {
+          await ApiClient.put(
+            '/forms/${form.id}',
+            body: current.toUpdateJson(),
+          );
+          break;
+        } on ApiException catch (e) {
+          if (attempt < 4 && _isDuplicateUrl(e.message)) {
+            current =
+                current.withCustomUrl('${_slugBase(current.slug)}-${attempt + 2}');
+            continue;
+          }
+          rethrow;
+        }
+      }
+
+      await ApiClient.put(
+        '/forms/${form.id}/settings',
+        body: current.toSettingsJson(),
+      );
+
+      final existing = await ApiClient.get('/forms/${form.id}/questions');
+
+      if (existing is List) {
+        for (final q in existing.whereType<Map>()) {
+          final qid = (q['id'] ?? '').toString();
+          if (qid.isNotEmpty) {
+            await ApiClient.delete('/questions/$qid');
+          }
+        }
+      }
+
+      var orderIndex = 1;
+      for (final question in current.questions) {
+        await ApiClient.post(
+          '/forms/${form.id}/questions',
+          body: question.toQuestionJson(orderIndex: orderIndex),
+        );
+        orderIndex++;
+      }
+
+      await loadForms();
+
       _isLoading = false;
       notifyListeners();
+
       return true;
     } on ApiException catch (e) {
       _error = e.message;
@@ -227,6 +324,46 @@ class FormProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> deleteForm(String formId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final isServerForm = RegExp(
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      caseSensitive: false,
+    ).hasMatch(formId);
+
+    if (isServerForm) {
+      try {
+        await ApiClient.delete('/forms/$formId');
+      } catch (_) {
+        _error = 'Gagal menghapus form di server. Coba lagi.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    }
+
+    _deletedFormIds.add(formId);
+    await _saveDeleted();
+
+    _forms.removeWhere((f) => f.id == formId || _deletedFormIds.contains(f.id));
+    _isLoading = false;
+    notifyListeners();
+
+    return true;
+  }
+
+  bool _isDuplicateUrl(String message) {
+    final m = message.toLowerCase();
+    return m.contains('idx_forms_custom_url') ||
+        m.contains('sqlstate 23505') ||
+        (m.contains('duplicate') && m.contains('custom_url'));
+  }
+
+  String _slugBase(String slug) => slug.replaceAll(RegExp(r'-\d+$'), '');
+
   Future<bool> toggleFormActive(String formId) async {
     final index = _forms.indexWhere((f) => f.id == formId);
     if (index < 0) return false;
@@ -239,8 +376,9 @@ class FormProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await ApiClient.put('/forms/$formId', body: form.toUpdateJson());
-      _forms[index] = copyFormModel(form, isActive: newActive);
+      final updated = copyFormModel(form, isActive: newActive);
+      await ApiClient.put('/forms/$formId', body: updated.toUpdateJson());
+      _forms[index] = updated;
       _isLoading = false;
       notifyListeners();
       return true;

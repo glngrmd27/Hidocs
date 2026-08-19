@@ -7,7 +7,9 @@ import '../models/form_model.dart';
 import '../models/question_model.dart';
 import '../models/response_model.dart';
 import '../providers/response_provider.dart';
+import '../widgets/code_block_widget.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/math_formula_widget.dart';
 import '../widgets/rich_text_view.dart';
 
 class ResponseDetailScreen extends StatefulWidget {
@@ -21,32 +23,39 @@ class ResponseDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<ResponseDetailScreen> createState() =>
-      _ResponseDetailScreenState();
+  State<ResponseDetailScreen> createState() => _ResponseDetailScreenState();
 }
 
 class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
   final Map<String, TextEditingController> _gradeControllers = {};
   final Map<String, double> _grades = {};
 
-  bool get _hasGradable =>
-      widget.form.questions.any(_isEssay);
+  bool get _hasGradable => widget.form.questions.any(_isManuallyGraded);
 
-  bool _isEssay(QuestionModel q) {
+  double get _maxScore => widget.form.maxScore;
+
+  bool _isManuallyGraded(QuestionModel q) {
     return q.type == QuestionType.longText ||
+        q.type == QuestionType.shortText ||
         q.type == QuestionType.codeInput ||
         q.type == QuestionType.mathFormula;
   }
 
   double get _total {
     if (!_hasGradable) return widget.response.score;
-    if (_grades.isEmpty) return 0;
+    if (_grades.isEmpty) return widget.response.score;
 
-    var sum = 0.0;
-    for (final v in _grades.values) {
-      sum += v;
+    var sum = widget.response.score;
+    for (final q in widget.form.questions) {
+      if (!_isManuallyGraded(q)) continue;
+
+      final v = _grades[q.id];
+      if (v == null) continue;
+
+      final max = (q.hasScore || q.score > 0) ? q.score : 0.0;
+      sum += max * (v / 100);
     }
-    return (sum / _grades.length).roundToDouble();
+    return sum;
   }
 
   @override
@@ -54,7 +63,7 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
     super.initState();
 
     for (final q in widget.form.questions) {
-      if (!_isEssay(q)) continue;
+      if (!_isManuallyGraded(q)) continue;
 
       final existing = widget.response.essayScores[q.id];
       if (existing != null) {
@@ -78,11 +87,21 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
   String _formatDateTime(DateTime dt) {
     final h = dt.hour.toString().padLeft(2, '0');
     final m = dt.minute.toString().padLeft(2, '0');
-    return '${dt.day}/${dt.month}/${dt.year}  $h:$m';
+    return '${dt.day}/${dt.month}/${dt.year} $h:$m';
   }
 
   String _answerText(QuestionModel q, dynamic answer) {
     if (answer == null) return '-';
+
+    String byText(String fallback) {
+      final normalized = answer.toString().trim().toLowerCase();
+      for (final opt in q.options) {
+        if (opt.text.trim().toLowerCase() == normalized) {
+          return opt.text;
+        }
+      }
+      return fallback;
+    }
 
     switch (q.type) {
       case QuestionType.multipleChoice:
@@ -90,25 +109,26 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
         for (final opt in q.options) {
           if (opt.id == answer) return opt.text;
         }
-        return answer.toString();
+        return byText(answer.toString());
 
       case QuestionType.yesNo:
-        return answer == 'yes' ? 'Yes' : 'No';
+        for (final opt in q.options) {
+          if (opt.id == answer) return opt.text;
+        }
+        return byText(answer == 'yes' ? 'Yes' : 'No');
 
       case QuestionType.rating:
         return '$answer out of ${q.ratingMax ?? 5}';
 
       default:
-        return answer.toString().trim().isEmpty
-            ? '-'
-            : answer.toString();
+        return answer.toString().trim().isEmpty ? '-' : answer.toString();
     }
   }
 
   void _save() {
     final essayScores = <String, double>{};
     for (final q in widget.form.questions) {
-      if (!_isEssay(q)) continue;
+      if (!_isManuallyGraded(q)) continue;
 
       final v = _grades[q.id];
       if (v != null) {
@@ -119,53 +139,65 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
     final updated = widget.response.copyWith(
       essayScores: essayScores,
       score: _total,
-      maxScore: 100,
+      maxScore: _maxScore,
     );
 
-    Provider.of<ResponseProvider>(
-      context,
-      listen: false,
-    ).updateResponse(updated);
+    final provider = Provider.of<ResponseProvider>(context, listen: false);
 
-    Navigator.pop(context, true);
+    provider.saveGrade(widget.response.id, _total).then((_) {
+      if (!mounted) return;
+      provider.updateResponse(updated);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(
-              Icons.check_circle_rounded,
-              color: Colors.white,
-              size: 18,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Score saved',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ],
+      Navigator.pop(context, true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Score saved successfully',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: AppTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
         ),
-        backgroundColor: AppTheme.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      );
+    }).catchError((Object error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Gagal menyimpan skor.'),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
         ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final primaryTextColor = isDark
-        ? AppTheme.darkTextPrimary
-        : AppTheme.textPrimary;
-
-    final secondaryTextColor = isDark
-        ? AppTheme.darkTextSecondary
-        : AppTheme.textSecondary;
+    final primaryTextColor =
+        isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
@@ -175,15 +207,12 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: [
+          // Header Deep Blue Card
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primary, AppTheme.primaryLight],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
+              color: const Color(0xFF133E76),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,7 +226,7 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
                     height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _HeaderRow(
                   icon: Icons.person_outline_rounded,
                   label: 'Respondent',
@@ -226,6 +255,7 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Total Score Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -243,22 +273,25 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.success.withValues(alpha: 0.10),
+                  color: const Color(0xFF1B9E5E).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '${_total.toInt()} / 100',
+                  _maxScore > 0
+                      ? '${_total.toInt()} / ${_maxScore.round()}'
+                      : '${_total.toInt()}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.success,
+                    color: Color(0xFF1B9E5E),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
+          // Section Title: Answers & Grading
           Text(
             'Answers & Grading',
             style: TextStyle(
@@ -279,7 +312,7 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
                 number: index + 1,
                 question: q,
                 answerText: _answerText(q, answer),
-                isEssay: _isEssay(q),
+                isEssay: _isManuallyGraded(q),
                 controller: _gradeControllers[q.id],
                 onGradeChanged: (value) {
                   final parsed = double.tryParse(value);
@@ -317,9 +350,7 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'This form has no essay questions. '
-                      'The total score can only be changed '
-                      'if there are essay questions.',
+                      'This form has no questions that require manual grading. The total score is computed automatically.',
                       style: TextStyle(
                         fontSize: 12,
                         color: secondaryTextColor,
@@ -408,24 +439,22 @@ class _AnswerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = isDark
-        ? AppTheme.darkTextPrimary
-        : AppTheme.textPrimary;
-
-    final secondaryTextColor = isDark
-        ? AppTheme.darkTextSecondary
-        : AppTheme.textSecondary;
+    final primaryTextColor =
+        isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkCard : AppTheme.surfaceCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isEssay
-              ? AppTheme.warning.withValues(alpha: 0.40)
+              ? AppTheme.warning.withValues(alpha: 0.50)
               : (isDark ? AppTheme.darkBorder : AppTheme.border),
+          width: isEssay ? 1.5 : 1.0,
         ),
       ),
       child: Column(
@@ -438,7 +467,7 @@ class _AnswerCard extends StatelessWidget {
                 width: 26,
                 height: 26,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.10),
+                  color: AppTheme.info.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
@@ -447,7 +476,7 @@ class _AnswerCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.primary,
+                      color: AppTheme.info,
                     ),
                   ),
                 ),
@@ -472,11 +501,11 @@ class _AnswerCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.warning.withValues(alpha: 0.12),
+                    color: AppTheme.warning.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'ESSAY',
+                    'MANUAL',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -486,6 +515,19 @@ class _AnswerCard extends StatelessWidget {
                 ),
             ],
           ),
+          if (question.type == QuestionType.mathFormula &&
+              question.mathFormula != null) ...[
+            const SizedBox(height: 12),
+            MathFormulaWidget(
+              formula: question.mathFormula!,
+              fontSize: 14,
+            ),
+          ],
+          if (question.type == QuestionType.codeInput &&
+              question.codeSnippet != null) ...[
+            const SizedBox(height: 12),
+            CodeBlockWidget(code: question.codeSnippet!),
+          ],
           const SizedBox(height: 12),
           Text(
             'Answer',
@@ -500,10 +542,12 @@ class _AnswerCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.success.withValues(alpha: 0.06),
+              color: isDark
+                  ? const Color(0xFF162E25)
+                  : const Color(0xFFEBF7F0),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: AppTheme.success.withValues(alpha: 0.20),
+                color: const Color(0xFF1B9E5E).withValues(alpha: 0.20),
               ),
             ),
             child: Text(
@@ -517,7 +561,7 @@ class _AnswerCard extends StatelessWidget {
             ),
           ),
           if (isEssay) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextField(
               controller: controller,
               keyboardType: TextInputType.number,
@@ -533,7 +577,7 @@ class _AnswerCard extends StatelessWidget {
               decoration: InputDecoration(
                 labelText: 'Score (0 - 100)',
                 prefixIcon: const Icon(
-                  Icons.grade_outlined,
+                  Icons.star_outline_rounded,
                   size: 20,
                   color: AppTheme.warning,
                 ),
@@ -568,3 +612,4 @@ class _AnswerCard extends StatelessWidget {
     );
   }
 }
+

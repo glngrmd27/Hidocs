@@ -221,19 +221,21 @@ class OptionModel {
 
   factory OptionModel.fromJson(Map<String, dynamic> json) {
     final imageUrl = (json['img_url'] ?? '').toString();
+    final isCorrect = json['is_correct'] == true;
 
     return OptionModel(
       id: (json['id'] ?? '').toString(),
       text: (json['option_text'] ?? '').toString(),
       imageUrl: imageUrl.isEmpty ? null : imageUrl,
-      score: json['is_correct'] == true ? 1 : 0,
+      score: isCorrect ? 1 : 0,
+      isCorrect: isCorrect,
     );
   }
 
   Map<String, dynamic> toOptionJson({int orderIndex = 1}) {
     return {
       'option_text': text,
-      'is_correct': score > 0,
+      'is_correct': isCorrect || score > 0,
       'order_index': orderIndex,
     };
   }

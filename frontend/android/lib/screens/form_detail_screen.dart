@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../app_theme.dart';
-import '../providers/form_provider.dart';
 import '../models/form_model.dart';
+import '../providers/form_provider.dart';
 import '../widgets/gradient_button.dart';
+import 'create_form_screen.dart';
+import 'grading_screen.dart';
+import 'qr_generator_screen.dart';
 import 'results_screen.dart';
 
 class FormDetailScreen extends StatefulWidget {
@@ -40,46 +44,89 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
     }
   }
 
+  void _shareLink() {
+    Share.share('Fill out this form: ${_form.fullLink}');
+  }
+
+  void _copyLink() {
+    Clipboard.setData(ClipboardData(text: _form.fullLink));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Link copied to clipboard!'),
+          ],
+        ),
+        backgroundColor: AppTheme.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final formProvider = Provider.of<FormProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final cardBg = isDark ? AppTheme.darkCard : AppTheme.surfaceCard;
+    final borderClr = isDark ? AppTheme.darkBorder : AppTheme.border;
+    final primaryTxt = isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+
+    final canEdit = !_form.isActive || _form.totalResponses == 0;
+
     return Scaffold(
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
       body: CustomScrollView(
         slivers: [
+          // Blue Gradient Flexible Header
           SliverAppBar(
-            expandedHeight: 160,
+            expandedHeight: 180,
             pinned: true,
             backgroundColor: AppTheme.primary,
             elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
             actions: [
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded,
-                    color: Colors.white),
+              PopupMenuButton<String?>(
+                icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
                 onSelected: (val) async {
-                  if (val == 'toggle') {
-                    Navigator.pop(context);
-
-                    final ok =
-                        await formProvider.toggleFormActive(_form.id);
-
+                  if (val == null) return;
+                  if (val == 'qr') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => QRGeneratorScreen(form: _form),
+                      ),
+                    );
+                  } else if (val == 'edit') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CreateFormScreen(existingForm: _form),
+                      ),
+                    );
+                  } else if (val == 'toggle') {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final ok = await formProvider.toggleFormActive(_form.id);
                     if (!mounted) return;
-
                     if (ok) {
                       setState(() {
-                        _form = copyFormModel(
-                            _form, isActive: !_form.isActive);
+                        _form = copyFormModel(_form, isActive: !_form.isActive);
                       });
                     } else {
-                      final message = formProvider.error ??
-                          'Gagal mengubah status _form.';
-
+                      final message =
+                          formProvider.error ?? 'Gagal mengubah status form.';
                       formProvider.clearError();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text(message),
                           backgroundColor: AppTheme.error,
@@ -93,37 +140,75 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
                   } else if (val == 'delete') {
                     _confirmDelete(context, formProvider);
                   } else if (val == 'share') {
-                    Share.share(
-                        'Fill out this form: ${_form.fullLink}');
+                    _shareLink();
                   }
                 },
                 itemBuilder: (_) => [
                   const PopupMenuItem(
-                      value: 'share',
-                      child: ListTile(
-                          leading: Icon(Icons.share_rounded),
-                          title: Text('Share Link'),
-                          dense: true,
-                          contentPadding: EdgeInsets.zero)),
-                  PopupMenuItem(
-                      value: 'toggle',
-                      child: ListTile(
-                          leading: Icon(_form.isActive
-                              ? Icons.pause_circle_outline_rounded
-                              : Icons.play_circle_outline_rounded),
-                          title: Text(
-                              _form.isActive ? 'Close Form' : 'Activate Form'),
-                          dense: true,
-                          contentPadding: EdgeInsets.zero)),
+                    value: 'share',
+                    child: ListTile(
+                      leading: Icon(Icons.share_rounded),
+                      title: Text('Share Link'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
                   const PopupMenuItem(
-                      value: 'delete',
-                      child: ListTile(
-                          leading: Icon(Icons.delete_outline_rounded,
-                              color: AppTheme.error),
-                          title: Text('Delete Form',
-                              style: TextStyle(color: AppTheme.error)),
-                          dense: true,
-                          contentPadding: EdgeInsets.zero)),
+                    value: 'qr',
+                    child: ListTile(
+                      leading: Icon(Icons.qr_code_rounded),
+                      title: Text('Show QR Code'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: canEdit ? 'edit' : null,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.edit_rounded,
+                        color: canEdit ? null : AppTheme.textMuted,
+                      ),
+                      title: Text(
+                        'Edit Form',
+                        style: TextStyle(
+                          color: canEdit ? null : AppTheme.textMuted,
+                        ),
+                      ),
+                      subtitle: canEdit
+                          ? null
+                          : const Text(
+                              'Close form or ensure 0 respondents',
+                              style: TextStyle(
+                                  fontSize: 10, color: AppTheme.textMuted),
+                            ),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'toggle',
+                    child: ListTile(
+                      leading: Icon(_form.isActive
+                          ? Icons.pause_circle_outline_rounded
+                          : Icons.play_circle_outline_rounded),
+                      title: Text(
+                          _form.isActive ? 'Close Form' : 'Activate Form'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: Icon(Icons.delete_outline_rounded,
+                          color: AppTheme.error),
+                      title: Text('Delete Form',
+                          style: TextStyle(color: AppTheme.error)),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -138,190 +223,469 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
                 ),
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 56, 20, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 48, 20, 16),
                     child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                      Row(children: [
-                        _StatusPill(isActive: _form.isActive),
-                      ]),
-                      const SizedBox(height: 8),
-                      Text(_form.title,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Row(
+                          children: [
+                            _StatusBadgeHeader(isActive: _form.isActive),
+                            const SizedBox(width: 8),
+                            _VisibilityBadgeHeader(isPublic: _form.isPublic),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _form.title,
                           style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1.2),
-                          maxLines: 2),
-                    ]),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
 
+          // Main Content Body
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Unified Top Stats Card (3 Columns with vertical dividers)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: borderClr),
+                    ),
+                    child: Row(
+                      children: [
+                        _StatColumn(
+                          icon: Icons.group_outlined,
+                          value: '${_form.totalResponses}',
+                          label: 'Responses',
+                          iconColor: const Color(0xFF0D1B2A),
+                        ),
+                        Container(width: 1, height: 44, color: borderClr),
+                        _StatColumn(
+                          icon: Icons.help_outline_rounded,
+                          value: '${_form.questions.length}',
+                          label: 'Questions',
+                          iconColor: AppTheme.info,
+                        ),
+                        Container(width: 1, height: 44, color: borderClr),
+                        _StatColumn(
+                          icon: Icons.timer_outlined,
+                          value: _form.hasTimer ? '${_form.timerMinutes}' : '-',
+                          label: 'Minutes',
+                          iconColor: AppTheme.warning,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTheme.darkCard
-                        : AppTheme.primaryFaint,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
+                  // 2. Public Form / Share Link Box
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTheme.darkCard
+                          : const Color(0xFFEFF4FA),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
                         color: isDark
                             ? AppTheme.darkBorder
-                            : AppTheme.info.withValues(alpha: 0.20)),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.link_rounded,
-                        size: 20, color: AppTheme.info),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(_form.fullLink,
-                          style: const TextStyle(
-                              fontSize: 14,
-                              color: AppTheme.info,
-                              fontWeight: FontWeight.w600)),
+                            : AppTheme.info.withValues(alpha: 0.15),
+                      ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(
-                            ClipboardData(text: _form.fullLink));
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(
-                          content: const Text('Link copied!'),
-                          backgroundColor: AppTheme.success,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          margin: const EdgeInsets.all(16),
-                          duration:
-                              const Duration(seconds: 2),
-                        ));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('Copy',
-                            style: TextStyle(
-                                color: Colors.white,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _form.isPublic
+                                      ? Icons.public_rounded
+                                      : Icons.lock_outline_rounded,
+                                  size: 16,
+                                  color: AppTheme.success,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _form.isPublic ? 'Public Form' : 'Private Form',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.success,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              'Share link',
+                              style: TextStyle(
                                 fontSize: 12,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ]),
-                ),
-                const SizedBox(height: 20),
-
-                Row(children: [
-                  _StatBox(
-                      icon: Icons.people_rounded,
-                      label: 'Responses',
-                      value: '${_form.totalResponses}',
-                      color: AppTheme.success),
-                  const SizedBox(width: 10),
-                  _StatBox(
-                      icon: Icons.help_rounded,
-                      label: 'Questions',
-                      value: '${_form.questions.length}',
-                      color: AppTheme.info),
-                  if (_form.hasTimer) ...[
-                    const SizedBox(width: 10),
-                    _StatBox(
-                        icon: Icons.timer_rounded,
-                        label: 'Minutes',
-                        value: '${_form.timerMinutes}',
-                        color: AppTheme.warning),
-                  ],
-                ]),
-                const SizedBox(height: 20),
-
-                Text('Active Features',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  if (_form.shuffleQuestions)
-                    const _FeatureChip(
-                        Icons.shuffle_rounded, 'Shuffle questions',
-                        AppTheme.primary),
-                  if (_form.shuffleOptions)
-                    const _FeatureChip(Icons.swap_vert_rounded,
-                        'Shuffle answers', AppTheme.info),
-                  if (_form.oneTimeOnly)
-                    const _FeatureChip(Icons.lock_outline_rounded,
-                        'One-time only', AppTheme.error),
-                  if (_form.hasTimer)
-                    _FeatureChip(Icons.timer_rounded,
-                        'Timer ${_form.timerMinutes}m',
-                        AppTheme.warning),
-                  if (_form.isScheduled)
-                    const _FeatureChip(Icons.schedule_rounded,
-                        'Scheduled', AppTheme.success),
-                ]),
-                const SizedBox(height: 24),
-
-                  if (_form.isScheduled) ...[
-                    Text('Schedule',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppTheme.darkCard
-                            : AppTheme.surfaceCard,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: isDark
-                                ? AppTheme.darkBorder
-                                : AppTheme.border),
-                      ),
-                      child: DefaultTextStyle.merge(
-                        style: const TextStyle(color: AppTheme.info),
-                        child: Row(children: [
-                          _ScheduleCol(
-                              label: 'Opens',
-                              dt: _form.scheduledOpen),
-                          Container(
-                              width: 1, height: 40,
-                              margin: const EdgeInsets.symmetric(horizontal: 16),
-                              color: isDark ? AppTheme.darkBorder : AppTheme.border),
-                          _ScheduleCol(
-                              label: 'Closes',
-                              dt: _form.scheduledClose),
-                        ]),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                Row(children: [
-                  Expanded(
-                    child: GradientButton(
-                      text: 'View Results',
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  ResultsScreen(form: _form))),
-                      fullWidth: true,
-                      icon: Icons.bar_chart_rounded,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppTheme.darkSurface
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: borderClr),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.link_rounded,
+                                      size: 16,
+                                      color: AppTheme.info,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _form.fullLink,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppTheme.info,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message: 'Salin Link',
+                              child: InkWell(
+                                onTap: _copyLink,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppTheme.darkSurface
+                                        : const Color(0xFFE2ECF7),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.copy_rounded,
+                                    size: 18,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message: 'Show QR',
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => QRGeneratorScreen(form: _form),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppTheme.darkSurface
+                                        : const Color(0xFFE2ECF7),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.qr_code_2_rounded,
+                                    size: 18,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ]),
-              ]),
+                  const SizedBox(height: 18),
+
+                  // 3. Form Settings Box
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: borderClr),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.tune_rounded,
+                              size: 18,
+                              color: primaryTxt,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Form Settings',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: primaryTxt,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _SettingsChip(
+                              icon: Icons.shuffle_rounded,
+                              label: 'Shuffle questions',
+                              color: _form.shuffleQuestions
+                                  ? AppTheme.primary
+                                  : AppTheme.textMuted,
+                              active: _form.shuffleQuestions,
+                            ),
+                            _SettingsChip(
+                              icon: Icons.swap_vert_rounded,
+                              label: 'Shuffle answers',
+                              color: _form.shuffleOptions
+                                  ? AppTheme.info
+                                  : AppTheme.textMuted,
+                              active: _form.shuffleOptions,
+                            ),
+                            _SettingsChip(
+                              icon: Icons.lock_outline_rounded,
+                              label: 'One-time only',
+                              color: _form.oneTimeOnly
+                                  ? AppTheme.error
+                                  : AppTheme.textMuted,
+                              active: _form.oneTimeOnly,
+                            ),
+                            if (_form.hasTimer)
+                              _SettingsChip(
+                                icon: Icons.timer_outlined,
+                                label: 'Timer ${_form.timerMinutes}m',
+                                color: AppTheme.warning,
+                                active: true,
+                              ),
+                            if (_form.isScheduled)
+                              const _SettingsChip(
+                                icon: Icons.access_time_rounded,
+                                label: 'Scheduled',
+                                color: AppTheme.success,
+                                active: true,
+                              ),
+                            _SettingsChip(
+                              icon: Icons.public_rounded,
+                              label: _form.isPublic ? 'Public' : 'Private',
+                              color: _form.isPublic
+                                  ? AppTheme.success
+                                  : AppTheme.warning,
+                              active: true,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Divider(color: borderClr),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Opens',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.textMuted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _form.isScheduled
+                                        ? '${_form.scheduledOpen.day}/${_form.scheduledOpen.month}/${_form.scheduledOpen.year}'
+                                        : '1/6/2024',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: primaryTxt,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(width: 1, height: 32, color: borderClr),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Closes',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.textMuted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _form.isScheduled
+                                        ? '${_form.scheduledClose.day}/${_form.scheduledClose.month}/${_form.scheduledClose.year}'
+                                        : '15/7/2024',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: primaryTxt,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 4. Action Buttons
+                  GradientButton(
+                    text: 'View Results',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ResultsScreen(form: _form),
+                      ),
+                    ),
+                    fullWidth: true,
+                    icon: Icons.bar_chart_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GradingScreen(form: _form),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.grading_rounded,
+                        size: 18,
+                        color: AppTheme.warning,
+                      ),
+                      label: const Text(
+                        'Manual Grading',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.warning,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: AppTheme.warning
+                            .withValues(alpha: 0.06),
+                        foregroundColor: AppTheme.warning,
+                        side: BorderSide(
+                          color: AppTheme.warning.withValues(alpha: 0.45),
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: canEdit
+                          ? () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      CreateFormScreen(existingForm: _form),
+                                ),
+                              )
+                          : null,
+                      icon: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: canEdit ? AppTheme.primary : AppTheme.textMuted,
+                      ),
+                      label: Text(
+                        canEdit ? 'Edit Form' : 'Edit Form (Closed/0 responses)',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: canEdit ? AppTheme.primary : AppTheme.textMuted,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: cardBg,
+                        foregroundColor: canEdit
+                            ? AppTheme.primary
+                            : AppTheme.textMuted,
+                        side: BorderSide(
+                          color: canEdit
+                              ? borderClr
+                              : borderClr.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ],
@@ -332,33 +696,46 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
   void _confirmDelete(BuildContext context, FormProvider fp) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Form?'),
-        content: const Text(
-            'This action cannot be undone. All data and responses will be permanently deleted.'),
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Hapus Form?'),
+        content: Text(
+            'Apakah Anda yakin ingin menghapus "${_form.title}"? Tindakan ini tidak dapat dibatalkan.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Batal'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              final nav = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(dialogCtx);
 
               final ok = await fp.deleteForm(_form.id);
 
-              if (!mounted) return;
-
               if (ok) {
-                Navigator.pop(context);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('Form berhasil dihapus.'),
+                      ],
+                    ),
+                    backgroundColor: AppTheme.success,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+                nav.pop();
               } else {
-                final message =
-                    fp.error ?? 'Gagal menghapus form.';
-
+                final message = fp.error ?? 'Gagal menghapus form.';
                 fp.clearError();
-
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text(message),
                     backgroundColor: AppTheme.error,
@@ -370,9 +747,8 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.error),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -380,9 +756,9 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
   }
 }
 
-class _StatusPill extends StatelessWidget {
+class _StatusBadgeHeader extends StatelessWidget {
   final bool isActive;
-  const _StatusPill({required this.isActive});
+  const _StatusBadgeHeader({required this.isActive});
 
   @override
   Widget build(BuildContext context) {
@@ -390,121 +766,166 @@ class _StatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: isActive
-            ? AppTheme.success.withValues(alpha: 0.15)
-            : AppTheme.error.withValues(alpha: 0.15),
+            ? const Color(0xFF1B9E5E).withValues(alpha: 0.25)
+            : AppTheme.error.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-            width: 6,
-            height: 6,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
             decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isActive ? AppTheme.success : AppTheme.error)),
-        const SizedBox(width: 5),
-        Text(isActive ? 'Active' : 'Closed',
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: isActive ? AppTheme.success : AppTheme.error)),
-      ]),
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-  const _StatBox(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark
-              ? color.withValues(alpha: 0.12)
-              : color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.20)),
-        ),
-        child: Column(children: [
-          Icon(icon, size: 22, color: color),
-          const SizedBox(height: 6),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? AppTheme.darkTextPrimary
-                      : AppTheme.textPrimary)),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11, color: AppTheme.textMuted)),
-        ]),
+              shape: BoxShape.circle,
+              color: isActive ? const Color(0xFF26D07C) : AppTheme.error,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            isActive ? 'Active' : 'Closed',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _FeatureChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _FeatureChip(this.icon, this.label, this.color);
+class _VisibilityBadgeHeader extends StatelessWidget {
+  final bool isPublic;
+  const _VisibilityBadgeHeader({required this.isPublic});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
+        color: const Color(0xFF1B9E5E).withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: color),
-        const SizedBox(width: 5),
-        Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPublic ? Icons.public_rounded : Icons.lock_outline_rounded,
+            size: 13,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            isPublic ? 'Public' : 'Private',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _ScheduleCol extends StatelessWidget {
+class _StatColumn extends StatelessWidget {
+  final IconData icon;
+  final String value;
   final String label;
-  final DateTime dt;
-  const _ScheduleCol({required this.label, required this.dt});
+  final Color iconColor;
+
+  const _StatColumn({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTxt = isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+
     return Expanded(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
+      child: Column(
+        children: [
+          Icon(icon, size: 22, color: iconColor),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: primaryTxt,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
             style: const TextStyle(
-                fontSize: 11,
-                color: AppTheme.textMuted,
-                fontWeight: FontWeight.w500)),
-        const SizedBox(height: 4),
-        Text('${dt.day}/${dt.month}/${dt.year}',
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary)),
-      ]),
+              fontSize: 12,
+              color: AppTheme.textMuted,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+class _SettingsChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool active;
+
+  const _SettingsChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.active,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: active
+            ? color.withValues(alpha: 0.10)
+            : (isDark ? AppTheme.darkSurface : const Color(0xFFF2F4F7)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: active
+              ? color.withValues(alpha: 0.25)
+              : (isDark ? AppTheme.darkBorder : AppTheme.border),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: active ? color : AppTheme.textMuted,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: active ? color : AppTheme.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

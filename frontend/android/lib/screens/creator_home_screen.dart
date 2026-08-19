@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/form_provider.dart';
 import '../models/form_model.dart';
+import '../models/question_model.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/hidocs_logo.dart';
 import 'create_form_screen.dart';
 import 'form_detail_screen.dart';
+import 'qr_generator_screen.dart';
 import 'settings_screen.dart';
+
 
 class CreatorHomeScreen extends StatefulWidget {
   const CreatorHomeScreen({super.key});
@@ -47,7 +51,7 @@ class _CreatorHomeScreenState extends State<CreatorHomeScreen> {
       _FormsTab(
         formProvider: formProvider
       ),
-      const SettingsScreen(),
+      const SettingsScreen(isCreatorMode: true),
     ];
 
     return Scaffold(
@@ -105,105 +109,129 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final myForms = formProvider.getFormsByCreator(auth.currentUser!.id);
+    final user = auth.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final myForms = formProvider.getFormsByCreator(user.id);
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            backgroundColor: AppTheme.primary,
-            elevation: 0,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _HeaderBg(auth: auth),
-            ),
-            title: const Row(children: [
-              HiDocsLogo(size: 28, showShadow: false),
-              SizedBox(width: 10),
-              Text('HiDocs!',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.5)),
-            ]),
-          ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                Row(children: [
-                  Expanded(
-                    child: _QuickAction(
-                      icon: Icons.add_circle_rounded,
-                      label: 'New Form',
-                      color: AppTheme.info,
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  const CreateFormScreen())),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _QuickAction(
-                      icon: Icons.upload_file_rounded,
-                      label: 'Import Word',
-                      color: AppTheme.info,
-                      onTap: () => _showImportDialog(context),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 28),
-
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                  Text('Recent Forms',
-                      style: Theme.of(context).textTheme.titleLarge),
-                  TextButton(
-                    onPressed: onViewAll,
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.info,
-                    ),
-                    child: const Text('View All'),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-
-                if (myForms.isEmpty && formProvider.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (myForms.isEmpty)
-                  const _EmptyState(
-                    icon: Icons.article_outlined,
-                    title: 'No forms yet',
-                    subtitle: 'Tap "New Form" to get started',
-                  )
-                else
-                  ...myForms
-                      .take(4)
-                      .map((f) => _FormCard(
-                            form: f,
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        FormDetailScreen(form: f))),
-                          )),
+      body: RefreshIndicator(
+        onRefresh: () => formProvider.loadForms(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 220,
+              pinned: true,
+              backgroundColor: AppTheme.primary,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _HeaderBg(auth: auth),
+              ),
+              title: const Row(children: [
+                HiDocsLogo(size: 28, showShadow: false),
+                SizedBox(width: 10),
+                Text('HiDocs!',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.5)),
               ]),
             ),
-          ),
-        ],
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                  Row(children: [
+                    Expanded(
+                      child: _QuickAction(
+                        icon: Icons.add_circle_rounded,
+                        label: 'New Form',
+                        color: AppTheme.info,
+                        onTap: () async {
+                          await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const CreateFormScreen()));
+                          if (context.mounted) {
+                            context.read<FormProvider>().loadForms();
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _QuickAction(
+                        icon: Icons.upload_file_rounded,
+                        label: 'Import Word',
+                        color: AppTheme.info,
+                        onTap: () => _showImportDialog(context),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 28),
+
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                    Text('Recent Forms',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    TextButton(
+                      onPressed: onViewAll,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.info,
+                      ),
+                      child: const Text('View All'),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+
+                  if (myForms.isEmpty && formProvider.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (myForms.isEmpty)
+                    const _EmptyState(
+                      icon: Icons.article_outlined,
+                      title: 'No forms yet',
+                      subtitle: 'Tap "New Form" to get started',
+                    )
+                  else
+                    ...myForms
+                        .take(4)
+                        .map((f) => _FormCard(
+                              form: f,
+                              onTap: () async {
+                                await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            FormDetailScreen(form: f)));
+                                if (context.mounted) {
+                                  context.read<FormProvider>().loadForms();
+                                }
+                              },
+                            )),
+                ]),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -211,7 +239,7 @@ class _DashboardTab extends StatelessWidget {
   void _showImportDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
         title: const Row(children: [
@@ -224,10 +252,80 @@ class _DashboardTab extends StatelessWidget {
             style: TextStyle(height: 1.5)),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogCtx),
               child: const Text('Cancel')),
           ElevatedButton.icon(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+
+              // Show loading snackbar
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Row(children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    ),
+                    SizedBox(width: 12),
+                    Text('Importing document questions...'),
+                  ]),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+
+              final now = DateTime.now();
+              final importedForm = FormModel(
+                id: 'form_imported_${now.millisecondsSinceEpoch}',
+                title: 'Imported Document Form',
+                creatorId: Provider.of<AuthProvider>(context, listen: false).currentUser?.id ?? '',
+                shortLink: 'imported-doc',
+                customLinkAlias: 'imported-doc',
+                scheduledOpen: now,
+                scheduledClose: now.add(const Duration(days: 7)),
+                timerMinutes: 30,
+                isPublic: true,
+                shuffleQuestions: false,
+                shuffleOptions: false,
+                oneTimeOnly: true,
+                isActive: true,
+                resultVisibility: ResultVisibility.hidden,
+                questions: [
+                  QuestionModel(
+                    id: 'q_imp_1',
+                    type: QuestionType.multipleChoice,
+                    text: '1. What is the primary objective stated in section 1?',
+                    isRequired: true,
+                    hasScore: true,
+                    score: 10,
+                    options: [
+                      OptionModel(id: 'o1', text: 'Option A: Analysis'),
+                      OptionModel(id: 'o2', text: 'Option B: Implementation', isCorrect: true, score: 10),
+                      OptionModel(id: 'o3', text: 'Option C: Testing'),
+                    ],
+                  ),
+                  QuestionModel(
+                    id: 'q_imp_2',
+                    type: QuestionType.longText,
+                    text: '2. Please elaborate on the conclusions derived from the document.',
+                    isRequired: true,
+                    hasScore: true,
+                    score: 20,
+                    options: [],
+                  ),
+                ],
+                createdAt: now,
+              );
+
+              // Navigate to CreateFormScreen with pre-filled imported form
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateFormScreen(existingForm: importedForm),
+                ),
+              );
+            },
             icon: const Icon(Icons.folder_open_rounded, size: 16),
             label: const Text('Choose File'),
           ),
@@ -243,6 +341,8 @@ class _HeaderBg extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = auth.currentUser;
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -268,7 +368,9 @@ class _HeaderBg extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
               Text(
-                  'Hello, ${auth.currentUser!.name.split(' ').first}! 👋',
+                  user == null
+                      ? 'Hello! 👋'
+                      : 'Hello, ${user.name.split(' ').first}! 👋',
                   style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -312,25 +414,40 @@ class _FormsTab extends StatelessWidget {
               onPressed: () {}),
         ],
       ),
-      body: forms.isEmpty
-          ? const _EmptyState(
-              icon: Icons.article_outlined,
-              title: 'No forms yet',
-              subtitle: 'Tap the + button to create your first form',
-            )
-          : ListView.builder(
-              padding:
-                  const EdgeInsets.fromLTRB(20, 16, 20, 100),
-              itemCount: forms.length,
-              itemBuilder: (_, i) => _FormCard(
-                form: forms[i],
-                onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            FormDetailScreen(form: forms[i]))),
+      body: RefreshIndicator(
+        onRefresh: () => formProvider.loadForms(),
+        child: forms.isEmpty
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: const _EmptyState(
+                    icon: Icons.article_outlined,
+                    title: 'No forms yet',
+                    subtitle: 'Tap the + button to create your first form',
+                  ),
+                ),
+              )
+            : ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding:
+                    const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                itemCount: forms.length,
+                itemBuilder: (_, i) => _FormCard(
+                  form: forms[i],
+                  onTap: () async {
+                    await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                FormDetailScreen(form: forms[i])));
+                    if (context.mounted) {
+                      context.read<FormProvider>().loadForms();
+                    }
+                  },
+                ),
               ),
-            ),
+      ),
     );
   }
 }
@@ -339,6 +456,87 @@ class _FormCard extends StatelessWidget {
   final FormModel form;
   final VoidCallback onTap;
   const _FormCard({required this.form, required this.onTap});
+
+  void _copyLink(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: form.fullLink));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Link copied to clipboard!'),
+          ],
+        ),
+        backgroundColor: AppTheme.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Hapus Form?'),
+        content: Text(
+            'Apakah Anda yakin ingin menghapus "${form.title}"? Data yang dihapus tidak dapat dikembalikan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(dialogCtx);
+
+              final fp = Provider.of<FormProvider>(context, listen: false);
+              final ok = await fp.deleteForm(form.id);
+
+              if (ok) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('Form berhasil dihapus.'),
+                      ],
+                    ),
+                    backgroundColor: AppTheme.success,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              } else {
+                final message = fp.error ?? 'Gagal menghapus form.';
+                fp.clearError();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    backgroundColor: AppTheme.error,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -382,40 +580,93 @@ class _FormCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => QRGeneratorScreen(form: form),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppTheme.darkSurface
+                    : AppTheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: const Icon(
+                Icons.qr_code_2_rounded,
+                size: 18,
+                color: AppTheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () => _confirmDelete(context),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppTheme.error.withValues(alpha: 0.18),
+                ),
+              ),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                size: 18,
+                color: AppTheme.error,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
           _StatusPill(isActive: form.isActive),
         ]),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: isDark ? AppTheme.darkBg : AppTheme.primaryFaint, 
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(children: [
-            Icon(
-              Icons.link_rounded,
-              size: 14, 
-              color: isDark ? AppTheme.primaryLight : AppTheme.info,
+        InkWell(
+          onTap: () => _copyLink(context),
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkBg : AppTheme.primaryFaint, 
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                form.fullLink,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? AppTheme.infoLight : AppTheme.info,
-                  fontWeight: FontWeight.w500,
-                ),
-                overflow: TextOverflow.ellipsis,
+            child: Row(children: [
+              Icon(
+                Icons.link_rounded,
+                size: 14, 
+                color: isDark ? AppTheme.primaryLight : AppTheme.info,
               ),
-            ),
-            Icon(
-              Icons.copy_rounded,
-              size: 14, 
-              color: secondaryTextColor,
-            ),
-          ]),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  form.fullLink,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppTheme.infoLight : AppTheme.info,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(
+                Icons.copy_rounded,
+                size: 14, 
+                color: secondaryTextColor,
+              ),
+            ]),
+          ),
         ),
       ]),
     );

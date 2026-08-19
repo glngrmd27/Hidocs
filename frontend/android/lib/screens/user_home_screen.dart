@@ -7,10 +7,13 @@ import '../providers/form_provider.dart';
 import '../models/form_model.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/hidocs_logo.dart';
-import '../widgets/user_form_detail_screen.dart';
 
+import 'link_input_screen.dart';
 import 'scan_form_screen.dart';
 import 'settings_screen.dart';
+import 'history_detail_screen.dart';
+import '../providers/response_provider.dart';
+import '../models/response_model.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -38,15 +41,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     final formProvider = Provider.of<FormProvider>(context);
 
     final List<Widget> screens = [
-      _DashboardTab(
-        auth: auth,
-        formProvider: formProvider,
-        onViewAll: () {
-          setState(() {
-            _tab = 1;
-          });
-        },
-      ),
+      _DashboardTab(auth: auth),
       _HistoryTab(
         formProvider: formProvider,
       ),
@@ -89,19 +84,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
 class _DashboardTab extends StatelessWidget {
   final AuthProvider auth;
-  final FormProvider formProvider;
-  final VoidCallback onViewAll;
 
   const _DashboardTab({
     required this.auth,
-    required this.formProvider,
-    required this.onViewAll,
   });
 
   @override
   Widget build(BuildContext context) {
-    final forms = formProvider.activeForms;
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -173,7 +162,7 @@ class _DashboardTab extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    const ScanFormScreen(),
+                                    const LinkInputScreen(),
                               ),
                             );
                           },
@@ -181,115 +170,11 @@ class _DashboardTab extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Available Forms',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge,
-                      ),
-                      TextButton(
-                        onPressed: onViewAll,
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.info,
-                        ),
-                        child: const Text(
-                          'View All',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (forms.isEmpty && formProvider.isLoading)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (forms.isEmpty)
-                    const _EmptyState(
-                      icon: Icons.article_outlined,
-                      title: 'No forms available',
-                      subtitle:
-                          'There are currently no forms to fill out',
-                    )
-                  else
-                    ...forms.take(4).map(
-                      (form) => _UserFormCard(
-                        form: form,
-                        hasSubmitted:
-                            formProvider.hasSubmitted(
-                          form.id,
-                        ),
-                        onTap: () {
-                          _handleFormTap(
-                            context,
-                            form,
-                            formProvider,
-                          );
-                        },
-                      ),
-                    ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _handleFormTap(
-    BuildContext context,
-    FormModel form,
-    FormProvider formProvider,
-  ) async {
-    if (formProvider.hasSubmitted(form.id)) {
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(
-                Icons.info_rounded,
-                color: Colors.white,
-                size: 16,
-              ),
-              SizedBox(width: 8),
-              Text(
-                "You've already submitted this form",
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: AppTheme.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-
-      return;
-    }
-
-    final detail = await formProvider.loadFormDetail(form.id);
-
-    if (!context.mounted) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => UserFormDetailScreen(
-          form: detail ?? form,
-        ),
       ),
     );
   }
@@ -466,7 +351,48 @@ class _HistoryCard extends StatelessWidget {
         ? AppTheme.darkTextSecondary
         : AppTheme.textSecondary;
 
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final responseProvider = Provider.of<ResponseProvider>(context, listen: false);
+
+    // Find the current user's recorded submission or generate a placeholder
+    final userResponses = responseProvider.getResponsesByForm(form.id);
+    final myResponses = userResponses
+        .where(
+          (r) =>
+              r.respondentId == (auth.currentUser?.id ?? '') ||
+              r.respondentEmail == (auth.currentUser?.email ?? ''),
+        )
+        .toList();
+    final response = myResponses.isNotEmpty
+        ? myResponses.first
+        : userResponses.isNotEmpty
+            ? userResponses.first
+            : ResponseModel(
+                id: 'resp_${form.id}',
+                formId: form.id,
+                respondentId: auth.currentUser?.id ?? '',
+                respondentName: auth.currentUser?.name ?? 'User',
+                respondentEmail: auth.currentUser?.email ?? '',
+                startedAt: DateTime.now().subtract(const Duration(minutes: 15)),
+                submittedAt: DateTime.now(),
+              );
+
+    final subDate = response.submittedAt;
+    final dateStr = '${subDate.day} ${_monthName(subDate.month)} ${subDate.year}';
+    final timeStr = '${subDate.hour.toString().padLeft(2, '0')}:${subDate.minute.toString().padLeft(2, '0')}';
+
     return CustomCard(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HistoryDetailScreen(
+              form: form,
+              response: response,
+            ),
+          ),
+        );
+      },
       margin: const EdgeInsets.only(
         bottom: 14,
       ),
@@ -531,7 +457,7 @@ class _HistoryCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '27 July 2026',
+                      dateStr,
                       style: TextStyle(
                         fontSize: 11,
                         color: secondaryTextColor,
@@ -545,7 +471,7 @@ class _HistoryCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '19:30',
+                      timeStr,
                       style: TextStyle(
                         fontSize: 11,
                         color: secondaryTextColor,
@@ -597,9 +523,22 @@ class _HistoryCard extends StatelessWidget {
               ],
             ),
           ),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 20,
+            color: secondaryTextColor,
+          ),
         ],
       ),
     );
+  }
+
+  static String _monthName(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return (month >= 1 && month <= 12) ? months[month - 1] : '';
   }
 }
 
@@ -670,168 +609,6 @@ class _QuickAccessCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               color: secondaryTextColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UserFormCard extends StatelessWidget {
-  final FormModel form;
-  final bool hasSubmitted;
-  final VoidCallback onTap;
-
-  const _UserFormCard({
-    required this.form,
-    required this.hasSubmitted,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness ==
-            Brightness.dark;
-
-    final primaryTextColor = isDark
-        ? AppTheme.darkTextPrimary
-        : AppTheme.textPrimary;
-
-    final secondaryTextColor = isDark
-        ? AppTheme.darkTextSecondary
-        : AppTheme.textSecondary;
-
-    return CustomCard(
-      onTap: onTap,
-      margin: const EdgeInsets.only(
-        bottom: 14,
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: hasSubmitted
-                      ? AppTheme.success.withValues(
-                          alpha: 0.10,
-                        )
-                      : AppTheme.primary.withValues(
-                          alpha: 0.09,
-                        ),
-                  borderRadius:
-                      BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  hasSubmitted
-                      ? Icons.check_circle_rounded
-                      : Icons.article_rounded,
-                  size: 23,
-                  color: hasSubmitted
-                      ? AppTheme.success
-                      : AppTheme.primary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      form.title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight:
-                            FontWeight.w700,
-                        color: primaryTextColor,
-                      ),
-                      maxLines: 2,
-                      overflow:
-                          TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      hasSubmitted
-                          ? 'You have already submitted this form'
-                          : 'Tap to view form details',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color:
-                            secondaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 22,
-                color: isDark
-                    ? AppTheme.darkTextSecondary
-                    : AppTheme.textMuted,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: hasSubmitted
-                    ? AppTheme.success.withValues(
-                        alpha: 0.08,
-                      )
-                    : AppTheme.primary.withValues(
-                        alpha: 0.06,
-                      ),
-                borderRadius:
-                    BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    hasSubmitted
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.visibility_outlined,
-                    size: 16,
-                    color: hasSubmitted
-                        ? AppTheme.success
-                        : AppTheme.primary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    hasSubmitted
-                        ? 'Submitted'
-                        : 'View Form Details',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight:
-                          FontWeight.w700,
-                      color: hasSubmitted
-                          ? AppTheme.success
-                          : AppTheme.primary,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],

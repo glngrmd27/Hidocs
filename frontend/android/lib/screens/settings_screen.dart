@@ -7,7 +7,12 @@ import '../widgets/gradient_button.dart';
 import 'about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool isCreatorMode;
+
+  const SettingsScreen({
+    super.key,
+    this.isCreatorMode = false,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -19,7 +24,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final auth = Provider.of<AuthProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final user = auth.currentUser!;
+    final user = auth.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -202,14 +215,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24),
 
             _SettingsTile(
-              icon: Icons.person_rounded,
-              iconColor: AppTheme.info,
-              title: 'Mode User',
-              subtitle: 'Mengisi dan mengerjakan form / kuis',
+              icon: widget.isCreatorMode
+                  ? Icons.person_rounded
+                  : Icons.dashboard_customize_rounded,
+              iconColor: widget.isCreatorMode
+                  ? AppTheme.info
+                  : AppTheme.success,
+              title: widget.isCreatorMode
+                  ? 'Mode User'
+                  : 'Mode Creator',
+              subtitle: widget.isCreatorMode
+                  ? 'Mengisi dan mengerjakan form / kuis'
+                  : 'Membuat dan mengelola form / kuis',
               onTap: () {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
-                  '/user-home',
+                  widget.isCreatorMode
+                      ? '/user-home'
+                      : '/creator-home',
                   (_) => false,
                 );
               },
@@ -251,7 +274,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const AboutScreen(),
+                    builder: (_) =>
+                        AboutScreen(isCreatorMode: widget.isCreatorMode),
                   ),
                 );
               },
@@ -267,15 +291,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             GradientButton(
               text: 'Sign Out',
               onPressed: () async {
-                await auth.logout();
+                final nav = Navigator.of(context);
 
-                if (!mounted) return;
-
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
+                nav.pushNamedAndRemoveUntil(
                   '/login',
                   (_) => false,
                 );
+
+                await auth.logout();
               },
               fullWidth: true,
               icon: Icons.logout_rounded,
@@ -296,6 +319,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String currentName,
     String currentEmail,
   ) {
+    final messenger = ScaffoldMessenger.of(context);
+
     final nameController = TextEditingController(
       text: currentName,
     );
@@ -368,9 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.pop(dialogContext);
                 }
 
-                if (!mounted) return;
-
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text(
                       auth.error != null

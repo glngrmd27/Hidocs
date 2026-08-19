@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../app_theme.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
 import '../models/response_model.dart';
+import '../providers/auth_provider.dart';
+import '../providers/form_provider.dart';
+import '../providers/response_provider.dart';
 import '../widgets/math_formula_widget.dart';
 import '../widgets/code_block_widget.dart';
 import '../widgets/rich_text_view.dart';
 
-class HistoryDetailScreen extends StatelessWidget {
+class HistoryDetailScreen extends StatefulWidget {
   final FormModel form;
   final ResponseModel response;
 
@@ -17,6 +21,74 @@ class HistoryDetailScreen extends StatelessWidget {
     required this.response,
     super.key,
   });
+
+  @override
+  State<HistoryDetailScreen> createState() => _HistoryDetailScreenState();
+}
+
+class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
+  late FormModel _form;
+  late ResponseModel _response;
+  bool _loadingQuestions = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _form = widget.form;
+    _response = widget.response;
+    if (_form.questions.isEmpty) {
+      _loadFullForm();
+    } else {
+      _ensureResponseLoaded();
+    }
+  }
+
+  Future<void> _loadFullForm() async {
+    if (_loadingQuestions) return;
+    _loadingQuestions = true;
+
+    final fp = Provider.of<FormProvider>(context, listen: false);
+    final detail = await fp.loadFormDetail(_form.id);
+
+    if (!mounted) return;
+    _loadingQuestions = false;
+
+    if (detail != null && detail.questions.isNotEmpty) {
+      setState(() {
+        _form = detail;
+      });
+    }
+
+    await _ensureResponseLoaded();
+  }
+
+  Future<void> _ensureResponseLoaded() async {
+    if (_response.answers.isNotEmpty) return;
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final rp = Provider.of<ResponseProvider>(context, listen: false);
+
+    await rp.loadResponsesForForm(_form.id, form: _form);
+
+    if (!mounted) return;
+
+    final myEmail = auth.currentUser?.email ?? '';
+    final all = rp.getResponsesByForm(_form.id);
+    final mine = all
+        .where(
+          (r) =>
+              r.respondentEmail == myEmail ||
+              r.respondentId == (auth.currentUser?.id ?? ''),
+        )
+        .toList();
+    final match = mine.isNotEmpty ? mine.first : (all.isNotEmpty ? all.first : null);
+
+    if (match != null && match.answers.isNotEmpty) {
+      setState(() {
+        _response = match;
+      });
+    }
+  }
 
   String _formatDateTime(DateTime dt) {
     final h = dt.hour.toString().padLeft(2, '0');
@@ -27,16 +99,29 @@ class HistoryDetailScreen extends StatelessWidget {
   String _answerText(QuestionModel q, dynamic answer) {
     if (answer == null) return '-';
 
+    String byText(String fallback) {
+      final normalized = answer.toString().trim().toLowerCase();
+      for (final opt in q.options) {
+        if (opt.text.trim().toLowerCase() == normalized) {
+          return opt.text;
+        }
+      }
+      return fallback;
+    }
+
     switch (q.type) {
       case QuestionType.multipleChoice:
       case QuestionType.imageChoice:
         for (final opt in q.options) {
           if (opt.id == answer) return opt.text;
         }
-        return answer.toString();
+        return byText(answer.toString());
 
       case QuestionType.yesNo:
-        return answer == 'yes' ? 'Yes' : 'No';
+        for (final opt in q.options) {
+          if (opt.id == answer) return opt.text;
+        }
+        return byText(answer == 'yes' ? 'Yes' : 'No');
 
       case QuestionType.rating:
         return '$answer out of ${q.ratingMax ?? 5}';
@@ -57,10 +142,10 @@ class HistoryDetailScreen extends StatelessWidget {
         : AppTheme.textPrimary;
 
     final hasScore =
-        response.score > 0 || response.essayScores.isNotEmpty;
+        _response.score > 0 || _response.essayScores.isNotEmpty;
 
     final showScore =
-        form.resultVisibility == ResultVisibility.resultAndScore;
+        _form.resultVisibility == ResultVisibility.resultAndScore;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
@@ -84,7 +169,7 @@ class HistoryDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  form.title,
+                  _form.title,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -96,25 +181,25 @@ class HistoryDetailScreen extends StatelessWidget {
                 _HeaderRow(
                   icon: Icons.person_outline_rounded,
                   label: 'Respondent',
-                  value: response.respondentName,
+                  value: _response.respondentName,
                 ),
                 const SizedBox(height: 8),
                 _HeaderRow(
                   icon: Icons.email_outlined,
                   label: 'Email',
-                  value: response.respondentEmail,
+                  value: _response.respondentEmail,
                 ),
                 const SizedBox(height: 8),
                 _HeaderRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'Submitted',
-                  value: _formatDateTime(response.submittedAt),
+                  value: _formatDateTime(_response.submittedAt),
                 ),
                 const SizedBox(height: 8),
                 _HeaderRow(
                   icon: Icons.timer_outlined,
                   label: 'Duration',
-                  value: response.durationText,
+                  value: _response.durationText,
                 ),
                 if (showScore && hasScore) ...[
                   const SizedBox(height: 14),
@@ -127,7 +212,7 @@ class HistoryDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Score: ${response.percentage.round()}%',
+                        'Score: ${_response.percentage.round()}%',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -150,20 +235,28 @@ class HistoryDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...form.questions.asMap().entries.map(
-            (entry) {
-              final index = entry.key;
-              final q = entry.value;
-              final answer = response.answers[q.id];
+          if (_loadingQuestions && _form.questions.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            ..._form.questions.asMap().entries.map(
+              (entry) {
+                final index = entry.key;
+                final q = entry.value;
+                final answer = _response.answers[q.id];
 
-              return _AnswerCard(
-                number: index + 1,
-                question: q,
-                answerText: _answerText(q, answer),
-                isDark: isDark,
-              );
-            },
-          ),
+                return _AnswerCard(
+                  number: index + 1,
+                  question: q,
+                  answerText: _answerText(q, answer),
+                  isDark: isDark,
+                );
+              },
+            ),
         ],
       ),
     );
