@@ -91,6 +91,21 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responseProvider = Provider.of<ResponseProvider>(context);
+    final formProvider = Provider.of<FormProvider>(context);
+
+    final myResponses = responseProvider.responses.where((r) {
+      return r.respondentId == (auth.currentUser?.id ?? '') ||
+          r.respondentEmail == (auth.currentUser?.email ?? '');
+    }).toList();
+
+    myResponses.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+    final recentResponses = myResponses.take(3).toList();
+
+    final isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -170,6 +185,42 @@ class _DashboardTab extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Recent Forms',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (recentResponses.isEmpty)
+                    const _EmptyState(
+                      icon: Icons.history_rounded,
+                      title: 'No recent forms',
+                      subtitle: 'Forms you fill out will appear here',
+                    )
+                  else
+                    ...recentResponses.map((response) {
+                      final form = formProvider.getFormById(response.formId) ??
+                          FormModel(
+                            id: response.formId,
+                            title: response.formTitle.isNotEmpty
+                                ? response.formTitle
+                                : 'Form #${response.formId}',
+                            creatorId: '',
+                            scheduledOpen: response.submittedAt,
+                            scheduledClose: response.submittedAt,
+                            createdAt: response.submittedAt,
+                          );
+                      return _HistoryCard(
+                        form: form,
+                        response: response,
+                      );
+                    }),
                 ],
               ),
             ),
@@ -291,11 +342,13 @@ class _HistoryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final submittedForms = formProvider.activeForms
-        .where(
-          (form) => formProvider.hasSubmitted(form.id),
-        )
-        .toList();
+    final responseProvider = Provider.of<ResponseProvider>(context);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    final myResponses = responseProvider.responses.where((r) {
+      return r.respondentId == (auth.currentUser?.id ?? '') ||
+          r.respondentEmail == (auth.currentUser?.email ?? '');
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -303,7 +356,7 @@ class _HistoryTab extends StatelessWidget {
           'History',
         ),
       ),
-      body: submittedForms.isEmpty
+      body: myResponses.isEmpty
           ? const _EmptyState(
               icon: Icons.history_rounded,
               title: 'No submission history',
@@ -317,12 +370,24 @@ class _HistoryTab extends StatelessWidget {
                 20,
                 100,
               ),
-              itemCount: submittedForms.length,
+              itemCount: myResponses.length,
               itemBuilder: (_, index) {
-                final form = submittedForms[index];
+                final response = myResponses[index];
+                final form = formProvider.getFormById(response.formId) ??
+                    FormModel(
+                      id: response.formId,
+                      title: response.formTitle.isNotEmpty
+                          ? response.formTitle
+                          : 'Form #${response.formId}',
+                      creatorId: '',
+                      scheduledOpen: response.submittedAt,
+                      scheduledClose: response.submittedAt,
+                      createdAt: response.submittedAt,
+                    );
 
                 return _HistoryCard(
                   form: form,
+                  response: response,
                 );
               },
             ),
@@ -332,9 +397,11 @@ class _HistoryTab extends StatelessWidget {
 
 class _HistoryCard extends StatelessWidget {
   final FormModel form;
+  final ResponseModel response;
 
   const _HistoryCard({
     required this.form,
+    required this.response,
   });
 
   @override
@@ -350,32 +417,6 @@ class _HistoryCard extends StatelessWidget {
     final secondaryTextColor = isDark
         ? AppTheme.darkTextSecondary
         : AppTheme.textSecondary;
-
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final responseProvider = Provider.of<ResponseProvider>(context, listen: false);
-
-    // Find the current user's recorded submission or generate a placeholder
-    final userResponses = responseProvider.getResponsesByForm(form.id);
-    final myResponses = userResponses
-        .where(
-          (r) =>
-              r.respondentId == (auth.currentUser?.id ?? '') ||
-              r.respondentEmail == (auth.currentUser?.email ?? ''),
-        )
-        .toList();
-    final response = myResponses.isNotEmpty
-        ? myResponses.first
-        : userResponses.isNotEmpty
-            ? userResponses.first
-            : ResponseModel(
-                id: 'resp_${form.id}',
-                formId: form.id,
-                respondentId: auth.currentUser?.id ?? '',
-                respondentName: auth.currentUser?.name ?? 'User',
-                respondentEmail: auth.currentUser?.email ?? '',
-                startedAt: DateTime.now().subtract(const Duration(minutes: 15)),
-                submittedAt: DateTime.now(),
-              );
 
     final subDate = response.submittedAt;
     final dateStr = '${subDate.day} ${_monthName(subDate.month)} ${subDate.year}';

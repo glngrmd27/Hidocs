@@ -301,6 +301,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
       listen: false,
     ).recordSubmission(
       formId: widget.form.id,
+      formTitle: widget.form.title,
       responseId: (result['response_id'] ?? '').toString(),
       respondentId: auth.currentUser?.id ?? '',
       respondentEmail: auth.currentUser?.email ?? '',
@@ -397,6 +398,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
               : AppTheme.surfaceLight,
 
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           widget.form.title,
           style: const TextStyle(

@@ -4,6 +4,7 @@ import 'question_model.dart';
 class ResponseModel {
   final String id;
   final String formId;
+  final String formTitle;
 
   final String respondentId;
   final String respondentName;
@@ -23,6 +24,7 @@ class ResponseModel {
   ResponseModel({
     required this.id,
     required this.formId,
+    this.formTitle = '',
     required this.respondentName,
     required this.respondentEmail,
     required this.startedAt,
@@ -125,6 +127,7 @@ class ResponseModel {
     return ResponseModel(
       id: (json['id'] ?? '').toString(),
       formId: (json['form_id'] ?? '').toString(),
+      formTitle: form?.title ?? (json['form_title'] ?? '').toString(),
       respondentName: nameFromEmail(email),
       respondentEmail: email,
       startedAt: submittedAt,
@@ -142,6 +145,7 @@ class ResponseModel {
     required String respondentId,
     required String respondentEmail,
     required Map<String, dynamic> answers,
+    String formTitle = '',
     String responseId = '',
     double? totalScore,
     DateTime? submittedAt,
@@ -152,6 +156,7 @@ class ResponseModel {
     return ResponseModel(
       id: responseId.isNotEmpty ? responseId : 'resp_$formId',
       formId: formId,
+      formTitle: formTitle,
       respondentId: respondentId,
       respondentName: nameFromEmail(respondentEmail),
       respondentEmail: respondentEmail,
@@ -167,6 +172,7 @@ class ResponseModel {
     return ResponseModel(
       id: (json['id'] ?? '').toString(),
       formId: (json['form_id'] ?? '').toString(),
+      formTitle: (json['form_title'] ?? '').toString(),
       respondentId: (json['respondent_id'] ?? '').toString(),
       respondentName: (json['respondent_name'] ?? '').toString(),
       respondentEmail: (json['respondent_email'] ?? '').toString(),
@@ -194,6 +200,7 @@ class ResponseModel {
     return {
       'id': id,
       'form_id': formId,
+      'form_title': formTitle,
       'respondent_id': respondentId,
       'respondent_name': respondentName,
       'respondent_email': respondentEmail,
@@ -210,6 +217,7 @@ class ResponseModel {
   ResponseModel copyWith({
     String? id,
     String? formId,
+    String? formTitle,
     String? respondentId,
     String? respondentName,
     String? respondentEmail,
@@ -224,6 +232,7 @@ class ResponseModel {
     return ResponseModel(
       id: id ?? this.id,
       formId: formId ?? this.formId,
+      formTitle: formTitle ?? this.formTitle,
       respondentId: respondentId ?? this.respondentId,
       respondentName:
           respondentName ?? this.respondentName,
