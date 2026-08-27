@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import '../providers/form_provider.dart';
 import '../providers/response_provider.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
+import '../services/question_image_renderer.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/math_formula_widget.dart';
 import '../widgets/code_block_widget.dart';
@@ -41,6 +43,30 @@ class _FillFormScreenState extends State<FillFormScreen> {
   bool _submitted = false;
   bool _isSubmitting = false;
 
+  final TransformationController _zoomController = TransformationController();
+  double _zoomScale = 1.0;
+
+  void _zoomIn() {
+    setState(() {
+      _zoomScale = (_zoomScale + 0.2).clamp(0.8, 2.5);
+      _zoomController.value = Matrix4.diagonal3Values(_zoomScale, _zoomScale, 1.0);
+    });
+  }
+
+  void _zoomOut() {
+    setState(() {
+      _zoomScale = (_zoomScale - 0.2).clamp(0.8, 2.5);
+      _zoomController.value = Matrix4.diagonal3Values(_zoomScale, _zoomScale, 1.0);
+    });
+  }
+
+  void _resetZoom() {
+    setState(() {
+      _zoomScale = 1.0;
+      _zoomController.value = Matrix4.identity();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,30 +75,27 @@ class _FillFormScreenState extends State<FillFormScreen> {
       widget.form.questions,
     );
 
+    // Warm the local question-image index so published questions can be
+    // displayed as images instead of live-rendered rich content.
+    QuestionImageRenderer.warmup().then((_) {
+      if (mounted) setState(() {});
+    });
+
     if (widget.form.shuffleQuestions) {
       _questions.shuffle();
     }
 
     if (widget.form.shuffleOptions) {
       _questions = _questions.map((q) {
-        if (q.type == QuestionType.multipleChoice &&
+        if ((q.type == QuestionType.multipleChoice ||
+                q.type == QuestionType.imageChoice) &&
             q.options.isNotEmpty) {
           final shuffledOptions =
               List<OptionModel>.from(q.options);
 
           shuffledOptions.shuffle();
 
-          return QuestionModel(
-            id: q.id,
-            type: q.type,
-            text: q.text,
-            imageUrl: q.imageUrl,
-            mathFormula: q.mathFormula,
-            codeSnippet: q.codeSnippet,
-            options: shuffledOptions,
-            isRequired: q.isRequired,
-            ratingMax: q.ratingMax,
-          );
+          return q.copyWith(options: shuffledOptions);
         }
 
         return q;
@@ -104,6 +127,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _zoomController.dispose();
 
     for (final controller in _controllers.values) {
       controller.dispose();
@@ -292,7 +316,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
     }
 
     setState(() {
-      _isSubmitting = true;
+      _isSubmitting = false;
       _submitted = true;
     });
 
@@ -380,6 +404,8 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
     final q = _questions[_current];
 
+    final questionImagePath = QuestionImageRenderer.pathFor(q);
+
     final progress =
         (_current + 1) / _questions.length;
 
@@ -407,6 +433,40 @@ class _FillFormScreenState extends State<FillFormScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.zoom_out_rounded, size: 20),
+                tooltip: 'Zoom Out',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: _zoomScale > 0.8 ? _zoomOut : null,
+              ),
+              InkWell(
+                onTap: _resetZoom,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    '${(_zoomScale * 100).round()}%',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.zoom_in_rounded, size: 20),
+                tooltip: 'Zoom In',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: _zoomScale < 2.5 ? _zoomIn : null,
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
           if (widget.form.hasTimer)
             Padding(
               padding: const EdgeInsets.only(
@@ -449,10 +509,21 @@ class _FillFormScreenState extends State<FillFormScreen> {
           ),
 
           Expanded(
-            child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.all(24),
-              child: Column(
+            child: InteractiveViewer(
+              transformationController: _zoomController,
+              minScale: 0.8,
+              maxScale: 2.5,
+              panEnabled: true,
+              scaleEnabled: true,
+              onInteractionEnd: (_) {
+                setState(() {
+                  _zoomScale = _zoomController.value.getMaxScaleOnAxis();
+                });
+              },
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.all(24),
+                child: Column(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
                 children: [
@@ -536,57 +607,92 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
                   const SizedBox(height: 18),
 
-                  Text(
-                    q.text,
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight:
-                          FontWeight.w700,
-                      color: isDark
-                          ? AppTheme
-                              .darkTextPrimary
-                          : AppTheme
-                              .textPrimary,
-                      height: 1.35,
+                  if (questionImagePath != null) ...[
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullScreenImageViewer(
+                              filePath: questionImagePath,
+                            ),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Image.file(
+                            File(questionImagePath),
+                            fit: BoxFit.fitWidth,
+                            errorBuilder: (_, __, ___) => const SizedBox(
+                              height: 80,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 22),
+                  ] else ...[
+                    Text(
+                      q.text,
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight:
+                            FontWeight.w700,
+                        color: isDark
+                            ? AppTheme
+                                .darkTextPrimary
+                            : AppTheme
+                                .textPrimary,
+                        height: 1.35,
+                      ),
+                    ),
 
-                  const SizedBox(height: 22),
+                    const SizedBox(height: 22),
 
-                  if (q.type ==
-                          QuestionType
-                              .mathFormula &&
-                      q.mathFormula != null) ...[
-                    MathFormulaWidget(
-                      formula:
-                          q.mathFormula!,
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                  ],
+                    if (q.type ==
+                            QuestionType
+                                .mathFormula &&
+                        q.mathFormula != null) ...[
+                      MathFormulaWidget(
+                        formula:
+                            q.mathFormula!,
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    ],
 
-                  if (q.type ==
-                          QuestionType
-                              .codeInput &&
-                      q.codeSnippet != null) ...[
-                    CodeBlockWidget(
-                      code:
-                          q.codeSnippet!,
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                  ],
+                    if (q.type ==
+                            QuestionType
+                                .codeInput &&
+                        q.codeSnippet != null) ...[
+                      CodeBlockWidget(
+                        code:
+                            q.codeSnippet!,
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    ],
 
-                  if (q.imageUrl != null) ...[
-                    ImageZoomWidget(
-                      imageUrl:
-                          q.imageUrl!,
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    if (q.imageUrl != null) ...[
+                      ImageZoomWidget(
+                        imageUrl:
+                            q.imageUrl!,
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    ],
                   ],
 
                   _buildAnswer(
@@ -597,6 +703,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
               ),
             ),
           ),
+        ),
 
           _NavBar(
             current: _current,

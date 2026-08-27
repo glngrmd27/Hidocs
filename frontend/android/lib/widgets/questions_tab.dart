@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dart_quill_delta/dart_quill_delta.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:image_picker/image_picker.dart';
@@ -250,7 +251,7 @@ class _QuestionsTabState extends State<QuestionsTab> {
                       ? () => widget.reorderQuestion(index, index - 1)
                       : null,
                   onMoveDown: index < widget.questions.length - 1
-                      ? () => widget.reorderQuestion(index, index + 2)
+                      ? () => widget.reorderQuestion(index, index + 1)
                       : null,
                 ),
               );
@@ -921,7 +922,7 @@ class _QuestionCardState extends State<_QuestionCard> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  'Points: ',
+                  'Points (max 100): ',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -929,22 +930,13 @@ class _QuestionCardState extends State<_QuestionCard> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                SizedBox(
-                  width: 80,
-                  height: 36,
-                  child: TextFormField(
-                    initialValue: score.toInt().toString(),
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                    ),
-                    onChanged: (val) {
-                      final s = double.tryParse(val) ?? 0;
-                      widget.onChanged(_copy(q, score: s));
-                    },
-                  ),
+                _PointsField(
+                  key: ValueKey('points_${q.id}'),
+                  value: score,
+                  isDark: isDark,
+                  onChanged: (val) {
+                    widget.onChanged(_copy(q, score: val));
+                  },
                 ),
               ],
             ),
@@ -1185,7 +1177,16 @@ class _QuestionCardState extends State<_QuestionCard> {
 
     return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Math.tex(expression),
+      child: Math.tex(
+        expression,
+        onErrorFallback: (error) => const Text(
+          'Invalid LaTeX formula',
+          style: TextStyle(
+            fontSize: 13,
+            color: AppTheme.error,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1530,6 +1531,82 @@ class _CodeFieldState extends State<_CodeField> {
   }
 }
 
+class _PointsField extends StatefulWidget {
+  final double value;
+  final bool isDark;
+  final ValueChanged<double> onChanged;
+
+  const _PointsField({
+    super.key,
+    required this.value,
+    required this.isDark,
+    required this.onChanged,
+  });
+
+  @override
+  State<_PointsField> createState() => _PointsFieldState();
+}
+
+class _PointsFieldState extends State<_PointsField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value.round().toString());
+  }
+
+  @override
+  void didUpdateWidget(covariant _PointsField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final parsed = double.tryParse(_controller.text);
+    if (parsed == null || parsed != widget.value) {
+      _controller.text = widget.value.round().toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 80,
+      height: 36,
+      child: TextField(
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(3),
+        ],
+        decoration: InputDecoration(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          isDense: true,
+        ),
+        onChanged: (val) {
+          var s = double.tryParse(val) ?? 0;
+          if (s > 100) s = 100;
+          if (s < 0) s = 0;
+          widget.onChanged(s);
+
+          if (val.isNotEmpty && double.tryParse(val) != s) {
+            _controller.text = s.round().toString();
+            _controller.selection = TextSelection.collapsed(
+              offset: _controller.text.length,
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
 class _MathField extends StatefulWidget {
   final String initial;
   final bool isDark;
@@ -1616,7 +1693,16 @@ class _MathFieldState extends State<_MathField> {
     }
     return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Math.tex(expression),
+      child: Math.tex(
+        expression,
+        onErrorFallback: (error) => const Text(
+          'Invalid LaTeX formula',
+          style: TextStyle(
+            fontSize: 13,
+            color: AppTheme.error,
+          ),
+        ),
+      ),
     );
   }
 }

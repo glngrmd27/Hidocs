@@ -94,13 +94,25 @@ class _DashboardTab extends StatelessWidget {
     final responseProvider = Provider.of<ResponseProvider>(context);
     final formProvider = Provider.of<FormProvider>(context);
 
-    final myResponses = responseProvider.responses.where((r) {
-      return r.respondentId == (auth.currentUser?.id ?? '') ||
-          r.respondentEmail == (auth.currentUser?.email ?? '');
-    }).toList();
+    final Map<String, ResponseModel> responseMap = {};
+    final currentId = (auth.currentUser?.id ?? '').trim().toLowerCase();
+    final currentEmail = (auth.currentUser?.email ?? '').trim().toLowerCase();
 
-    myResponses.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
-    final recentResponses = myResponses.take(3).toList();
+    for (final r in responseProvider.responses) {
+      final rId = r.respondentId.trim().toLowerCase();
+      final rEmail = r.respondentEmail.trim().toLowerCase();
+
+      final matchesUser = (currentId.isNotEmpty && rId == currentId) ||
+          (currentEmail.isNotEmpty && rEmail == currentEmail);
+
+      if (matchesUser) {
+        responseMap[r.formId] = r;
+      }
+    }
+
+    final allUserResponses = responseMap.values.toList();
+    allUserResponses.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+    final recentResponses = allUserResponses.take(5).toList();
 
     final isDark =
         Theme.of(context).brightness ==
@@ -204,13 +216,15 @@ class _DashboardTab extends StatelessWidget {
                       subtitle: 'Forms you fill out will appear here',
                     )
                   else
-                    ...recentResponses.map((response) {
+                    ...recentResponses
+                        .where((r) =>
+                            formProvider.getFormById(r.formId) != null ||
+                            r.formTitle.isNotEmpty)
+                        .map((response) {
                       final form = formProvider.getFormById(response.formId) ??
                           FormModel(
                             id: response.formId,
-                            title: response.formTitle.isNotEmpty
-                                ? response.formTitle
-                                : 'Form #${response.formId}',
+                            title: response.formTitle,
                             creatorId: '',
                             scheduledOpen: response.submittedAt,
                             scheduledClose: response.submittedAt,
@@ -345,10 +359,24 @@ class _HistoryTab extends StatelessWidget {
     final responseProvider = Provider.of<ResponseProvider>(context);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
-    final myResponses = responseProvider.responses.where((r) {
-      return r.respondentId == (auth.currentUser?.id ?? '') ||
-          r.respondentEmail == (auth.currentUser?.email ?? '');
-    }).toList();
+    final Map<String, ResponseModel> responseMap = {};
+    final currentId = (auth.currentUser?.id ?? '').trim().toLowerCase();
+    final currentEmail = (auth.currentUser?.email ?? '').trim().toLowerCase();
+
+    for (final r in responseProvider.responses) {
+      final rId = r.respondentId.trim().toLowerCase();
+      final rEmail = r.respondentEmail.trim().toLowerCase();
+
+      final matchesUser = (currentId.isNotEmpty && rId == currentId) ||
+          (currentEmail.isNotEmpty && rEmail == currentEmail);
+
+      if (matchesUser) {
+        responseMap[r.formId] = r;
+      }
+    }
+
+    final myResponses = responseMap.values.toList();
+    myResponses.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
     return Scaffold(
       appBar: AppBar(
@@ -373,12 +401,14 @@ class _HistoryTab extends StatelessWidget {
               itemCount: myResponses.length,
               itemBuilder: (_, index) {
                 final response = myResponses[index];
-                final form = formProvider.getFormById(response.formId) ??
+                final form = formProvider.getFormById(response.formId);
+                if (form == null && response.formTitle.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                final displayForm = form ??
                     FormModel(
                       id: response.formId,
-                      title: response.formTitle.isNotEmpty
-                          ? response.formTitle
-                          : 'Form #${response.formId}',
+                      title: response.formTitle,
                       creatorId: '',
                       scheduledOpen: response.submittedAt,
                       scheduledClose: response.submittedAt,
@@ -386,7 +416,7 @@ class _HistoryTab extends StatelessWidget {
                     );
 
                 return _HistoryCard(
-                  form: form,
+                  form: displayForm,
                   response: response,
                 );
               },

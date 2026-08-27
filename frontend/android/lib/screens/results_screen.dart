@@ -1,12 +1,19 @@
+import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 import '../app_theme.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
 import '../models/response_model.dart';
+import '../providers/form_provider.dart';
 import '../providers/response_provider.dart';
 import 'grading_screen.dart';
 import 'response_detail_screen.dart';
@@ -50,7 +57,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final essays = widget.form.questions.where(_isManuallyGraded).toList();
     if (essays.isEmpty) return true;
     final gradedCount =
-        essays.where((q) => r.essayScores[q.id] != null).length;
+        essays.where((q) => r.essayScores[q.id] != null && r.essayScores[q.id] != 0).length;
     return gradedCount >= essays.length;
   }
 
@@ -522,17 +529,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
                 // 5. Action Buttons (Export to Excel & Export to PDF)
                 ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Exporting to Excel...'),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        margin: const EdgeInsets.all(16),
-                      ),
-                    );
-                  },
+                  onPressed: () => _exportExcel(context),
                   icon: const Icon(Icons.table_chart_rounded, size: 20),
                   label: const Text(
                     'Export to Excel',
@@ -550,17 +547,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Exporting to PDF...'),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        margin: const EdgeInsets.all(16),
-                      ),
-                    );
-                  },
+                  onPressed: () => _exportPdf(context),
                   icon: const Icon(Icons.picture_as_pdf_outlined,
                       size: 20, color: AppTheme.primary),
                   label: const Text(
@@ -583,6 +570,152 @@ class _ResultsScreenState extends State<ResultsScreen> {
               ],
             ),
     );
+  }
+
+  Future<void> _exportExcel(BuildContext context) async {
+    final formProvider = Provider.of<FormProvider>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final bytes = await formProvider.exportResponses(widget.form.id, format: 'xlsx');
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      if (bytes.isEmpty) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: const Text('Tidak ada data untuk diexport.'),
+            backgroundColor: AppTheme.warning,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        return;
+      }
+      final dir = await getTemporaryDirectory();
+      final safeTitle = widget.form.title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
+      final file = File('${dir.path}/${safeTitle}_responses.xlsx');
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles([XFile(file.path)], text: 'Export ${widget.form.title}');
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Row(children: [Icon(Icons.check_circle_rounded, color: Colors.white, size: 18), SizedBox(width: 8), Text('Excel berhasil diexport')]),
+          backgroundColor: AppTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
+        final msg = e.toString().contains('ApiException') ? e.toString() : 'Gagal export Excel: $e';
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportPdf(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final responses = Provider.of<ResponseProvider>(context, listen: false)
+        .getResponsesByForm(widget.form.id);
+    if (responses.isEmpty) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Tidak ada respons untuk diexport.'),
+          backgroundColor: AppTheme.warning,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final pdf = pw.Document();
+      final title = widget.form.title;
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          header: (ctx) => pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          build: (ctx) => [
+            pw.SizedBox(height: 8),
+            pw.Text('Total Responses: ${responses.length}', style: const pw.TextStyle(fontSize: 10)),
+            pw.SizedBox(height: 12),
+            pw.TableHelper.fromTextArray(
+              headers: ['No', 'Email', 'Score', 'Submitted'],
+              data: responses.asMap().entries.map((e) {
+                final i = e.key + 1;
+                final r = e.value;
+                return [
+                  '$i',
+                  r.respondentEmail,
+                  '${r.score.round()}/${r.maxScore.round()} (${r.percentage.round()}%)',
+                  '${r.submittedAt.day}/${r.submittedAt.month}/${r.submittedAt.year}',
+                ];
+              }).toList(),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+              cellStyle: const pw.TextStyle(fontSize: 7),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              cellAlignment: pw.Alignment.centerLeft,
+            ),
+            pw.SizedBox(height: 16),
+            pw.Text('Questions:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+            ...widget.form.questions.asMap().entries.map((en) => pw.Padding(
+                  padding: const pw.EdgeInsets.only(top: 4),
+                  child: pw.Text('${en.key + 1}. ${en.value.text} (${en.value.score.round()} pts)', style: const pw.TextStyle(fontSize: 8)),
+                )),
+          ],
+        ),
+      );
+      final Uint8List pdfBytes = await pdf.save();
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      final dir = await getTemporaryDirectory();
+      final safeTitle = title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
+      final file = File('${dir.path}/${safeTitle}_responses.pdf');
+      await file.writeAsBytes(pdfBytes);
+      await Share.shareXFiles([XFile(file.path)], text: 'Export PDF $title');
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Row(children: [Icon(Icons.check_circle_rounded, color: Colors.white, size: 18), SizedBox(width: 8), Text('PDF berhasil diexport')]),
+          backgroundColor: AppTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Gagal export PDF: $e'),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
   }
 }
 

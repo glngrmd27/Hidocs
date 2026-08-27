@@ -26,10 +26,11 @@ class HistoryScreen extends StatelessWidget {
         .toList()
       ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
+    // Visibility is dummy (backend has no column); always show history.
+    // Score badge itself is still guarded by hasScore.
     final visibleResponses = responses.where((r) {
       final form = formProvider.getFormById(r.formId);
-      return form != null &&
-          form.resultVisibility != ResultVisibility.hidden;
+      return form != null;
     }).toList();
 
     return Scaffold(

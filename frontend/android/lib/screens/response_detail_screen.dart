@@ -30,6 +30,8 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
   final Map<String, TextEditingController> _gradeControllers = {};
   final Map<String, double> _grades = {};
 
+  bool _isSaving = false;
+
   bool get _hasGradable => widget.form.questions.any(_isManuallyGraded);
 
   double get _maxScore => widget.form.maxScore;
@@ -41,21 +43,55 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
         q.type == QuestionType.mathFormula;
   }
 
-  double get _total {
-    if (!_hasGradable) return widget.response.score;
-    if (_grades.isEmpty) return widget.response.score;
+  double _questionWeight(QuestionModel q) {
+    final w = (q.hasScore || q.score > 0) ? q.score : 0.0;
+    // Essay with 0 pts would make grading invisible — fallback to 10
+    if (_isManuallyGraded(q) && w == 0) return 10.0;
+    return w;
+  }
 
-    var sum = widget.response.score;
+  /// Auto-scored portion: sum of autoScores from API (stable across re-grades).
+  /// Fallback to subtraction method if autoScores is empty (e.g., legacy data).
+  double get _autoBase {
+    if (widget.response.autoScores.isNotEmpty) {
+      var sum = 0.0;
+      for (final v in widget.response.autoScores.values) {
+        sum += v;
+      }
+      return sum.clamp(0, _maxScore).toDouble();
+    }
+    // Fallback: derive from total minus previous essay weighted part
+    var essayPart = 0.0;
     for (final q in widget.form.questions) {
       if (!_isManuallyGraded(q)) continue;
+      final existing = widget.response.essayScores[q.id];
+      if (existing == null) continue;
+      // Ignore 0 placeholder that means "not yet graded" (see response_model)
+      if (existing == 0) continue;
+      essayPart += _questionWeight(q) * (existing / 100);
+    }
+    return (widget.response.score - essayPart).clamp(0, _maxScore).toDouble();
+  }
 
+  double get _total {
+    // If no manual grades edited yet, show stored total (already includes previous grades)
+    if (!_hasGradable) {
+      return widget.response.score.clamp(0, _maxScore).toDouble();
+    }
+    // If user cleared all grades, total = auto only
+    if (_grades.isEmpty) {
+      // No essay grades set -> auto only (or 0 if no auto)
+      return _autoBase;
+    }
+
+    var sum = _autoBase;
+    for (final q in widget.form.questions) {
+      if (!_isManuallyGraded(q)) continue;
       final v = _grades[q.id];
       if (v == null) continue;
-
-      final max = (q.hasScore || q.score > 0) ? q.score : 0.0;
-      sum += max * (v / 100);
+      sum += _questionWeight(q) * (v / 100);
     }
-    return sum;
+    return sum.clamp(0, _maxScore).toDouble();
   }
 
   @override
@@ -66,14 +102,22 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
       if (!_isManuallyGraded(q)) continue;
 
       final existing = widget.response.essayScores[q.id];
-      if (existing != null) {
+      // Ignore placeholder 0 (not yet graded)
+      if (existing != null && existing != 0) {
         _grades[q.id] = existing;
       }
 
+      final hasExisting = existing != null && existing != 0;
       _gradeControllers[q.id] = TextEditingController(
-        text: existing == null ? '' : '${existing.toInt()}',
+        // ignore: unnecessary_non_null_assertion
+        text: hasExisting ? _formatGrade(existing!) : '',
       );
     }
+  }
+
+  String _formatGrade(double value) {
+    if (value % 1 == 0) return value.round().toString();
+    return value.toString();
   }
 
   @override
@@ -125,7 +169,52 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
     }
   }
 
+  bool get _hasInvalidGrade {
+    for (final c in _gradeControllers.entries) {
+      final raw = c.value.text.trim();
+      if (raw.isEmpty) continue;
+
+      final parsed = double.tryParse(raw);
+      if (parsed == null || parsed < 0 || parsed > 100) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void _save() {
+    if (_isSaving) return;
+
+    if (_hasInvalidGrade) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Score must be a number between 0 and 100.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
     final essayScores = <String, double>{};
     for (final q in widget.form.questions) {
       if (!_isManuallyGraded(q)) continue;
@@ -135,6 +224,10 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
         essayScores[q.id] = v;
       }
     }
+
+    setState(() {
+      _isSaving = true;
+    });
 
     final updated = widget.response.copyWith(
       essayScores: essayScores,
@@ -146,23 +239,26 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
 
     provider.saveGrade(widget.response.id, _total).then((_) {
       if (!mounted) return;
+      provider.rememberGrades(widget.response.id, essayScores);
       provider.updateResponse(updated);
 
       Navigator.pop(context, true);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.check_circle_rounded,
                 color: Colors.white,
                 size: 18,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
-                'Score saved successfully',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                _maxScore > 0
+                    ? 'Score saved: ${_total.round()}/${_maxScore.round()}'
+                    : 'Score saved successfully',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -176,6 +272,9 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
       );
     }).catchError((Object error) {
       if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(provider.error ?? 'Gagal menyimpan skor.'),
@@ -314,13 +413,26 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
                 answerText: _answerText(q, answer),
                 isEssay: _isManuallyGraded(q),
                 controller: _gradeControllers[q.id],
+                existingGrade: widget.response.essayScores[q.id],
+                currentGrade: _grades[q.id],
                 onGradeChanged: (value) {
                   final parsed = double.tryParse(value);
                   setState(() {
                     if (parsed == null) {
                       _grades.remove(q.id);
                     } else {
-                      _grades[q.id] = parsed.clamp(0, 100).toDouble();
+                      final clamped = parsed.clamp(0, 100).toDouble();
+                      _grades[q.id] = clamped;
+
+                      if (parsed != clamped) {
+                        final controller = _gradeControllers[q.id];
+                        if (controller != null) {
+                          controller.text = _formatGrade(clamped);
+                          controller.selection = TextSelection.collapsed(
+                            offset: controller.text.length,
+                          );
+                        }
+                      }
                     }
                   });
                 },
@@ -366,8 +478,9 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
           const SizedBox(height: 24),
 
           GradientButton(
-            text: 'Save Score',
+            text: _isSaving ? 'Saving...' : 'Save Score',
             onPressed: _save,
+            isLoading: _isSaving,
             fullWidth: true,
             icon: Icons.save_rounded,
           ),
@@ -424,6 +537,8 @@ class _AnswerCard extends StatelessWidget {
   final String answerText;
   final bool isEssay;
   final TextEditingController? controller;
+  final double? existingGrade;
+  final double? currentGrade;
   final ValueChanged<String>? onGradeChanged;
   final bool isDark;
 
@@ -433,9 +548,17 @@ class _AnswerCard extends StatelessWidget {
     required this.answerText,
     required this.isEssay,
     required this.controller,
-    required this.onGradeChanged,
+    this.existingGrade,
+    this.currentGrade,
+    this.onGradeChanged,
     required this.isDark,
   });
+
+  bool _isInputOutOfRange(String? text) {
+    if (text == null || text.trim().isEmpty) return false;
+    final parsed = double.tryParse(text.trim());
+    return parsed == null || parsed < 0 || parsed > 100;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -443,6 +566,9 @@ class _AnswerCard extends StatelessWidget {
         isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
     final secondaryTextColor =
         isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
+
+    final activeGrade = currentGrade ?? existingGrade;
+    final isGraded = activeGrade != null && activeGrade != 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -562,9 +688,43 @@ class _AnswerCard extends StatelessWidget {
           ),
           if (isEssay) ...[
             const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  isGraded
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  size: 16,
+                  color: isGraded ? const Color(0xFF1B9E5E) : AppTheme.warning,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isGraded
+                      ? 'Graded: ${activeGrade % 1 == 0 ? activeGrade.round() : activeGrade}/100'
+                      : 'Not graded yet',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color:
+                        isGraded ? const Color(0xFF1B9E5E) : AppTheme.warning,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Weight: ${question.score.round()} pts',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: controller,
-              keyboardType: TextInputType.number,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
               ],
@@ -576,6 +736,10 @@ class _AnswerCard extends StatelessWidget {
               ),
               decoration: InputDecoration(
                 labelText: 'Score (0 - 100)',
+                errorText:
+                    _isInputOutOfRange(controller?.text) && currentGrade == null
+                        ? 'Must be between 0 and 100'
+                        : null,
                 prefixIcon: const Icon(
                   Icons.star_outline_rounded,
                   size: 20,

@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -5,7 +6,6 @@ import '../app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/form_provider.dart';
 import '../models/form_model.dart';
-import '../models/question_model.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/hidocs_logo.dart';
 import 'create_form_screen.dart';
@@ -247,9 +247,21 @@ class _DashboardTab extends StatelessWidget {
           SizedBox(width: 10),
           Text('Import Word', style: TextStyle(fontSize: 18)),
         ]),
-        content: const Text(
-            'Convert a Word document (.docx) into a form template automatically.',
-            style: TextStyle(height: 1.5)),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Convert a Word document (.docx) into a form template automatically.',
+              style: TextStyle(height: 1.5),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Format yang didukung:\n• .docx (Word 2007+)\n• Soal diawali nomor: 1. / Q1 / Soal 1\n• Opsi: A. / (a) / A)  —  beri tanda * atau [correct] untuk kunci jawaban\n• Baris "Kunci Jawaban: B" juga terbaca',
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted, height: 1.4),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
@@ -257,74 +269,7 @@ class _DashboardTab extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(dialogCtx);
-
-              // Show loading snackbar
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Row(children: [
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    ),
-                    SizedBox(width: 12),
-                    Text('Importing document questions...'),
-                  ]),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-
-              final now = DateTime.now();
-              final importedForm = FormModel(
-                id: 'form_imported_${now.millisecondsSinceEpoch}',
-                title: 'Imported Document Form',
-                creatorId: Provider.of<AuthProvider>(context, listen: false).currentUser?.id ?? '',
-                shortLink: 'imported-doc',
-                customLinkAlias: 'imported-doc',
-                scheduledOpen: now,
-                scheduledClose: now.add(const Duration(days: 7)),
-                timerMinutes: 30,
-                isPublic: true,
-                shuffleQuestions: false,
-                shuffleOptions: false,
-                oneTimeOnly: true,
-                isActive: true,
-                resultVisibility: ResultVisibility.hidden,
-                questions: [
-                  QuestionModel(
-                    id: 'q_imp_1',
-                    type: QuestionType.multipleChoice,
-                    text: '1. What is the primary objective stated in section 1?',
-                    isRequired: true,
-                    hasScore: true,
-                    score: 10,
-                    options: [
-                      OptionModel(id: 'o1', text: 'Option A: Analysis'),
-                      OptionModel(id: 'o2', text: 'Option B: Implementation', isCorrect: true, score: 10),
-                      OptionModel(id: 'o3', text: 'Option C: Testing'),
-                    ],
-                  ),
-                  QuestionModel(
-                    id: 'q_imp_2',
-                    type: QuestionType.longText,
-                    text: '2. Please elaborate on the conclusions derived from the document.',
-                    isRequired: true,
-                    hasScore: true,
-                    score: 20,
-                    options: [],
-                  ),
-                ],
-                createdAt: now,
-              );
-
-              // Navigate to CreateFormScreen with pre-filled imported form
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CreateFormScreen(existingForm: importedForm),
-                ),
-              );
+              _handlePickAndImport(context);
             },
             icon: const Icon(Icons.folder_open_rounded, size: 16),
             label: const Text('Choose File'),
@@ -332,6 +277,190 @@ class _DashboardTab extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handlePickAndImport(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['docx'],
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final picked = result.files.first;
+
+      // Validate extension
+      final fileName = picked.name;
+      if (!fileName.toLowerCase().endsWith('.docx')) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Hanya file .docx yang didukung.'),
+              backgroundColor: AppTheme.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Validate size > 0
+      final size = picked.size;
+      if (size == 0) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('File kosong atau gagal dibaca.'),
+              backgroundColor: AppTheme.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Validate size limit 10 MB
+      if (size > 10 * 1024 * 1024) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('File terlalu besar (maks 10 MB).'),
+              backgroundColor: AppTheme.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+        return;
+      }
+
+      final String? filePath = picked.path;
+      final Uint8List? fileBytes = picked.bytes;
+
+      if ((filePath == null || filePath.isEmpty) && fileBytes == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Gagal membaca file. Coba lagi.'),
+              backgroundColor: AppTheme.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!context.mounted) return;
+
+      // Show blocking loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (loadingCtx) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Mengupload ${fileName.length > 24 ? '${fileName.substring(0, 24)}…' : fileName}',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Parsing dokumen Word…',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final formProvider = Provider.of<FormProvider>(context, listen: false);
+
+      final imported = await formProvider.importDocx(
+        filePath: filePath,
+        fileBytes: fileBytes,
+        fileName: fileName,
+      );
+
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // close loading
+
+      if (imported != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Berhasil import: "${imported.title}" (${imported.questions.length} soal)'),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        // Navigate to detail so user can review/edit immediately
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => FormDetailScreen(form: imported)),
+        );
+      } else {
+        final errMsg = formProvider.error ?? 'Gagal mengimport dokumen.';
+        formProvider.clearError();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errMsg),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        // Close loading if still open
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
   }
 }
 

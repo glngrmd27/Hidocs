@@ -108,7 +108,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        user.name.substring(0, 1).toUpperCase(),
+                        user.name.isEmpty
+                            ? '?'
+                            : user.name.substring(0, 1).toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,

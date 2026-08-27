@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     await auth.login(
       _emailCtrl.text.trim(),
-      _passwordCtrl.text.trim(),
+      _passwordCtrl.text,
     );
 
     if (!mounted) return;

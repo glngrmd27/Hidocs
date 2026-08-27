@@ -107,7 +107,12 @@ class ResponseModel {
                   false;
 
           if (isEssay) {
-            essayScores[qid] = s;
+            // Backend does not update per-answer score for manual grades;
+            // score_given stays 0 as placeholder. Ignore 0 so that
+            // persisted local grades (real 0-100) are not overwritten.
+            if (s != 0) {
+              essayScores[qid] = s;
+            }
           } else {
             autoScores[qid] = s;
           }
@@ -117,7 +122,8 @@ class ResponseModel {
 
     final email = (json['respondent_email'] ?? '').toString();
     final submittedAt =
-        DateTime.tryParse(json['submitted_at']?.toString() ?? '') ??
+        DateTime.tryParse(json['submitted_at']?.toString() ?? '')
+                ?.toLocal() ??
             DateTime.now();
 
     final totalScore = (json['total_score'] is num)

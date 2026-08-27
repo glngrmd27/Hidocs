@@ -484,6 +484,60 @@ class FormProvider extends ChangeNotifier {
     });
   }
 
+  /// Import form from .docx file. Returns the created [FormModel] on success.
+  Future<FormModel?> importDocx({
+    String? filePath,
+    Uint8List? fileBytes,
+    String? fileName,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final data = await ApiClient.importDocx(
+        filePath: filePath,
+        fileBytes: fileBytes,
+        fileName: fileName,
+      );
+
+      if (data is Map) {
+        final form = FormModel.fromJson(Map<String, dynamic>.from(data));
+
+        // Add to local list immediately for instant UI feedback.
+        final idx = _forms.indexWhere((f) => f.id == form.id);
+        if (idx >= 0) {
+          _forms[idx] = form;
+        } else {
+          _forms.insert(0, form);
+        }
+
+        _isLoading = false;
+        notifyListeners();
+
+        // Sync with server list in background.
+        try {
+          await loadForms();
+        } catch (_) {}
+
+        return form;
+      }
+
+      _error = 'Format respon tidak dikenal.';
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (e) {
+      _error = 'Koneksi gagal. Periksa jaringan atau server. ($e)';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+
   void clearError() {
     _error = null;
   }

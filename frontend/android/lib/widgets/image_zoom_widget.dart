@@ -1,22 +1,39 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 
 class ImageZoomWidget extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
+  final String? filePath;
   final double height;
 
   const ImageZoomWidget({
     required this.imageUrl,
+    this.filePath,
     this.height = 200,
     super.key,
   });
 
+  const ImageZoomWidget.file({
+    required String this.filePath,
+    this.height = 200,
+    super.key,
+  }) : imageUrl = null;
+
   @override
   Widget build(BuildContext context) {
+    final isFile = filePath != null;
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => _FullScreenZoom(imageUrl: imageUrl)),
+        MaterialPageRoute(
+          builder: (_) => _FullScreenZoom(
+            imageUrl: imageUrl,
+            filePath: filePath,
+          ),
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
@@ -24,15 +41,45 @@ class ImageZoomWidget extends StatelessWidget {
           height: height,
           color: AppTheme.primaryFaint,
           child: Stack(fit: StackFit.expand, children: [
-            Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.image_rounded, size: 52,
-                    color: AppTheme.primary.withValues(alpha: 0.30)),
-                const SizedBox(height: 8),
-                const Text('Ketuk untuk zoom HD',
-                    style: TextStyle(fontSize: 13,
-                        color: AppTheme.textMuted)),
-              ]),
+            if (isFile)
+              Image.file(
+                File(filePath!),
+                fit: BoxFit.contain,
+                alignment: Alignment.topCenter,
+                errorBuilder: (_, __, ___) => Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.broken_image_rounded, size: 52,
+                        color: AppTheme.primary.withValues(alpha: 0.30)),
+                    const SizedBox(height: 8),
+                    const Text('Gambar gagal dimuat',
+                        style: TextStyle(fontSize: 13,
+                            color: AppTheme.textMuted)),
+                  ]),
+                ),
+              )
+            else
+              Image.network(
+              imageUrl!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.primary.withValues(alpha: 0.5),
+                  ),
+                );
+              },
+              errorBuilder: (_, __, ___) => Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.broken_image_rounded, size: 52,
+                      color: AppTheme.primary.withValues(alpha: 0.30)),
+                  const SizedBox(height: 8),
+                  const Text('Gambar gagal dimuat',
+                      style: TextStyle(fontSize: 13,
+                          color: AppTheme.textMuted)),
+                ]),
+              ),
             ),
             Positioned(top: 10, left: 10,
               child: Container(
@@ -64,9 +111,26 @@ class ImageZoomWidget extends StatelessWidget {
   }
 }
 
+class FullScreenImageViewer extends StatelessWidget {
+  final String? imageUrl;
+  final String? filePath;
+
+  const FullScreenImageViewer({super.key, this.imageUrl, this.filePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return _FullScreenZoom(imageUrl: imageUrl, filePath: filePath);
+  }
+}
+
 class _FullScreenZoom extends StatelessWidget {
-  final String imageUrl;
-  const _FullScreenZoom({required this.imageUrl});
+  final String? imageUrl;
+  final String? filePath;
+
+  const _FullScreenZoom({
+    this.imageUrl,
+    this.filePath,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -87,23 +151,25 @@ class _FullScreenZoom extends StatelessWidget {
         child: InteractiveViewer(
           minScale: 0.5,
           maxScale: 5.0,
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2A),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.image_rounded, size: 100, color: Colors.white24),
-                SizedBox(height: 16),
-                Text('Gambar akan ditampilkan di sini',
-                    style: TextStyle(color: Colors.white54, fontSize: 14)),
-                SizedBox(height: 6),
-                Text('Pinch to zoom  •  Drag to pan',
-                    style: TextStyle(color: Colors.white38, fontSize: 12)),
-              ]),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: filePath != null
+                ? Image.file(File(filePath!))
+                : Hero(
+                    tag: imageUrl!,
+                    child: Image.network(imageUrl!,
+                        errorBuilder: (_, __, ___) => const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.image_rounded,
+                                    size: 100, color: Colors.white24),
+                                SizedBox(height: 16),
+                                Text('Gambar gagal dimuat',
+                                    style: TextStyle(
+                                        color: Colors.white54, fontSize: 14)),
+                              ],
+                            )),
+                  ),
           ),
         ),
       ),

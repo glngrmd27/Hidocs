@@ -86,10 +86,10 @@ class FormModel {
             ? Map<String, dynamic>.from(json['form_settings'] as Map)
             : {};
 
-    final startTime = DateTime.tryParse(
-        settings['start_time']?.toString() ?? '');
-    final endTime = DateTime.tryParse(
-        settings['end_time']?.toString() ?? '');
+    final startTime =
+        DateTime.tryParse(settings['start_time']?.toString() ?? '')?.toLocal();
+    final endTime =
+        DateTime.tryParse(settings['end_time']?.toString() ?? '')?.toLocal();
 
     final now = DateTime.now();
 
@@ -110,8 +110,8 @@ class FormModel {
       customLinkAlias: (json['custom_url'] ?? '').toString(),
       scheduledOpen: startTime ?? now,
       scheduledClose: endTime ?? now,
-      timerMinutes: settings['duration_minutes'] is int
-          ? (settings['duration_minutes'] as int).clamp(0, 100000)
+      timerMinutes: settings['duration_minutes'] is num
+          ? ((settings['duration_minutes'] as num).toInt()).clamp(0, 100000)
           : 0,
       isPublic: isPublic,
       shuffleQuestions: settings['randomize_questions'] == true,
@@ -127,7 +127,8 @@ class FormModel {
       totalResponses: (json['response_count'] is num)
           ? (json['response_count'] as num).toInt()
           : 0,
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '')
+              ?.toLocal() ??
           DateTime.now(),
     );
   }

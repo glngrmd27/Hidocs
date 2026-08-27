@@ -9,6 +9,33 @@ enum QuestionType {
   codeInput,
 }
 
+const String _codeStartMarker = '[CODE]';
+const String _codeEndMarker = '[/CODE]';
+const String _mathStartMarker = '[MATH]';
+const String _mathEndMarker = '[/MATH]';
+
+final RegExp _codeBlockPattern = RegExp(
+  r'\[CODE\]\s*\n?([\s\S]*?)\s*\[\/CODE\]',
+);
+final RegExp _mathBlockPattern = RegExp(
+  r'\[MATH\]\s*\n?([\s\S]*?)\s*\[\/MATH\]',
+);
+
+String encodeQuestionText(
+  String text, {
+  required String startMarker,
+  required String endMarker,
+  required String? payload,
+}) {
+  final clean = payload?.trim() ?? '';
+  if (clean.isEmpty) return text.trimRight();
+
+  final base = text.trimRight();
+  return base.isEmpty
+      ? '$startMarker\n$clean\n$endMarker'
+      : '$base\n$startMarker\n$clean\n$endMarker';
+}
+
 String questionTypeToApi(QuestionType type) {
   switch (type) {
     case QuestionType.multipleChoice:
@@ -139,6 +166,25 @@ class QuestionModel {
       snippet = codeLanguage;
     }
 
+    var rawText = (json['question_text'] ?? '').toString();
+
+    final codeMatch = _codeBlockPattern.firstMatch(rawText);
+    if (codeMatch != null) {
+      final payload = codeMatch.group(1)?.trim() ?? '';
+      if (payload.isNotEmpty) snippet = payload;
+      rawText = rawText.replaceRange(codeMatch.start, codeMatch.end, '');
+    }
+
+    String? mathFormula;
+    final mathMatch = _mathBlockPattern.firstMatch(rawText);
+    if (mathMatch != null) {
+      final payload = mathMatch.group(1)?.trim() ?? '';
+      if (payload.isNotEmpty) mathFormula = payload;
+      rawText = rawText.replaceRange(mathMatch.start, mathMatch.end, '');
+    }
+
+    rawText = rawText.trim();
+
     List<OptionModel> options = [];
     if (json['options'] is List) {
       options = (json['options'] as List)
@@ -150,29 +196,48 @@ class QuestionModel {
     return QuestionModel(
       id: questionId,
       type: mappedType,
-      text: (json['question_text'] ?? '').toString(),
+      text: rawText,
       imageUrl: imageUrl.isEmpty ? null : imageUrl,
       codeSnippet: snippet,
+      mathFormula:
+          mappedType == QuestionType.mathFormula ? mathFormula : null,
       isRequired: json['is_required'] == true,
       ratingMax: mappedType == QuestionType.rating ? 5 : null,
-      hasScore: json['points'] is int
-          ? (json['points'] as int) > 0
-          : false,
+      hasScore: json['points'] is num && (json['points'] as num) > 0,
       score: (json['points'] is num) ? (json['points'] as num).toDouble() : 0,
       options: options,
     );
   }
 
   Map<String, dynamic> toQuestionJson({int orderIndex = 1}) {
+    String questionText;
+    switch (type) {
+      case QuestionType.codeInput:
+        questionText = encodeQuestionText(
+          text,
+          startMarker: _codeStartMarker,
+          endMarker: _codeEndMarker,
+          payload: codeSnippet,
+        );
+      case QuestionType.mathFormula:
+        questionText = encodeQuestionText(
+          text,
+          startMarker: _mathStartMarker,
+          endMarker: _mathEndMarker,
+          payload: mathFormula,
+        );
+      default:
+        questionText = text;
+    }
+
     return {
-      'question_text': text,
+      'question_text': questionText.trim().isEmpty
+          ? (text.trim().isEmpty ? '.' : text)
+          : questionText,
       'question_type': questionTypeToApi(type),
-      'code_language': type == QuestionType.codeInput
-          ? (codeSnippet ?? 'text')
-          : null,
       'img_url': imageUrl,
       'is_auto_scored': hasScore,
-      'points': hasScore ? score.round() : 0,
+      'points': hasScore ? score.round().clamp(0, 100) : 0,
       'order_index': orderIndex,
       'is_required': isRequired,
       'options': options

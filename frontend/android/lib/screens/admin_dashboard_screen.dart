@@ -564,19 +564,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Center(
-                    child: Text(
-                      (user['name'] ?? '?')
-                          .toString()
-                          .substring(0, 1)
-                          .toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: active
-                            ? AppTheme.success
-                            : AppTheme.error,
-                      ),
-                    ),
+                    child: Builder(builder: (context) {
+                      final name = (user['name'] ?? '?').toString();
+                      return Text(
+                        name.isEmpty
+                            ? '?'
+                            : name.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: active
+                              ? AppTheme.success
+                              : AppTheme.error,
+                        ),
+                      );
+                    }),
                   ),
                 ),
                 const SizedBox(width: 14),

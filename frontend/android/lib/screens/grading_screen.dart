@@ -47,7 +47,9 @@ class _GradingScreenState extends State<GradingScreen> {
       widget.form.questions.where(_isManuallyGraded).toList();
 
   int _gradedCount(ResponseModel r) {
-    return _manualQuestions.where((q) => r.essayScores[q.id] != null).length;
+    return _manualQuestions
+        .where((q) => r.essayScores[q.id] != null && r.essayScores[q.id] != 0)
+        .length;
   }
 
   bool _isFullyGraded(ResponseModel r) {
@@ -161,6 +163,7 @@ class _GradingScreenState extends State<GradingScreen> {
                         isGraded: _isFullyGraded(r),
                         hasScore: _isFullyGraded(r) || r.score > 0,
                         percentage: r.percentage,
+                        maxScore: widget.form.maxScore,
                         dateText: _formatDate(r.submittedAt),
                         isDark: isDark,
                         onTap: () => _openResponse(r),
@@ -328,6 +331,7 @@ class _GradingCard extends StatelessWidget {
   final bool isGraded;
   final bool hasScore;
   final double percentage;
+  final double maxScore;
   final String dateText;
   final bool isDark;
   final VoidCallback onTap;
@@ -339,6 +343,7 @@ class _GradingCard extends StatelessWidget {
     required this.isGraded,
     required this.hasScore,
     required this.percentage,
+    required this.maxScore,
     required this.dateText,
     required this.isDark,
     required this.onTap,
@@ -438,6 +443,11 @@ class _GradingCard extends StatelessWidget {
                         isGraded: isGraded,
                         gradedCount: gradedCount,
                         essayTotal: essayTotal,
+                        scoreText: response.score > 0
+                            ? (maxScore > 0
+                                ? 'score ${response.score.round()}/${maxScore.round()}'
+                                : 'score ${response.score.round()}')
+                            : null,
                       ),
                     ],
                   ),
@@ -466,17 +476,23 @@ class _StatusRow extends StatelessWidget {
   final bool isGraded;
   final int gradedCount;
   final int essayTotal;
+  final String? scoreText;
 
   const _StatusRow({
     required this.isGraded,
     required this.gradedCount,
     required this.essayTotal,
+    this.scoreText,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = isGraded ? const Color(0xFF1B9E5E) : AppTheme.warning;
-    final text = isGraded ? 'Graded' : '$gradedCount/$essayTotal manual graded';
+    var text = isGraded ? 'Graded' : '$gradedCount/$essayTotal manual graded';
+
+    if (scoreText != null) {
+      text = '$text • $scoreText';
+    }
 
     return Row(
       children: [
@@ -489,12 +505,15 @@ class _StatusRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 5),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: color,
+        Expanded(
+          child: Text(
+            text,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
         ),
       ],

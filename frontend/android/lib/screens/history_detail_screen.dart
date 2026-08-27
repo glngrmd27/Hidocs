@@ -73,15 +73,16 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
     if (!mounted) return;
 
     final myEmail = auth.currentUser?.email ?? '';
+    final myId = auth.currentUser?.id ?? '';
     final all = rp.getResponsesByForm(_form.id);
     final mine = all
         .where(
           (r) =>
-              r.respondentEmail == myEmail ||
-              r.respondentId == (auth.currentUser?.id ?? ''),
+              (myEmail.isNotEmpty && r.respondentEmail == myEmail) ||
+              (myId.isNotEmpty && r.respondentId == myId),
         )
         .toList();
-    final match = mine.isNotEmpty ? mine.first : (all.isNotEmpty ? all.first : null);
+    final match = mine.isNotEmpty ? mine.first : null;
 
     if (match != null && match.answers.isNotEmpty) {
       setState(() {
@@ -141,11 +142,15 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
         ? AppTheme.darkTextPrimary
         : AppTheme.textPrimary;
 
+    // hasScore must ignore placeholder 0 essay entries
+    final effectiveEssay = _response.essayScores.entries
+        .where((e) => e.value != 0)
+        .toList();
     final hasScore =
-        _response.score > 0 || _response.essayScores.isNotEmpty;
+        _response.score > 0 || effectiveEssay.isNotEmpty;
 
-    final showScore =
-        _form.resultVisibility == ResultVisibility.resultAndScore;
+    // Visibility is dummy (no backend column) — always show score if available
+    final showScore = hasScore;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
@@ -253,6 +258,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                   number: index + 1,
                   question: q,
                   answerText: _answerText(q, answer),
+                  grade: _response.essayScores[q.id],
                   isDark: isDark,
                 );
               },
@@ -308,12 +314,14 @@ class _AnswerCard extends StatelessWidget {
   final int number;
   final QuestionModel question;
   final String answerText;
+  final double? grade;
   final bool isDark;
 
   const _AnswerCard({
     required this.number,
     required this.question,
     required this.answerText,
+    this.grade,
     required this.isDark,
   });
 
@@ -421,6 +429,36 @@ class _AnswerCard extends StatelessWidget {
               ),
             ),
           ),
+          if (grade != null && grade != 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B9E5E).withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    size: 14,
+                    color: Color(0xFF1B9E5E),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Graded: ${grade! % 1 == 0 ? grade!.round() : grade!}/100',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1B9E5E),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

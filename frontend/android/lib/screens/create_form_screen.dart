@@ -6,6 +6,7 @@ import '../providers/form_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
+import '../services/question_image_renderer.dart';
 import '../widgets/info_tab.dart';
 import '../widgets/questions_tab.dart';
 import '../widgets/settings_tab.dart';
@@ -49,6 +50,25 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       ResultVisibility.hidden;
 
   final List<QuestionModel> _questions = [];
+
+  bool _isSaving = false;
+
+  bool _hasQuestionContent(QuestionModel q) {
+    if (q.text.trim().isNotEmpty) return true;
+    if (q.content != null && q.content!.trim().isNotEmpty) return true;
+
+    if (q.type == QuestionType.codeInput &&
+        (q.codeSnippet?.trim().isNotEmpty ?? false)) {
+      return true;
+    }
+
+    if (q.type == QuestionType.mathFormula &&
+        (q.mathFormula?.trim().isNotEmpty ?? false)) {
+      return true;
+    }
+
+    return false;
+  }
 
   @override
   void initState() {
@@ -249,7 +269,82 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       );
   }
 
+  /// Converts every question into a local PNG (temp dir only — no
+  /// database/backend). Cached by content hash so unchanged questions are
+  /// skipped instantly. Failures are non-blocking: the fill screen falls
+  /// back to normal rendering when an image is missing.
+  Future<void> _prepareQuestionImages() async {
+    if (_questions.isEmpty) return;
+
+    final progress = ValueNotifier<MapEntry<int, int>>(
+      const MapEntry(0, 0),
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: ValueListenableBuilder<MapEntry<int, int>>(
+              valueListenable: progress,
+              builder: (context, value, _) {
+                final done = value.key;
+                final total = value.value;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LinearProgressIndicator(
+                      value:
+                          total == 0 ? null : (done / total).clamp(0.0, 1.0),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      total == 0
+                          ? 'Preparing question images...'
+                          : done >= total
+                              ? 'Finishing up...'
+                              : 'Converting questions to images ($done/$total)',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      await QuestionImageRenderer.renderAll(
+        _questions,
+        context: context,
+        onProgress: (done, total) {
+          progress.value = MapEntry(done, total);
+        },
+      );
+    } catch (_) {
+      // Rendering is best-effort only.
+    } finally {
+      progress.dispose();
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+  }
+
   Future<void> _saveForm() async {
+    if (_isSaving) return;
+
     if (!_formKey.currentState!.validate()) {
       _tabCtrl.animateTo(0);
       return;
@@ -263,6 +358,18 @@ class _CreateFormScreenState extends State<CreateFormScreen>
 
       _tabCtrl.animateTo(2);
       return;
+    }
+
+    for (var i = 0; i < _questions.length; i++) {
+      if (!_hasQuestionContent(_questions[i])) {
+        _showMessage(
+          'Question ${i + 1} is empty. Write the question text first.',
+          backgroundColor: AppTheme.warning,
+        );
+
+        _tabCtrl.animateTo(2);
+        return;
+      }
     }
 
     if (_closeDateTime.isBefore(_openDateTime)) {
@@ -302,6 +409,10 @@ class _CreateFormScreenState extends State<CreateFormScreen>
         ? _generateSlug(title)
         : customAlias;
 
+    setState(() {
+      _isSaving = true;
+    });
+
     final now = DateTime.now();
 
     final editing = widget.existingForm;
@@ -336,6 +447,10 @@ class _CreateFormScreenState extends State<CreateFormScreen>
     }
 
     if (!ok) {
+      setState(() {
+        _isSaving = false;
+      });
+
       final errorMessage = formProvider.error ??
           'Gagal menyimpan form. Periksa jaringan Anda.';
 
@@ -346,6 +461,12 @@ class _CreateFormScreenState extends State<CreateFormScreen>
         backgroundColor: AppTheme.error,
       );
 
+      return;
+    }
+
+    await _prepareQuestionImages();
+
+    if (!mounted) {
       return;
     }
 

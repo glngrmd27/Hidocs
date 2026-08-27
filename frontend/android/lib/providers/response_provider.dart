@@ -8,15 +8,21 @@ import '../services/api_client.dart';
 
 class ResponseProvider extends ChangeNotifier {
   static const _storageKey = 'my_submissions';
+  static const _gradesKey = 'response_grades';
 
   final List<ResponseModel> _responses = [];
   final Set<String> _submissionIds = {};
+
+  /// Persisted manual grades per response id, so grading status survives
+  /// app restarts (backend only stores total_score).
+  final Map<String, Map<String, double>> _persistedGrades = {};
+
   bool _isLoading = false;
   String? _error;
 
   ResponseProvider() {
-    _seedMockData();
     _loadSubmissions();
+    _loadGrades();
   }
 
   List<ResponseModel> get responses => List.unmodifiable(_responses);
@@ -82,6 +88,42 @@ class ResponseProvider extends ChangeNotifier {
           .toList();
       await prefs.setStringList(_storageKey, stored);
     } catch (_) {}
+  }
+
+  Future<void> _loadGrades() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_gradesKey);
+      if (raw == null || raw.isEmpty) return;
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+
+      decoded.forEach((key, value) {
+        if (value is Map) {
+          _persistedGrades[key.toString()] = _toDoubleMap(value);
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saveGrades() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _gradesKey,
+        jsonEncode(_persistedGrades),
+      );
+    } catch (_) {}
+  }
+
+  void rememberGrades(String responseId, Map<String, double> essayScores) {
+    if (essayScores.isEmpty) {
+      _persistedGrades.remove(responseId);
+    } else {
+      _persistedGrades[responseId] = Map<String, double>.from(essayScores);
+    }
+    _saveGrades();
   }
 
   void recordSubmission({
@@ -151,14 +193,21 @@ class ResponseProvider extends ChangeNotifier {
               form: form,
             );
 
-            final existing = existingByRespId[parsed.id];
-            if (existing != null && existing.essayScores.isNotEmpty) {
-              return parsed.copyWith(
-                essayScores: {
-                  ...existing.essayScores,
-                  ...parsed.essayScores,
-                },
-              );
+            // Ignore placeholder 0 from API for essay (backend keeps 0 until graded)
+            final filteredParsed = <String, double>{};
+            parsed.essayScores.forEach((k, v) {
+              if (v != 0) filteredParsed[k] = v;
+            });
+            final merged = <String, double>{
+              ..._persistedGrades[parsed.id] ?? const {},
+              ...existingByRespId[parsed.id]?.essayScores ?? const {},
+              ...filteredParsed,
+            };
+            // Also filter 0 from merged (so 0 never counts as graded)
+            merged.removeWhere((k, v) => v == 0);
+
+            if (merged.isNotEmpty) {
+              return parsed.copyWith(essayScores: merged);
             }
 
             return parsed;
@@ -195,92 +244,18 @@ class ResponseProvider extends ChangeNotifier {
     }
   }
 
-  void _seedMockData() {
-    final now = DateTime.now();
+}
 
-    _responses.addAll([
-      ResponseModel(
-        id: 'resp001',
-        formId: 'form001',
-        respondentId: 'user001',
-        respondentName: 'Budi Santoso',
-        respondentEmail: 'budi@email.com',
-        startedAt: now.subtract(const Duration(minutes: 26)),
-        submittedAt: now.subtract(const Duration(minutes: 24)),
-        answers: {
-          'q1': 5,
-          'q2': 'o1',
-          'q3': '1/3',
-          'q4': 'def factorial(n):\n    return 1 if n < 2 else n * factorial(n-1)',
-          'q5': 'The library needs more engineering books.',
-        },
-        essayScores: {'q3': 80, 'q4': 90, 'q5': 70},
-        score: 80,
-        maxScore: 100,
-      ),
-      ResponseModel(
-        id: 'resp002',
-        formId: 'form001',
-        respondentId: 'user002',
-        respondentName: 'Ani Rahayu',
-        respondentEmail: 'ani@email.com',
-        startedAt: now.subtract(const Duration(minutes: 20)),
-        submittedAt: now.subtract(const Duration(minutes: 17)),
-        answers: {
-          'q1': 4,
-          'q2': 'o3',
-          'q3': '0.333',
-          'q4': 'import math\ndef factorial(n):\n    return math.factorial(n)',
-          'q5': '',
-        },
-      ),
-      ResponseModel(
-        id: 'resp003',
-        formId: 'form001',
-        respondentId: 'user003',
-        respondentName: 'Dedi Maulana',
-        respondentEmail: 'dedi@email.com',
-        startedAt: now.subtract(const Duration(minutes: 31)),
-        submittedAt: now.subtract(const Duration(minutes: 28)),
-        answers: {
-          'q1': 3,
-          'q2': 'o2',
-          'q3': '1/3',
-          'q4': 'def factorial(n):\n    result = 1\n    for i in range(2, n+1):\n        result *= i\n    return result',
-          'q5': 'Add more chairs in the hallway area.',
-        },
-        essayScores: {'q3': 100, 'q4': 85, 'q5': 60},
-        score: 81,
-        maxScore: 100,
-      ),
-      ResponseModel(
-        id: 'resp004',
-        formId: 'form002',
-        respondentId: 'user004',
-        respondentName: 'Sari Kusuma',
-        respondentEmail: 'sari@email.com',
-        startedAt: now.subtract(const Duration(minutes: 18)),
-        submittedAt: now.subtract(const Duration(minutes: 16)),
-        answers: {
-          'q1': 'o1',
-          'q2': 'class MyWidget extends StatefulWidget {\n  @override\n  State<MyWidget> createState() => _MyWidgetState();\n}',
-          'q3': 'o1',
-        },
-      ),
-      ResponseModel(
-        id: 'resp005',
-        formId: 'form002',
-        respondentId: 'user005',
-        respondentName: 'Riko Pratama',
-        respondentEmail: 'riko@email.com',
-        startedAt: now.subtract(const Duration(minutes: 40)),
-        submittedAt: now.subtract(const Duration(minutes: 36)),
-        answers: {
-          'q1': 'o2',
-          'q2': 'class MyWidget extends StatefulWidget { }',
-          'q3': 'o2',
-        },
-      ),
-    ]);
-  }
+Map<String, double> _toDoubleMap(dynamic value) {
+  if (value is! Map) return <String, double>{};
+
+  return value.entries.fold<Map<String, double>>(
+    <String, double>{},
+    (acc, entry) {
+      if (entry.value is num) {
+        acc[entry.key.toString()] = (entry.value as num).toDouble();
+      }
+      return acc;
+    },
+  );
 }
