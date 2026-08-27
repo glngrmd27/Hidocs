@@ -1,0 +1,1058 @@
+/* =========================================================
+   RICH TEXT EDITOR — HIDOCS (Quill)
+========================================================= */
+
+.rich-text-editor,
+.rich-text-editor * {
+  box-sizing: border-box;
+}
+
+
+/* =========================================================
+   WRAPPER
+========================================================= */
+
+.rich-text-editor {
+  position: relative;
+
+  width: 100%;
+
+  overflow: visible;
+
+  border: 1px solid #dce5ef;
+
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.rich-text-editor:focus-within {
+  border-color: #4b8fd6;
+
+  box-shadow:
+    0 0 0 4px rgba(55, 126, 196, 0.1);
+}
+
+
+/* Quill renders its own <div class="ql-toolbar"> and
+   <div class="ql-container"> as siblings — reset their
+   default borders so our wrapper controls the outline. */
+
+.rich-text-editor .ql-toolbar.ql-snow,
+.rich-text-editor .ql-container.ql-snow {
+  border: none;
+
+  font-family: "Poppins", sans-serif;
+}
+
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.rich-text-editor .ql-toolbar.ql-snow {
+  min-height: 50px;
+
+  padding: 8px 10px;
+
+  border-bottom: 1px solid #e6edf5;
+
+  background:
+    linear-gradient(
+      180deg,
+      #fbfdff,
+      #f7faff
+    );
+
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 5px;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-formats {
+  margin: 0 3px 0 0 !important;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 3px;
+}
+
+
+/* Buttons */
+
+.rich-text-editor .ql-toolbar.ql-snow button {
+  width: 34px;
+  height: 34px;
+
+  margin: 0;
+  padding: 0;
+
+  border: 1px solid transparent;
+
+  border-radius: 9px;
+
+  background: transparent;
+
+  color: #63778f;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow button svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow button:hover,
+.rich-text-editor .ql-toolbar.ql-snow button:focus {
+  background: #eaf3fd;
+
+  border-color: #d5e5f5;
+
+  color: #2874bc;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow button.ql-active {
+  background:
+    linear-gradient(
+      145deg,
+      #e1efff,
+      #edf6ff
+    );
+
+  border-color: #c8ddf5;
+
+  color: #256bb2;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-stroke {
+  stroke: currentColor;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-fill {
+  fill: currentColor;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow button:hover .ql-stroke,
+.rich-text-editor .ql-toolbar.ql-snow button.ql-active .ql-stroke {
+  stroke: currentColor;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow button:hover .ql-fill,
+.rich-text-editor .ql-toolbar.ql-snow button.ql-active .ql-fill {
+  fill: currentColor;
+}
+
+
+/* Heading dropdown (acts like our old toolbar divider group) */
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker {
+  height: 34px;
+
+  color: #63778f;
+
+  font-family: inherit;
+
+  font-size: 13px;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-label {
+  height: 34px;
+
+  padding: 0 8px;
+
+  border: 1px solid transparent;
+
+  border-radius: 9px;
+
+  display: flex;
+
+  align-items: center;
+
+  color: #63778f;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-label:hover,
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  background: #eaf3fd;
+
+  border-color: #d5e5f5;
+
+  color: #2874bc;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-label .ql-stroke {
+  stroke: currentColor;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-options {
+  padding: 6px;
+
+  border: 1px solid #dce5ef;
+
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  box-shadow: 0 8px 20px rgba(23, 43, 66, 0.1);
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-item {
+  padding: 5px 9px;
+
+  border-radius: 7px;
+
+  color: #63778f;
+
+  font-size: 13px;
+}
+
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-item:hover,
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-item.ql-selected {
+  background: #eaf3fd;
+
+  color: #2874bc;
+}
+
+
+/* Divider between formats groups */
+
+.rich-text-editor .ql-toolbar.ql-snow .ql-formats + .ql-formats {
+  padding-left: 8px;
+
+  margin-left: 2px !important;
+
+  border-left: 1px solid #dce5ef;
+}
+
+
+/* =========================================================
+   EDITOR AREA
+========================================================= */
+
+.rich-text-editor .ql-container.ql-snow {
+  width: 100%;
+
+  background: #ffffff;
+}
+
+
+.rich-text-editor .ql-editor {
+  min-height: 135px;
+
+  padding: 17px 18px;
+
+  color: #293e56;
+
+  font-family: "Poppins", sans-serif;
+
+  font-size: 14px;
+
+  line-height: 1.75;
+
+  word-break: break-word;
+}
+
+
+/* =========================================================
+   PLACEHOLDER
+========================================================= */
+
+.rich-text-editor .ql-editor.ql-blank::before {
+  left: 18px;
+  right: 18px;
+
+  color: #a2afbe;
+
+  font-style: normal;
+
+  font-size: 14px;
+}
+
+
+/* =========================================================
+   TEXT FORMATTING
+========================================================= */
+
+.rich-text-editor .ql-editor p {
+  margin: 0 0 8px;
+}
+
+
+.rich-text-editor .ql-editor p:last-child {
+  margin-bottom: 0;
+}
+
+
+.rich-text-editor .ql-editor h2 {
+  margin: 8px 0;
+
+  color: #243a53;
+
+  font-size: 21px;
+
+  line-height: 1.4;
+}
+
+
+.rich-text-editor .ql-editor h3 {
+  margin: 7px 0;
+
+  color: #293f58;
+
+  font-size: 18px;
+
+  line-height: 1.45;
+}
+
+
+.rich-text-editor .ql-editor strong {
+  font-weight: 700;
+}
+
+
+.rich-text-editor .ql-editor em {
+  font-style: italic;
+}
+
+
+.rich-text-editor .ql-editor u {
+  text-decoration: underline;
+}
+
+
+.rich-text-editor .ql-editor s {
+  text-decoration: line-through;
+}
+
+
+/* =========================================================
+   LISTS
+========================================================= */
+
+.rich-text-editor .ql-editor ul,
+.rich-text-editor .ql-editor ol {
+  margin: 8px 0;
+
+  padding-left: 25px;
+}
+
+
+.rich-text-editor .ql-editor li {
+  margin: 4px 0;
+}
+
+
+/* =========================================================
+   BLOCKQUOTE
+========================================================= */
+
+.rich-text-editor .ql-editor blockquote {
+  margin: 10px 0;
+
+  padding: 9px 13px;
+
+  border-left: 3px solid #4185c7;
+
+  border-radius: 0 8px 8px 0;
+
+  background: #f3f8fd;
+
+  color: #536b84;
+}
+
+
+/* =========================================================
+   CODE
+========================================================= */
+
+.rich-text-editor .ql-editor code {
+  padding: 2px 5px;
+
+  border-radius: 5px;
+
+  background: #edf2f7;
+
+  color: #d04d65;
+
+  font-family: "Consolas", monospace;
+
+  font-size: 0.92em;
+}
+
+
+.rich-text-editor .ql-editor pre.ql-syntax {
+  margin: 10px 0;
+
+  padding: 13px;
+
+  overflow-x: auto;
+
+  border-radius: 10px;
+
+  background: #1e293b;
+
+  color: #f8fafc;
+
+  font-family: "Consolas", monospace;
+}
+
+
+/* =========================================================
+   HORIZONTAL RULE
+========================================================= */
+
+.rich-text-editor .ql-editor hr {
+  margin: 16px 0;
+
+  border: none;
+
+  border-top: 1px solid #dce5ef;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.rich-editor-footer {
+  min-height: 31px;
+
+  padding: 0 12px;
+
+  border-top: 1px solid #e7edf4;
+
+  background: #fafcff;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  color: #8d9bad;
+
+  font-size: 9px;
+}
+
+
+.rich-editor-footer span:last-child {
+  min-height: 20px;
+
+  padding: 0 7px;
+
+  border-radius: 999px;
+
+  background: #e9f3fd;
+
+  color: #347bc1;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  font-weight: 700;
+
+  letter-spacing: 0.5px;
+}
+
+
+/* =========================================================
+   LOADING (kept for parity, unused unless you add one back)
+========================================================= */
+
+.rich-text-editor-loading {
+  width: 100%;
+
+  min-height: 120px;
+
+  border: 1px solid #dce5ef;
+
+  border-radius: 15px;
+
+  background: #f8fafc;
+
+  color: #8b9bad;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+.dark .rich-text-editor {
+  border-color: #34465d;
+
+  background: #172234;
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow {
+  border-color: #2d3d52;
+
+  background:
+    linear-gradient(
+      180deg,
+      #1c293c,
+      #182436
+    );
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-formats + .ql-formats {
+  border-color: #2d3d52;
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow button,
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker,
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker-label {
+  color: #9aabc0;
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow button:hover,
+.dark .rich-text-editor .ql-toolbar.ql-snow button:focus,
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker-label:hover,
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  background: #243a54;
+
+  border-color: #36516d;
+
+  color: #77b7fb;
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow button.ql-active {
+  background: #213e5e;
+
+  border-color: #315a80;
+
+  color: #7dbdff;
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker-options {
+  border-color: #2d3d52;
+
+  background: #1c293c;
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker-item {
+  color: #9aabc0;
+}
+
+
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker-item:hover,
+.dark .rich-text-editor .ql-toolbar.ql-snow .ql-picker-item.ql-selected {
+  background: #243a54;
+
+  color: #77b7fb;
+}
+
+
+.dark .rich-text-editor .ql-container.ql-snow,
+.dark .rich-text-editor .ql-editor {
+  background: #172234;
+}
+
+
+.dark .rich-text-editor .ql-editor {
+  color: #e7eef7;
+}
+
+
+.dark .rich-text-editor .ql-editor.ql-blank::before {
+  color: #64748b;
+}
+
+
+.dark .rich-text-editor .ql-editor h2,
+.dark .rich-text-editor .ql-editor h3 {
+  color: #f1f5f9;
+}
+
+
+.dark .rich-text-editor .ql-editor blockquote {
+  border-color: #599be0;
+
+  background: #1c2d42;
+
+  color: #abc0d6;
+}
+
+
+.dark .rich-text-editor .ql-editor code {
+  background: #26364a;
+
+  color: #ff93a6;
+}
+
+
+.dark .rich-text-editor .ql-editor hr {
+  border-top-color: #34465c;
+}
+
+
+.dark .rich-editor-footer {
+  border-color: #2d3d52;
+
+  background: #131e2e;
+
+  color: #8192a8;
+}
+
+
+.dark .rich-editor-footer span:last-child {
+  background: #213e5e;
+
+  color: #79baff;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (
+  max-width: 680px
+) {
+
+  .rich-text-editor .ql-toolbar.ql-snow {
+    padding: 7px;
+
+    gap: 4px;
+  }
+
+
+  .rich-text-editor .ql-toolbar.ql-snow button {
+    width: 31px;
+    height: 31px;
+  }
+
+
+  .rich-text-editor .ql-toolbar.ql-snow .ql-picker-label {
+    height: 31px;
+  }
+
+
+  .rich-text-editor .ql-editor {
+    min-height: 120px;
+
+    padding: 14px;
+
+    font-size: 13px;
+  }
+
+}
+
+.rich-text-editor .ql-editor .ql-video {
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: none;
+}
+
+.rich-text-editor .ql-editor .katex {
+  font-size: 1.05em;
+}
+
+/* =========================================================
+   QUILL LINK / VIDEO / FORMULA POPUP FIX
+   Prevents the built-in Quill tooltip from being clipped
+   inside the editor and makes its input clearly visible.
+========================================================= */
+
+.rich-text-editor .ql-container.ql-snow {
+  position: relative;
+  overflow: visible;
+}
+
+.rich-text-editor .ql-toolbar.ql-snow {
+  position: relative;
+  z-index: 4;
+  border-radius: 15px 15px 0 0;
+}
+
+.rich-text-editor .ql-container.ql-snow {
+  border-radius: 0;
+}
+
+.rich-text-editor .rich-editor-footer {
+  border-radius: 0 0 15px 15px;
+}
+
+
+/* =========================================================
+   TOOLTIP CARD
+========================================================= */
+
+.rich-text-editor .ql-snow .ql-tooltip {
+  position: absolute;
+
+  top: 14px !important;
+  left: 50% !important;
+  right: auto !important;
+
+  z-index: 999;
+
+  width: min(520px, calc(100% - 28px));
+
+  padding: 12px;
+
+  border: 1px solid #d6e2ef;
+  border-radius: 13px;
+
+  background: #ffffff;
+  color: #30445c;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  white-space: normal;
+
+  box-shadow:
+    0 18px 42px rgba(20, 47, 78, 0.18),
+    0 4px 12px rgba(20, 47, 78, 0.08);
+
+  transform: translateX(-50%) !important;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip.ql-hidden {
+  display: none;
+}
+
+
+/* =========================================================
+   POPUP LABEL
+========================================================= */
+
+.rich-text-editor .ql-snow .ql-tooltip::before {
+  flex-shrink: 0;
+
+  margin-right: 2px;
+
+  color: #5f7187;
+
+  font-family: "Poppins", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip[data-mode="link"]::before {
+  content: "Link URL";
+}
+
+.rich-text-editor .ql-snow .ql-tooltip[data-mode="video"]::before {
+  content: "Video URL";
+}
+
+.rich-text-editor .ql-snow .ql-tooltip[data-mode="formula"]::before {
+  content: "Math formula";
+}
+
+
+/* =========================================================
+   POPUP INPUT
+========================================================= */
+
+.rich-text-editor .ql-snow .ql-tooltip input[type="text"] {
+  flex: 1;
+
+  width: auto;
+  min-width: 0;
+  height: 38px;
+
+  margin: 0;
+  padding: 0 11px;
+
+  border: 1px solid #ccd9e7;
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #f8fbff;
+  color: #263b53;
+
+  font-family: "Poppins", sans-serif;
+  font-size: 12px;
+
+  box-shadow: none;
+
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip input[type="text"]:focus {
+  border-color: #4b8fd6;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 3px rgba(75, 143, 214, 0.12);
+}
+
+
+/* =========================================================
+   SAVE / EDIT / REMOVE BUTTONS
+========================================================= */
+
+.rich-text-editor .ql-snow .ql-tooltip a {
+  flex-shrink: 0;
+
+  min-height: 36px;
+
+  padding: 0 11px;
+
+  border-radius: 9px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Poppins", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  cursor: pointer;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip a.ql-action {
+  border: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      #2568b2,
+      #3485d3
+    );
+
+  color: #ffffff;
+
+  box-shadow:
+    0 5px 12px rgba(37, 104, 178, 0.18);
+}
+
+.rich-text-editor .ql-snow .ql-tooltip a.ql-action::after {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip.ql-editing a.ql-action::after {
+  content: "Save";
+}
+
+.rich-text-editor .ql-snow .ql-tooltip a.ql-remove {
+  border: 1px solid #e0e7ef;
+
+  background: #f5f8fb;
+  color: #73859a;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip a.ql-remove::before {
+  content: "Remove";
+  margin: 0;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip a.ql-preview {
+  flex: 1;
+
+  min-width: 0;
+
+  padding: 0;
+
+  overflow: hidden;
+
+  background: transparent;
+
+  color: #347bc1;
+
+  justify-content: flex-start;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   FORMULA / URL INPUT GUIDANCE
+========================================================= */
+
+.rich-text-editor .ql-snow .ql-tooltip[data-mode="formula"] input[type="text"] {
+  font-family: "Consolas", "Courier New", monospace;
+  letter-spacing: 0.1px;
+}
+
+.rich-text-editor .ql-snow .ql-tooltip[data-mode="formula"]::after {
+  content: "Example: b^2, x^2 + y^2, \\frac{a}{b}";
+
+  position: absolute;
+
+  left: 13px;
+  top: calc(100% + 6px);
+
+  padding: 6px 9px;
+
+  border: 1px solid #dce6f1;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #8190a3;
+
+  font-family: "Poppins", sans-serif;
+  font-size: 9px;
+
+  box-shadow:
+    0 5px 14px rgba(20, 47, 78, 0.08);
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   DARK MODE — TOOLTIP
+========================================================= */
+
+.dark .rich-text-editor .ql-snow .ql-tooltip {
+  border-color: #354861;
+
+  background: #1a2739;
+  color: #e7eef7;
+
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.32),
+    0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip::before {
+  color: #9aabc0;
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip input[type="text"] {
+  border-color: #3a4e68;
+
+  background: #111c2c;
+  color: #eef4fb;
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip input[type="text"]:focus {
+  border-color: #5c9fe2;
+
+  background: #152235;
+
+  box-shadow:
+    0 0 0 3px rgba(92, 159, 226, 0.13);
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip a.ql-remove {
+  border-color: #3a4d65;
+
+  background: #223044;
+  color: #a8b8ca;
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip a.ql-preview {
+  color: #79baff;
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip[data-mode="formula"]::after {
+  border-color: #354861;
+
+  background: #1a2739;
+  color: #91a4b9;
+
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.18);
+}
+
+
+/* =========================================================
+   MOBILE — TOOLTIP
+========================================================= */
+
+@media (max-width: 680px) {
+
+  .rich-text-editor .ql-snow .ql-tooltip {
+    top: 10px !important;
+
+    width: calc(100% - 18px);
+
+    padding: 10px;
+
+    flex-wrap: wrap;
+  }
+
+  .rich-text-editor .ql-snow .ql-tooltip::before {
+    width: 100%;
+  }
+
+  .rich-text-editor .ql-snow .ql-tooltip input[type="text"] {
+    flex: 1 1 calc(100% - 80px);
+  }
+
+  .rich-text-editor .ql-snow .ql-tooltip[data-mode="formula"]::after {
+    display: none;
+  }
+
+}

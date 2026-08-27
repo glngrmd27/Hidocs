@@ -137,3 +137,39 @@ func (c *RedisClient) GetPendingUser(ctx context.Context, email string) (string,
 	}
 	return c.rdb.Get(ctx, "pending:"+email).Result()
 }
+
+func (c *RedisClient) SetCache(ctx context.Context, key, val string, ttl time.Duration) error {
+	if c.isFallback {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		c.memStore[key] = memItem{
+			value:     val,
+			expiresAt: time.Now().Add(ttl),
+		}
+		return nil
+	}
+	return c.rdb.Set(ctx, key, val, ttl).Err()
+}
+
+func (c *RedisClient) GetCache(ctx context.Context, key string) (string, error) {
+	if c.isFallback {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		item, exists := c.memStore[key]
+		if !exists || time.Now().After(item.expiresAt) {
+			return "", redis.Nil
+		}
+		return item.value, nil
+	}
+	return c.rdb.Get(ctx, key).Result()
+}
+
+func (c *RedisClient) DeleteCache(ctx context.Context, key string) error {
+	if c.isFallback {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		delete(c.memStore, key)
+		return nil
+	}
+	return c.rdb.Del(ctx, key).Err()
+}

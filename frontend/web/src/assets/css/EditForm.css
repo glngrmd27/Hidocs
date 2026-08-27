@@ -1,0 +1,226 @@
+/* =========================================================
+   EDIT FORM — HIDOCS
+   Extends CreateForm.css so the edit page stays consistent.
+========================================================= */
+
+.edit-form-info-content {
+  max-width: 980px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.edit-form-information-note {
+  width: 100%;
+  margin-bottom: 22px;
+  padding: 15px 16px;
+  border: 1px solid #cfe1f5;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #f4f9ff, #ffffff);
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.edit-form-information-note > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #337bc1;
+  font-size: 17px;
+}
+
+.edit-form-information-note > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-form-information-note strong {
+  color: #2b4058;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.edit-form-information-note span {
+  color: #7f90a5;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.edit-form-locked-info {
+  width: 100%;
+  min-height: 68px;
+  margin-top: 16px;
+  padding: 13px 15px;
+  border: 1px solid #e1e8f0;
+  border-radius: 13px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.edit-form-locked-info > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-form-locked-info span {
+  color: #8796a9;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.edit-form-locked-info strong {
+  max-width: 100%;
+  color: #30445c;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-form-locked-badge {
+  min-height: 25px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #edf2f7;
+  border: 1px solid #dde5ee;
+  color: #77889d !important;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.edit-form-state-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 24px;
+  background: #f3f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Poppins", sans-serif;
+}
+
+.edit-form-state-card {
+  width: min(440px, 100%);
+  padding: 30px 24px;
+  border: 1px solid #dfe7f0;
+  border-radius: 20px;
+  background: #ffffff;
+  text-align: center;
+  box-shadow: 0 18px 45px rgba(24, 51, 84, .10);
+}
+
+.edit-form-state-card > svg {
+  margin-bottom: 13px;
+  color: #347bc1;
+  font-size: 34px;
+}
+
+.edit-form-state-card h2 {
+  margin: 0 0 7px;
+  color: #293e56;
+  font-size: 22px;
+}
+
+.edit-form-state-card p {
+  margin: 0;
+  color: #8494a7;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.edit-form-state-card button {
+  min-width: 130px;
+  height: 40px;
+  margin-top: 18px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: #256bb0;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.edit-form-loader {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 15px;
+  border: 3px solid #dbe8f5;
+  border-top-color: #347bc1;
+  border-radius: 50%;
+  display: block;
+  animation: edit-form-spin .8s linear infinite;
+}
+
+@keyframes edit-form-spin {
+  to { transform: rotate(360deg); }
+}
+
+.create-form-page.dark .edit-form-information-note {
+  background: linear-gradient(145deg, #1c2f45, #172234);
+  border-color: #31506e;
+}
+
+.create-form-page.dark .edit-form-information-note strong,
+.create-form-page.dark .edit-form-locked-info strong {
+  color: #edf3fa;
+}
+
+.create-form-page.dark .edit-form-information-note span,
+.create-form-page.dark .edit-form-locked-info span {
+  color: #8fa0b4;
+}
+
+.create-form-page.dark .edit-form-locked-info {
+  background: #1a2739;
+  border-color: #2f4056;
+}
+
+.create-form-page.dark .edit-form-locked-badge {
+  background: #263447;
+  border-color: #34465c;
+  color: #9aabbd !important;
+}
+
+.edit-form-state-page.dark {
+  background: #0d1624;
+}
+
+.edit-form-state-page.dark .edit-form-state-card {
+  background: #172234;
+  border-color: #2c3b50;
+}
+
+.edit-form-state-page.dark .edit-form-state-card h2 {
+  color: #edf3fa;
+}
+
+.edit-form-state-page.dark .edit-form-state-card p {
+  color: #8fa0b4;
+}
+
+@media (max-width: 680px) {
+  .edit-form-information-note,
+  .edit-form-locked-info {
+    border-radius: 12px;
+  }
+
+  .edit-form-locked-info {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

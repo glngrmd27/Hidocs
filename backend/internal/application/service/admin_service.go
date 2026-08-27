@@ -13,6 +13,8 @@ type AdminService interface {
 	GetDashboardStats(ctx context.Context) (*domain.AdminStats, error)
 	ListCreators(ctx context.Context) ([]dto.CreatorResponse, error)
 	CreateCreator(ctx context.Context, req dto.RegisterRequest) (*dto.UserResponse, error)
+	CreateAdmin(ctx context.Context, req dto.RegisterRequest) (*dto.UserResponse, error)
+	ListAdmins(ctx context.Context) ([]dto.UserResponse, error)
 	UpdateCreatorStatus(ctx context.Context, creatorID uuid.UUID, req dto.UpdateCreatorStatusRequest) error
 	ListAllForms(ctx context.Context) ([]dto.FormResponseDTO, error)
 	DeleteForm(ctx context.Context, formID uuid.UUID) error
@@ -87,6 +89,60 @@ func (s *adminService) CreateCreator(ctx context.Context, req dto.RegisterReques
 		IsActive:  user.IsActive,
 		CreatedAt: user.CreatedAt,
 	}, nil
+}
+
+func (s *adminService) CreateAdmin(ctx context.Context, req dto.RegisterRequest) (*dto.UserResponse, error) {
+	existing, _ := s.userRepo.GetByEmail(ctx, req.Email)
+	if existing != nil {
+		return nil, domain.ErrUserAlreadyExists
+	}
+
+	hashedPassword, err := s.passwordHasher.HashPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	user := &domain.User{
+		ID:           uuid.New(),
+		Name:         req.Name,
+		Email:        req.Email,
+		PasswordHash: hashedPassword,
+		Role:         domain.RoleAdmin,
+		IsActive:     true,
+	}
+
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return &dto.UserResponse{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Role:      user.Role,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt,
+	}, nil
+}
+
+func (s *adminService) ListAdmins(ctx context.Context) ([]dto.UserResponse, error) {
+	admins, err := s.adminRepo.ListAdmins(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var dtos []dto.UserResponse
+	for _, a := range admins {
+		dtos = append(dtos, dto.UserResponse{
+			ID:        a.ID,
+			Name:      a.Name,
+			Email:     a.Email,
+			Role:      a.Role,
+			IsActive:  a.IsActive,
+			CreatedAt: a.CreatedAt,
+		})
+	}
+	return dtos, nil
 }
 
 func (s *adminService) UpdateCreatorStatus(ctx context.Context, creatorID uuid.UUID, req dto.UpdateCreatorStatusRequest) error {

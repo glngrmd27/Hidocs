@@ -4,9 +4,15 @@ import '../app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/gradient_button.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool isCreatorMode;
+
+  const SettingsScreen({
+    super.key,
+    this.isCreatorMode = false,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -18,7 +24,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final auth = Provider.of<AuthProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final user = auth.currentUser!;
+    final user = auth.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -70,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     height: 58,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: auth.isAdmin
+                        colors: (auth.isAdmin || auth.isSuperAdmin)
                             ? [
                                 AppTheme.warning,
                                 const Color(0xFFE5890A),
@@ -83,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: (auth.isAdmin
+                          color: (auth.isAdmin || auth.isSuperAdmin
                                   ? AppTheme.warning
                                   : AppTheme.primary)
                               .withValues(alpha: 0.25),
@@ -94,7 +108,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        user.name.substring(0, 1).toUpperCase(),
+                        user.name.isEmpty
+                            ? '?'
+                            : user.name.substring(0, 1).toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
@@ -140,20 +156,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: auth.isAdmin
+                            color: (auth.isAdmin || auth.isSuperAdmin)
                                 ? AppTheme.warning.withValues(alpha: 0.12)
                                 : AppTheme.primary.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            auth.isAdmin
-                                ? 'ADMINISTRATOR'
-                                : 'USER',
+                            auth.isSuperAdmin
+                                ? 'SUPER ADMIN'
+                                : auth.isAdmin
+                                    ? 'ADMINISTRATOR'
+                                    : 'USER',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.8,
-                              color: auth.isAdmin
+                              color: (auth.isAdmin || auth.isSuperAdmin)
                                   ? AppTheme.warning
                                   : AppTheme.primary,
                             ),
@@ -199,6 +217,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24),
 
             _SettingsTile(
+              icon: widget.isCreatorMode
+                  ? Icons.person_rounded
+                  : Icons.dashboard_customize_rounded,
+              iconColor: widget.isCreatorMode
+                  ? AppTheme.info
+                  : AppTheme.success,
+              title: widget.isCreatorMode
+                  ? 'Mode User'
+                  : 'Mode Creator',
+              subtitle: widget.isCreatorMode
+                  ? 'Mengisi dan mengerjakan form / kuis'
+                  : 'Membuat dan mengelola form / kuis',
+              onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  widget.isCreatorMode
+                      ? '/user-home'
+                      : '/creator-home',
+                  (_) => false,
+                );
+              },
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppTheme.textMuted,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            _SettingsTile(
               icon: isDark
                   ? Icons.dark_mode_rounded
                   : Icons.light_mode_rounded,
@@ -214,7 +263,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (_) {
                   themeProvider.toggleTheme();
                 },
-                activeColor: AppTheme.primary,
+                activeThumbColor: AppTheme.primary,
               ),
             ),
 
@@ -223,6 +272,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               iconColor: AppTheme.info,
               title: 'About HiDocs!',
               subtitle: '',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        AboutScreen(isCreatorMode: widget.isCreatorMode),
+                  ),
+                );
+              },
               trailing: const Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
@@ -234,20 +292,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             GradientButton(
               text: 'Sign Out',
-              onPressed: () {
-                auth.logout();
+              onPressed: () async {
+                final nav = Navigator.of(context);
 
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
+                nav.pushNamedAndRemoveUntil(
                   '/login',
                   (_) => false,
                 );
+
+                await auth.logout();
               },
               fullWidth: true,
               icon: Icons.logout_rounded,
-              colors: [
+              colors: const [
                 AppTheme.error,
-                const Color(0xFFB71C1C),
+                Color(0xFFB71C1C),
               ],
             ),
           ],
@@ -262,6 +321,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String currentName,
     String currentEmail,
   ) {
+    final messenger = ScaffoldMessenger.of(context);
+
     final nameController = TextEditingController(
       text: currentName,
     );
@@ -294,12 +355,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               TextField(
                 controller: emailController,
+                readOnly: true,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: 'Email',
                   prefixIcon: Icon(
                     Icons.email_outlined,
                   ),
+                  helperText: 'Email tidak dapat diubah',
                 ),
               ),
             ],
@@ -315,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final name = nameController.text.trim();
                 final email = emailController.text.trim();
 
@@ -323,20 +386,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return;
                 }
 
-                auth.updateProfile(
+                await auth.updateProfile(
                   name: name,
                   email: email,
                 );
 
-                Navigator.pop(dialogContext);
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                messenger.showSnackBar(
+                  SnackBar(
                     content: Text(
-                      'Profile berhasil diperbarui',
+                      auth.error != null
+                          ? auth.error!
+                          : 'Profile berhasil diperbarui',
                     ),
+                    backgroundColor: auth.error != null
+                        ? AppTheme.error
+                        : null,
                   ),
                 );
+
+                auth.clearError();
               },
               child: const Text('Save'),
             ),
@@ -353,6 +425,7 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget trailing;
+  final VoidCallback? onTap;
 
   const _SettingsTile({
     required this.icon,
@@ -360,6 +433,7 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.trailing,
+    this.onTap,
   });
 
   @override
@@ -381,6 +455,7 @@ class _SettingsTile extends StatelessWidget {
         ),
       ),
       child: ListTile(
+        onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 4,

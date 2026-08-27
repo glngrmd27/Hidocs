@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 
-// ─── Primary gradient button ───────────────────────────────────────────────────
 class GradientButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -33,7 +32,7 @@ class GradientButton extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isLoading
-              ? [grad.first.withOpacity(0.70), grad.last.withOpacity(0.70)]
+              ? [grad.first.withValues(alpha: 0.70), grad.last.withValues(alpha: 0.70)]
               : grad,
           begin: Alignment.centerLeft,
           end:   Alignment.centerRight,
@@ -41,7 +40,7 @@ class GradientButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: isLoading ? null : [
           BoxShadow(
-            color: grad.first.withOpacity(0.28),
+            color: grad.first.withValues(alpha: 0.28),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -53,7 +52,7 @@ class GradientButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: isLoading ? null : onPressed,
-          splashColor: Colors.white.withOpacity(0.15),
+          splashColor: Colors.white.withValues(alpha: 0.15),
           child: Center(
             child: isLoading
                 ? const SizedBox(
@@ -76,7 +75,6 @@ class GradientButton extends StatelessWidget {
   }
 }
 
-// ─── Outlined / glass button ──────────────────────────────────────────────────
 class GlassButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -133,7 +131,6 @@ class GlassButton extends StatelessWidget {
   }
 }
 
-// ─── Icon action button (small) ───────────────────────────────────────────────
 class IconActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;

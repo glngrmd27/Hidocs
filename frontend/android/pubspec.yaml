@@ -8,16 +8,39 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   provider: ^6.1.2
   shared_preferences: ^2.3.2
-  intl: ^0.19.0
+  intl: ^0.20.2
   share_plus: ^10.1.4
   flutter_svg: ^2.0.10+1
+  http: ^1.2.2
+  mobile_scanner: ^7.4.0
+  qr_flutter: ^4.1.0
+  flutter_quill: ^11.5.1
+  flutter_quill_extensions: ^11.0.0
+  flutter_math_fork: ^0.7.4
+  dart_quill_delta: ^10.8.3
+  image_picker: ^1.2.3
+  path_provider: ^2.1.4
+  crypto: ^3.0.5
+  file_picker: ^10.1.9
+  pdf: ^3.11.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/logo.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo.png

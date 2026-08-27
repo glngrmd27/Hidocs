@@ -214,7 +214,7 @@ body {
 }
 
 .admin-hero-brand > span {
-    font-size: 19px;
+    font-size: 21px;
 
     font-weight: 700;
 
@@ -256,7 +256,7 @@ body {
 
     align-items: center;
 
-    font-size: 10px;
+    font-size: 12px;
 
     font-weight: 700;
 
@@ -268,7 +268,7 @@ body {
 
     color: #ffffff;
 
-    font-size: 34px;
+    font-size: 36px;
 
     line-height: 1.18;
 
@@ -324,7 +324,7 @@ body {
     color:
         rgba(255, 255, 255, .79);
 
-    font-size: 14px;
+    font-size: 16px;
 
     line-height: 1.65;
 }
@@ -431,7 +431,7 @@ body {
     align-items: center;
     justify-content: center;
 
-    font-size: 22px;
+    font-size: 24px;
 }
 
 .primary-card-icon.plus {
@@ -461,13 +461,13 @@ body {
 .primary-card-icon.word > svg {
     opacity: .23;
 
-    font-size: 31px;
+    font-size: 33px;
 }
 
 .primary-card-icon.word > span {
     position: absolute;
 
-    font-size: 18px;
+    font-size: 20px;
 
     font-weight: 800;
 }
@@ -488,7 +488,7 @@ body {
 
     color: #24364e;
 
-    font-size: 16px;
+    font-size: 18px;
 
     font-weight: 700;
 }
@@ -500,7 +500,7 @@ body {
 
     color: #8190a4;
 
-    font-size: 11px;
+    font-size: 13px;
 
     line-height: 1.55;
 }
@@ -522,7 +522,7 @@ body {
     align-items: center;
     justify-content: center;
 
-    font-size: 12px;
+    font-size: 14px;
 
     transition:
         background .2s ease,
@@ -560,7 +560,7 @@ body {
 
     color: #26394f;
 
-    font-size: 18px;
+    font-size: 20px;
 
     font-weight: 700;
 
@@ -584,7 +584,7 @@ body {
 
     font-family: inherit;
 
-    font-size: 11px;
+    font-size: 13px;
 
     font-weight: 700;
 
@@ -592,7 +592,7 @@ body {
 }
 
 .admin-view-all-btn svg {
-    font-size: 10px;
+    font-size: 12px;
 
     transition:
         transform .2s ease;
@@ -688,7 +688,7 @@ body {
     align-items: center;
     justify-content: center;
 
-    font-size: 17px;
+    font-size: 19px;
 }
 
 .recent-card-content {
@@ -700,7 +700,7 @@ body {
 
     color: #2b3f56;
 
-    font-size: 13px;
+    font-size: 15px;
 
     line-height: 1.45;
 
@@ -719,7 +719,7 @@ body {
 
     color: #96a2b2;
 
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .recent-card-date {
@@ -731,13 +731,13 @@ body {
 
     gap: 6px;
 
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .recent-card-date svg {
     color: #4f89c5;
 
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .recent-card-side {
@@ -773,7 +773,7 @@ body {
 
     gap: 5px;
 
-    font-size: 8px;
+    font-size: 10px;
 
     font-weight: 700;
 }
@@ -818,7 +818,7 @@ body {
 
     cursor: pointer;
 
-    font-size: 10px;
+    font-size: 12px;
 
     transition:
         background .2s ease,
@@ -880,7 +880,7 @@ body {
     align-items: center;
     justify-content: center;
 
-    font-size: 24px;
+    font-size: 26px;
 }
 
 .admin-empty-recent h3 {
@@ -888,7 +888,7 @@ body {
 
     color: #2d4058;
 
-    font-size: 15px;
+    font-size: 17px;
 }
 
 .admin-empty-recent p {
@@ -896,7 +896,7 @@ body {
 
     color: #8b99aa;
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .admin-empty-recent button {
@@ -920,7 +920,7 @@ body {
 
     font-family: inherit;
 
-    font-size: 10px;
+    font-size: 12px;
 
     font-weight: 700;
 
@@ -1017,7 +1017,7 @@ body {
 
     flex-shrink: 0;
 
-    font-size: 19px;
+    font-size: 21px;
 }
 
 .admin-nav-item span {
@@ -1025,7 +1025,7 @@ body {
 
     margin: 0;
 
-    font-size: 9px;
+    font-size: 11px;
 
     line-height: 1;
 
@@ -1226,7 +1226,7 @@ body {
     }
 
     .admin-hero-content h1 {
-        font-size: 30px;
+        font-size: 32px;
     }
 
     .admin-main-content {
@@ -1246,11 +1246,11 @@ body {
     }
 
     .primary-card-content h2 {
-        font-size: 15px;
+        font-size: 17px;
     }
 
     .primary-card-content p {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .admin-bottom-nav {
@@ -1288,7 +1288,7 @@ body {
     }
 
     .admin-hero-brand > span {
-        font-size: 17px;
+        font-size: 19px;
     }
 
     .admin-hero-content {
@@ -1300,17 +1300,17 @@ body {
 
         padding: 0 10px;
 
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .admin-hero-content h1 {
         margin-top: 13px;
 
-        font-size: 25px;
+        font-size: 27px;
     }
 
     .admin-hero-content p {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .hero-dots {
@@ -1358,15 +1358,15 @@ body {
 
         border-radius: 14px;
 
-        font-size: 19px;
+        font-size: 21px;
     }
 
     .primary-card-content h2 {
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .primary-card-content p {
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .primary-card-arrow {
@@ -1375,11 +1375,11 @@ body {
     }
 
     .admin-section-heading h2 {
-        font-size: 16px;
+        font-size: 18px;
     }
 
     .admin-view-all-btn {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .admin-recent-card {
@@ -1394,11 +1394,11 @@ body {
         width: 39px;
         height: 39px;
 
-        font-size: 15px;
+        font-size: 17px;
     }
 
     .recent-card-content h3 {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .admin-bottom-nav {
@@ -1426,11 +1426,11 @@ body {
         width: 17px;
         height: 17px;
 
-        font-size: 17px;
+        font-size: 19px;
     }
 
     .admin-nav-item span {
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .admin-nav-item.active::before {
@@ -1451,11 +1451,11 @@ body {
     }
 
     .admin-hero-content h1 {
-        font-size: 22px;
+        font-size: 24px;
     }
 
     .admin-hero-content p {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .primary-card-content p {
@@ -1473,7 +1473,7 @@ body {
     .recent-card-status {
         padding: 0 7px;
 
-        font-size: 7px;
+        font-size: 9px;
     }
 
     .recent-card-buttons button {
@@ -1535,7 +1535,7 @@ body {
 
     color: #3f7fbe;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 
     letter-spacing: 1.15px;
@@ -1548,7 +1548,7 @@ body {
 
     color: #8c9aac;
 
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.5;
 }
 
@@ -1571,7 +1571,7 @@ body {
     background: #edf5fd;
     color: #3c7fbd;
 
-    font-size: 7px;
+    font-size: 9px;
     font-weight: 700;
 
     text-transform: capitalize;
@@ -1633,7 +1633,7 @@ body {
 
     color: #3f7fbe;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 
     letter-spacing: 1.1px;
@@ -1815,7 +1815,7 @@ body {
     align-items: center;
     justify-content: center;
 
-    font-size: 17px;
+    font-size: 19px;
 }
 
 .admin-qr-modal-heading > div:last-child {
@@ -1829,7 +1829,7 @@ body {
 
     color: #4b83ba;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 
     letter-spacing: 1px;
@@ -1842,7 +1842,7 @@ body {
 
     color: #253a52;
 
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 700;
 }
 
@@ -1866,7 +1866,7 @@ body {
 
     cursor: pointer;
 
-    font-size: 12px;
+    font-size: 14px;
 
     transition:
         background .2s ease,
@@ -1909,7 +1909,7 @@ body {
     background: #edf5fd;
     color: #347abd;
 
-    font-size: 7px;
+    font-size: 9px;
     font-weight: 700;
 
     text-transform: capitalize;
@@ -1920,7 +1920,7 @@ body {
 
     color: #283c54;
 
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.45;
 
     font-weight: 700;
@@ -1931,7 +1931,7 @@ body {
 
     color: #8a99aa;
 
-    font-size: 10px;
+    font-size: 12px;
 }
 
 
@@ -2034,12 +2034,12 @@ body {
 
     gap: 6px;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
 }
 
 .admin-qr-scan-label svg {
-    font-size: 10px;
+    font-size: 12px;
 }
 
 
@@ -2067,7 +2067,7 @@ body {
 
     color: #8494a7;
 
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
 }
 
@@ -2091,7 +2091,7 @@ body {
 
     color: #3378b9;
 
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
 
     white-space: nowrap;
@@ -2118,7 +2118,7 @@ body {
 
     cursor: pointer;
 
-    font-size: 10px;
+    font-size: 12px;
 
     transition:
         background .2s ease,
@@ -2160,7 +2160,7 @@ body {
     border-radius: 11px;
 
     font-family: inherit;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
 
     cursor: pointer;
@@ -2451,11 +2451,11 @@ body {
     }
 
     .admin-section-heading p {
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .recent-card-type {
-        font-size: 6px;
+        font-size: 8px;
     }
 
     .admin-empty-recent {
@@ -2468,7 +2468,7 @@ body {
     .admin-empty-recent p {
         max-width: 300px;
 
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .admin-qr-overlay {
@@ -2497,7 +2497,7 @@ body {
     }
 
     .admin-qr-form-info h3 {
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .admin-qr-code-wrapper {
@@ -2528,8 +2528,6 @@ body {
     }
 
 }
-
-
 /* =========================================================
    SMALL MOBILE — QR
 ========================================================= */

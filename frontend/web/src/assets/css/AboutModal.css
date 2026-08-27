@@ -11,7 +11,6 @@
 
     z-index:9999;
 }
-
 .modal-box{
 
     width:450px;
@@ -27,23 +26,20 @@
 
     box-shadow:0 15px 40px rgba(0,0,0,.2);
 }
-
 .modal-box h2{
 
     color:#1D4ED8;
 
     margin-bottom:8px;
 }
-
 .version{
 
     color:#64748B;
 
     margin-bottom:25px;
 
-    font-size:15px;
+    font-size: 17px;
 }
-
 .about-content{
 
     color:#475569;
@@ -52,7 +48,6 @@
 
     margin-bottom:30px;
 }
-
 .save-btn{
 
     width:140px;

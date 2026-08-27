@@ -1,6 +1,7 @@
 package router
 
 import (
+	"backend/internal/domain"
 	"backend/internal/infrastructure/security"
 	"backend/internal/interfaces/http/handler"
 	"backend/internal/interfaces/http/middleware"
@@ -18,14 +19,20 @@ type RouterConfig struct {
 	ResponseHandler *handler.ResponseHandler
 	PublicHandler   *handler.PublicHandler
 	AdminHandler    *handler.AdminHandler
+	MetricsHandler  *handler.MetricsHandler
 	JWTManager      *security.JWTManager
 }
 
 func SetupRouter(cfg *RouterConfig) *gin.Engine {
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	if gin.Mode() == gin.DebugMode {
+		r.Use(gin.Logger(), gin.Recovery())
+	} else {
+		r.Use(gin.Recovery())
+	}
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimiter(500)) // Max 500 requests per minute per IP
+	r.Use(middleware.TrackMetrics())    // Telemetry & Traffic Collector Middleware
 
 	// Serve Uploaded Local Images Static Files
 	r.Static("/uploads", "./uploads")
@@ -115,7 +122,7 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 
 			// 7. Admin Exclusive Endpoints
 			admin := protected.Group("/admin")
-			admin.Use(middleware.RequireRole("admin"))
+			admin.Use(middleware.RequireRole(domain.RoleAdmin, domain.RoleSuperAdmin))
 			{
 				admin.GET("/dashboard/stats", cfg.AdminHandler.GetDashboardStats)
 				admin.GET("/creators", cfg.AdminHandler.ListCreators)
@@ -123,6 +130,24 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 				admin.PUT("/creators/:creator_id/status", cfg.AdminHandler.UpdateCreatorStatus)
 				admin.GET("/forms", cfg.AdminHandler.ListAllForms)
 				admin.DELETE("/forms/:form_id", cfg.AdminHandler.DeleteForm)
+
+				// Realtime Metrics & Telemetry Endpoints
+				metricsGroup := admin.Group("/metrics")
+				{
+					metricsGroup.GET("/realtime", cfg.MetricsHandler.GetRealtimeMetrics)
+					metricsGroup.GET("/system", cfg.MetricsHandler.GetSystemMetrics)
+					metricsGroup.GET("/live-exams", cfg.MetricsHandler.GetLiveExams)
+					metricsGroup.GET("/traffic-history", cfg.MetricsHandler.GetTrafficHistory)
+					metricsGroup.GET("/forms/:form_id", cfg.MetricsHandler.GetFormMetrics)
+				}
+			}
+
+			// 8. Superadmin Exclusive 
+			superadmin := protected.Group("/superadmin")
+			superadmin.Use(middleware.RequireRole(domain.RoleSuperAdmin))
+			{
+				superadmin.POST("/create-admin", cfg.AdminHandler.CreateAdmin)
+				superadmin.GET("/list-admin", cfg.AdminHandler.ListAdmins)
 			}
 		}
 	}

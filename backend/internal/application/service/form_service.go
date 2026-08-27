@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"math/rand"
 	"time"
 
 	"backend/internal/application/dto"
 	"backend/internal/domain"
+	"backend/internal/infrastructure/cache"
 	"backend/pkg/utils"
 	"github.com/google/uuid"
 )
@@ -23,11 +25,15 @@ type FormService interface {
 }
 
 type formService struct {
-	formRepo domain.FormRepository
+	formRepo    domain.FormRepository
+	redisClient *cache.RedisClient
 }
 
-func NewFormService(formRepo domain.FormRepository) FormService {
-	return &formService{formRepo: formRepo}
+func NewFormService(formRepo domain.FormRepository, redisClient *cache.RedisClient) FormService {
+	return &formService{
+		formRepo:    formRepo,
+		redisClient: redisClient,
+	}
 }
 
 func (s *formService) CreateForm(ctx context.Context, userID uuid.UUID, req dto.CreateFormRequest) (*dto.FormResponseDTO, error) {
@@ -159,6 +165,16 @@ func (s *formService) UpdateFormSettings(ctx context.Context, userID uuid.UUID, 
 }
 
 func (s *formService) GetPublicForm(ctx context.Context, identifier string) (*dto.PublicFormDTO, error) {
+	cacheKey := "cache:public_form:" + identifier
+	if s.redisClient != nil {
+		if cachedStr, err := s.redisClient.GetCache(ctx, cacheKey); err == nil && cachedStr != "" {
+			var cachedDTO dto.PublicFormDTO
+			if err := json.Unmarshal([]byte(cachedStr), &cachedDTO); err == nil {
+				return &cachedDTO, nil
+			}
+		}
+	}
+
 	var form *domain.Form
 	var err error
 
@@ -251,6 +267,13 @@ func (s *formService) GetPublicForm(ctx context.Context, identifier string) (*dt
 			IsRequired:   q.IsRequired,
 			Options:      publicOptions,
 		})
+	}
+
+	if s.redisClient != nil {
+		if jsonBytes, err := json.Marshal(publicDTO); err == nil {
+			_ = s.redisClient.SetCache(ctx, cacheKey, string(jsonBytes), 5*time.Minute)
+			_ = s.redisClient.SetCache(ctx, "cache:public_form:"+publicDTO.ID.String(), string(jsonBytes), 5*time.Minute)
+		}
 	}
 
 	return publicDTO, nil

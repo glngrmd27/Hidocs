@@ -1,16 +1,21 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app_theme.dart';
+import '../providers/auth_provider.dart';
 import '../providers/form_provider.dart';
+import '../providers/response_provider.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
+import '../services/question_image_renderer.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/math_formula_widget.dart';
 import '../widgets/code_block_widget.dart';
 import '../widgets/image_zoom_widget.dart';
+import '../widgets/timer_widget.dart';
 
 class FillFormScreen extends StatefulWidget {
   final FormModel form;
@@ -38,6 +43,30 @@ class _FillFormScreenState extends State<FillFormScreen> {
   bool _submitted = false;
   bool _isSubmitting = false;
 
+  final TransformationController _zoomController = TransformationController();
+  double _zoomScale = 1.0;
+
+  void _zoomIn() {
+    setState(() {
+      _zoomScale = (_zoomScale + 0.2).clamp(0.8, 2.5);
+      _zoomController.value = Matrix4.diagonal3Values(_zoomScale, _zoomScale, 1.0);
+    });
+  }
+
+  void _zoomOut() {
+    setState(() {
+      _zoomScale = (_zoomScale - 0.2).clamp(0.8, 2.5);
+      _zoomController.value = Matrix4.diagonal3Values(_zoomScale, _zoomScale, 1.0);
+    });
+  }
+
+  void _resetZoom() {
+    setState(() {
+      _zoomScale = 1.0;
+      _zoomController.value = Matrix4.identity();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,30 +75,27 @@ class _FillFormScreenState extends State<FillFormScreen> {
       widget.form.questions,
     );
 
+    // Warm the local question-image index so published questions can be
+    // displayed as images instead of live-rendered rich content.
+    QuestionImageRenderer.warmup().then((_) {
+      if (mounted) setState(() {});
+    });
+
     if (widget.form.shuffleQuestions) {
       _questions.shuffle();
     }
 
     if (widget.form.shuffleOptions) {
       _questions = _questions.map((q) {
-        if (q.type == QuestionType.multipleChoice &&
+        if ((q.type == QuestionType.multipleChoice ||
+                q.type == QuestionType.imageChoice) &&
             q.options.isNotEmpty) {
           final shuffledOptions =
               List<OptionModel>.from(q.options);
 
           shuffledOptions.shuffle();
 
-          return QuestionModel(
-            id: q.id,
-            type: q.type,
-            text: q.text,
-            imageUrl: q.imageUrl,
-            mathFormula: q.mathFormula,
-            codeSnippet: q.codeSnippet,
-            options: shuffledOptions,
-            isRequired: q.isRequired,
-            ratingMax: q.ratingMax,
-          );
+          return q.copyWith(options: shuffledOptions);
         }
 
         return q;
@@ -101,6 +127,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _zoomController.dispose();
 
     for (final controller in _controllers.values) {
       controller.dispose();
@@ -121,16 +148,6 @@ class _FillFormScreenState extends State<FillFormScreen> {
     return _controllers[questionId]!;
   }
 
-  String _fmtTime(int seconds) {
-    final minutes =
-        (seconds ~/ 60).toString().padLeft(2, '0');
-
-    final secs =
-        (seconds % 60).toString().padLeft(2, '0');
-
-    return '$minutes:$secs';
-  }
-
   void _autoSubmit() {
     if (_submitted || _isSubmitting) return;
 
@@ -139,9 +156,9 @@ class _FillFormScreenState extends State<FillFormScreen> {
     );
   }
 
-  void _submitForm({
+  Future<void> _submitForm({
     bool auto = false,
-  }) {
+  }) async {
     if (_submitted || _isSubmitting) return;
 
     if (!auto) {
@@ -205,14 +222,118 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
     setState(() {
       _isSubmitting = true;
+    });
+
+    final formProvider = Provider.of<FormProvider>(
+      context,
+      listen: false,
+    );
+
+    final auth = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    );
+
+    final answers = <Map<String, dynamic>>[];
+
+    for (final q in _questions) {
+      final value = _answers[q.id];
+
+      if (value == null) {
+        continue;
+      }
+
+      if (value is String && value.trim().isEmpty) {
+        continue;
+      }
+
+      if (q.type == QuestionType.multipleChoice ||
+          q.type == QuestionType.imageChoice ||
+          q.type == QuestionType.yesNo) {
+        answers.add({
+          'question_id': q.id,
+          'selected_option_id': value,
+          'answer_text': null,
+        });
+      } else {
+        answers.add({
+          'question_id': q.id,
+          'selected_option_id': null,
+          'answer_text': value.toString(),
+        });
+      }
+    }
+
+    final result = await formProvider.submitForm(
+      widget.form.id,
+      respondentEmail: auth.currentUser?.email ?? '',
+      answers: answers,
+      auto: auto,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result == null) {
+      final errorMessage = formProvider.error ??
+          'Gagal mengirim jawaban. Periksa jaringan Anda.';
+
+      formProvider.clearError();
+
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  errorMessage,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = false;
       _submitted = true;
     });
 
-    Provider.of<FormProvider>(
+    Provider.of<ResponseProvider>(
       context,
       listen: false,
-    ).markSubmitted(
-      widget.form.id,
+    ).recordSubmission(
+      formId: widget.form.id,
+      formTitle: widget.form.title,
+      responseId: (result['response_id'] ?? '').toString(),
+      respondentId: auth.currentUser?.id ?? '',
+      respondentEmail: auth.currentUser?.email ?? '',
+      answers: Map<String, dynamic>.from(_answers),
+      totalScore: (result['total_score'] as num?)?.toDouble(),
+      submittedAt:
+          DateTime.tryParse(result['submitted_at']?.toString() ?? ''),
+      maxScore: widget.form.maxScore,
     );
 
     if (auto && mounted) {
@@ -283,6 +404,8 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
     final q = _questions[_current];
 
+    final questionImagePath = QuestionImageRenderer.pathFor(q);
+
     final progress =
         (_current + 1) / _questions.length;
 
@@ -301,6 +424,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
               : AppTheme.surfaceLight,
 
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           widget.form.title,
           style: const TextStyle(
@@ -309,62 +433,50 @@ class _FillFormScreenState extends State<FillFormScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
-          if (widget.form.hasTimer)
-            Container(
-              constraints: const BoxConstraints(
-                minWidth: 82,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.zoom_out_rounded, size: 20),
+                tooltip: 'Zoom Out',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: _zoomScale > 0.8 ? _zoomOut : null,
               ),
-              margin: const EdgeInsets.only(
+              InkWell(
+                onTap: _resetZoom,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    '${(_zoomScale * 100).round()}%',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.zoom_in_rounded, size: 20),
+                tooltip: 'Zoom In',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: _zoomScale < 2.5 ? _zoomIn : null,
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
+          if (widget.form.hasTimer)
+            Padding(
+              padding: const EdgeInsets.only(
                 right: 12,
                 top: 8,
                 bottom: 8,
               ),
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color: isWarn
-                    ? AppTheme.error.withValues(
-                        alpha: 0.15,
-                      )
-                    : AppTheme.primaryFaint,
-                borderRadius:
-                    BorderRadius.circular(20),
-                border: Border.all(
-                  color: isWarn
-                      ? AppTheme.error.withValues(
-                          alpha: 0.35,
-                        )
-                      : AppTheme.primary.withValues(
-                          alpha: 0.20,
-                        ),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.timer_rounded,
-                    size: 15,
-                    color: isWarn
-                        ? AppTheme.error
-                        : AppTheme.primary,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _fmtTime(_remaining),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          FontWeight.w800,
-                      color: isWarn
-                          ? AppTheme.error
-                          : AppTheme.primary,
-                    ),
-                  ),
-                ],
+              child: TimerWidget(
+                remainingSeconds: _remaining,
+                isWarning: isWarn,
               ),
             ),
         ],
@@ -397,10 +509,21 @@ class _FillFormScreenState extends State<FillFormScreen> {
           ),
 
           Expanded(
-            child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.all(24),
-              child: Column(
+            child: InteractiveViewer(
+              transformationController: _zoomController,
+              minScale: 0.8,
+              maxScale: 2.5,
+              panEnabled: true,
+              scaleEnabled: true,
+              onInteractionEnd: (_) {
+                setState(() {
+                  _zoomScale = _zoomController.value.getMaxScaleOnAxis();
+                });
+              },
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.all(24),
+                child: Column(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
                 children: [
@@ -484,57 +607,92 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
                   const SizedBox(height: 18),
 
-                  Text(
-                    q.text,
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight:
-                          FontWeight.w700,
-                      color: isDark
-                          ? AppTheme
-                              .darkTextPrimary
-                          : AppTheme
-                              .textPrimary,
-                      height: 1.35,
+                  if (questionImagePath != null) ...[
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullScreenImageViewer(
+                              filePath: questionImagePath,
+                            ),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Image.file(
+                            File(questionImagePath),
+                            fit: BoxFit.fitWidth,
+                            errorBuilder: (_, __, ___) => const SizedBox(
+                              height: 80,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 22),
+                  ] else ...[
+                    Text(
+                      q.text,
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight:
+                            FontWeight.w700,
+                        color: isDark
+                            ? AppTheme
+                                .darkTextPrimary
+                            : AppTheme
+                                .textPrimary,
+                        height: 1.35,
+                      ),
+                    ),
 
-                  const SizedBox(height: 22),
+                    const SizedBox(height: 22),
 
-                  if (q.type ==
-                          QuestionType
-                              .mathFormula &&
-                      q.mathFormula != null) ...[
-                    MathFormulaWidget(
-                      formula:
-                          q.mathFormula!,
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                  ],
+                    if (q.type ==
+                            QuestionType
+                                .mathFormula &&
+                        q.mathFormula != null) ...[
+                      MathFormulaWidget(
+                        formula:
+                            q.mathFormula!,
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    ],
 
-                  if (q.type ==
-                          QuestionType
-                              .codeInput &&
-                      q.codeSnippet != null) ...[
-                    CodeBlockWidget(
-                      code:
-                          q.codeSnippet!,
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                  ],
+                    if (q.type ==
+                            QuestionType
+                                .codeInput &&
+                        q.codeSnippet != null) ...[
+                      CodeBlockWidget(
+                        code:
+                            q.codeSnippet!,
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    ],
 
-                  if (q.imageUrl != null) ...[
-                    ImageZoomWidget(
-                      imageUrl:
-                          q.imageUrl!,
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    if (q.imageUrl != null) ...[
+                      ImageZoomWidget(
+                        imageUrl:
+                            q.imageUrl!,
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    ],
                   ],
 
                   _buildAnswer(
@@ -545,6 +703,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
               ),
             ),
           ),
+        ),
 
           _NavBar(
             current: _current,
@@ -643,25 +802,51 @@ class _FillFormScreenState extends State<FillFormScreen> {
         return _YesNoAnswer(
           value:
               _answers[q.id] as String?,
-          onSelect: (v) {
+          onSelect: (yes) {
             setState(() {
-              _answers[q.id] = v;
+              _answers[q.id] =
+                  _yesNoOptionId(q, yes);
             });
           },
         );
 
       case QuestionType.imageChoice:
-        return _TextAnswer(
-          controller:
-              _getController(q.id),
-          hint:
-              'Image choices will appear here...',
-          maxLines: 1,
-          onChanged: (v) {
-            _answers[q.id] = v;
+        return _MCAnswer(
+          q: q,
+          answers: _answers,
+          isDark: isDark,
+          onSelect: (id) {
+            setState(() {
+              _answers[q.id] = id;
+            });
           },
         );
     }
+  }
+
+  String? _yesNoOptionId(
+    QuestionModel q,
+    bool yes,
+  ) {
+    for (final opt in q.options) {
+      final t = opt.text.trim().toLowerCase();
+      if (yes &&
+          (t == 'yes' || t == 'ya')) {
+        return opt.id;
+      }
+      if (!yes &&
+          (t == 'no' || t == 'tidak')) {
+        return opt.id;
+      }
+    }
+
+    if (q.options.isNotEmpty) {
+      return yes
+          ? q.options.first.id
+          : q.options.last.id;
+    }
+
+    return null;
   }
 }
 
@@ -1121,26 +1306,58 @@ class _MCAnswer
                   ),
 
                   Expanded(
-                    child: Text(
-                      opt.text,
-                      style:
-                          TextStyle(
-                        fontSize: 15,
-                        fontWeight:
-                            selected
-                                ? FontWeight
-                                    .w600
-                                : FontWeight
-                                    .w400,
-                        color: selected
-                            ? AppTheme
-                                .primary
-                            : (isDark
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        if (opt.imageUrl != null) ...[
+                          ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(10),
+                            child: Image.network(
+                              opt.imageUrl!,
+                              width: double.infinity,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder:
+                                  (_, __, ___) => const SizedBox(
+                                height: 60,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color:
+                                        AppTheme.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 8,
+                          ),
+                        ],
+                        Text(
+                          opt.text,
+                          style:
+                              TextStyle(
+                            fontSize: 15,
+                            fontWeight:
+                                selected
+                                    ? FontWeight
+                                        .w600
+                                    : FontWeight
+                                        .w400,
+                            color: selected
                                 ? AppTheme
-                                    .darkTextSecondary
-                                : AppTheme
-                                    .textSecondary),
-                      ),
+                                    .primary
+                                : (isDark
+                                    ? AppTheme
+                                        .darkTextSecondary
+                                    : AppTheme
+                                        .textSecondary),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1337,7 +1554,7 @@ class _RatingAnswer
 class _YesNoAnswer
     extends StatelessWidget {
   final String? value;
-  final void Function(String) onSelect;
+  final void Function(bool) onSelect;
 
   const _YesNoAnswer({
     required this.value,
@@ -1358,9 +1575,9 @@ class _YesNoAnswer
             color:
                 AppTheme.success,
             selected:
-                value == 'yes',
+                value == 'yes' || value == 'Yes',
             onTap: () =>
-                onSelect('yes'),
+                onSelect(true),
           ),
         ),
 
@@ -1376,9 +1593,9 @@ class _YesNoAnswer
             color:
                 AppTheme.error,
             selected:
-                value == 'no',
+                value == 'no' || value == 'No',
             onTap: () =>
-                onSelect('no'),
+                onSelect(false),
           ),
         ),
       ],

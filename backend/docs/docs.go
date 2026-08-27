@@ -21,6 +21,11 @@ const docTemplate = `{
     "paths": {
         "/api/v1/admin/creators": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -50,14 +55,14 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "post": {
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -98,16 +103,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/admin/creators/{creator_id}/status": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -143,16 +148,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/admin/dashboard/stats": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -179,16 +184,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/admin/forms": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -218,16 +223,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/admin/forms/{form_id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "tags": [
                     "Admin"
                 ],
@@ -248,12 +253,161 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/v1/admin/metrics/forms/{form_id}": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Track live active students taking a specific exam form in real-time.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Telemetry \u0026 Monitoring"
+                ],
+                "summary": "Monitor live student activity on a specific form/exam",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Form ID UUID",
+                        "name": "form_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.FormMetricsDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/metrics/live-exams": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Monitor active exams currently in progress and distribution of students taking each exam.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Telemetry \u0026 Monitoring"
+                ],
+                "summary": "Get active live exams and real-time student distribution",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.LiveExamsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/metrics/realtime": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stream live telemetry via WebSocket or retrieve instantaneous snapshot JSON (RPS, Latency P95/P99, Active Users, Submissions).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Telemetry \u0026 Monitoring"
+                ],
+                "summary": "Stream or fetch real-time traffic telemetry metrics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RealtimeMetricsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/metrics/system": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Monitor CPU, memory allocations, goroutines count, and database connection pool status during peak load.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Telemetry \u0026 Monitoring"
+                ],
+                "summary": "Get Go runtime \u0026 PostgreSQL connection pool health metrics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SystemMetricsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/metrics/traffic-history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve traffic time-series (RPS, Latency ms, Error count) over the last 1-2 hours for Line Chart visualization.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Telemetry \u0026 Monitoring"
+                ],
+                "summary": "Get historical traffic time-series data for dashboard charts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Duration (e.g. 1h, today)",
+                        "name": "duration",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TrafficHistoryResponse"
+                        }
+                    }
+                }
             }
         },
         "/api/v1/auth/forgot-password": {
@@ -503,6 +657,11 @@ const docTemplate = `{
         },
         "/api/v1/forms": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -540,14 +699,14 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "post": {
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -588,16 +747,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/import-docx": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -636,16 +795,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/{form_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -681,14 +840,14 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "put": {
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -736,14 +895,14 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "tags": [
                     "Forms"
                 ],
@@ -764,16 +923,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/{form_id}/analytics": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -809,16 +968,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/{form_id}/export": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "tags": [
                     "Responses"
                 ],
@@ -845,16 +1004,16 @@ const docTemplate = `{
                             "type": "file"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/{form_id}/questions": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -893,14 +1052,14 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "post": {
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -948,16 +1107,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/{form_id}/responses": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -996,16 +1155,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/{form_id}/settings": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -1053,12 +1212,7 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/forms/{form_id}/submit": {
@@ -1115,6 +1269,11 @@ const docTemplate = `{
         },
         "/api/v1/options/{option_id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "tags": [
                     "Questions"
                 ],
@@ -1135,12 +1294,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/public/forms/{short_code}": {
@@ -1213,6 +1367,11 @@ const docTemplate = `{
         },
         "/api/v1/questions/upload-image": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1251,16 +1410,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/questions/{question_id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -1308,14 +1467,14 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "tags": [
                     "Questions"
                 ],
@@ -1336,16 +1495,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/responses/{response_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -1381,16 +1540,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/responses/{response_id}/grade": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -1426,16 +1585,105 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/v1/superadmin/create-admin": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin"
+                ],
+                "summary": "Create a new admin account (SuperAdmin only)",
+                "parameters": [
+                    {
+                        "description": "Create Admin Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/superadmin/list-admin": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin"
+                ],
+                "summary": "List all admin accounts (SuperAdmin only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.UserResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/users/me": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -1462,14 +1710,14 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "put": {
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -1510,16 +1758,16 @@ const docTemplate = `{
                             ]
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/users/students/import": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -1548,12 +1796,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         }
     },
@@ -1717,10 +1960,12 @@ const docTemplate = `{
         "domain.UserRole": {
             "type": "string",
             "enum": [
+                "superadmin",
                 "admin",
                 "user"
             ],
             "x-enum-varnames": [
+                "RoleSuperAdmin",
                 "RoleAdmin",
                 "RoleUser"
             ]
@@ -1765,6 +2010,17 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/dto.UserResponse"
+                }
+            }
+        },
+        "dto.CpuMetrics": {
+            "type": "object",
+            "properties": {
+                "cores": {
+                    "type": "integer"
+                },
+                "usage_percent": {
+                    "type": "number"
                 }
             }
         },
@@ -1879,6 +2135,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.DBPoolMetrics": {
+            "type": "object",
+            "properties": {
+                "active_connections": {
+                    "type": "integer"
+                },
+                "idle_connections": {
+                    "type": "integer"
+                },
+                "max_open_connections": {
+                    "type": "integer"
+                },
+                "wait_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.ForgotPasswordRequest": {
             "type": "object",
             "required": [
@@ -1887,6 +2160,26 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.FormMetricsDTO": {
+            "type": "object",
+            "properties": {
+                "active_students": {
+                    "type": "integer"
+                },
+                "average_score": {
+                    "type": "number"
+                },
+                "form_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_submitted": {
+                    "type": "integer"
                 }
             }
         },
@@ -1943,6 +2236,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.HttpStatusBreakdown": {
+            "type": "object",
+            "properties": {
+                "2xx_success": {
+                    "type": "integer"
+                },
+                "4xx_client_err": {
+                    "type": "integer"
+                },
+                "5xx_server_err": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.ImportStudentsRequest": {
             "type": "object",
             "required": [
@@ -1954,6 +2261,66 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.RegisterRequest"
                     }
+                }
+            }
+        },
+        "dto.LatencyStats": {
+            "type": "object",
+            "properties": {
+                "avg_ms": {
+                    "type": "number"
+                },
+                "p95_ms": {
+                    "type": "number"
+                },
+                "p99_ms": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.LiveExamDTO": {
+            "type": "object",
+            "properties": {
+                "active_students": {
+                    "type": "integer"
+                },
+                "creator_name": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "form_id": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "submitted_count": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_target_students": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.LiveExamsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.LiveExamDTO"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -1969,6 +2336,20 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.MemoryMetrics": {
+            "type": "object",
+            "properties": {
+                "alloc_mb": {
+                    "type": "number"
+                },
+                "gc_cycles": {
+                    "type": "integer"
+                },
+                "sys_mb": {
+                    "type": "number"
                 }
             }
         },
@@ -2149,6 +2530,64 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RealtimeMetricsData": {
+            "type": "object",
+            "properties": {
+                "active_connections": {
+                    "type": "integer"
+                },
+                "active_users": {
+                    "type": "integer"
+                },
+                "average_response_time_ms": {
+                    "type": "number"
+                },
+                "error_rate_percent": {
+                    "type": "number"
+                },
+                "http_status_breakdown": {
+                    "$ref": "#/definitions/dto.HttpStatusBreakdown"
+                },
+                "latency": {
+                    "$ref": "#/definitions/dto.LatencyStats"
+                },
+                "p95_response_time_ms": {
+                    "type": "number"
+                },
+                "p99_response_time_ms": {
+                    "type": "number"
+                },
+                "requests_per_second": {
+                    "type": "number"
+                },
+                "submissions_per_minute": {
+                    "type": "integer"
+                },
+                "system_metrics": {
+                    "$ref": "#/definitions/dto.SystemMetricsDetail"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "total_submissions_today": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.RealtimeMetricsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.RealtimeMetricsData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.RegisterRequest": {
             "type": "object",
             "required": [
@@ -2285,6 +2724,99 @@ const docTemplate = `{
                 },
                 "total_score": {
                     "type": "number"
+                }
+            }
+        },
+        "dto.SystemMetricsData": {
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "$ref": "#/definitions/dto.CpuMetrics"
+                },
+                "database_pool": {
+                    "$ref": "#/definitions/dto.DBPoolMetrics"
+                },
+                "goroutines_count": {
+                    "type": "integer"
+                },
+                "memory": {
+                    "$ref": "#/definitions/dto.MemoryMetrics"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SystemMetricsDetail": {
+            "type": "object",
+            "properties": {
+                "cpu_usage_percent": {
+                    "type": "number"
+                },
+                "db_idle_connections": {
+                    "type": "integer"
+                },
+                "db_open_connections": {
+                    "type": "integer"
+                },
+                "memory_usage_mb": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.SystemMetricsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.SystemMetricsData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.TimeSeriesPoint": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "integer"
+                },
+                "latency_ms": {
+                    "type": "number"
+                },
+                "rps": {
+                    "type": "number"
+                },
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.TrafficHistoryData": {
+            "type": "object",
+            "properties": {
+                "time_series": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TimeSeriesPoint"
+                    }
+                }
+            }
+        },
+        "dto.TrafficHistoryResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.TrafficHistoryData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },

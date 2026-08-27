@@ -2,4 +2,5 @@
 .env.*
 *.save
 node_modules/
-
+/alur
+/frontend/android/READ.md

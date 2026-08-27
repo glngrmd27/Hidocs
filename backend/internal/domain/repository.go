@@ -82,6 +82,7 @@ type QuestionAnalytics struct {
 type AdminRepository interface {
 	GetDashboardStats(ctx context.Context) (*AdminStats, error)
 	ListCreators(ctx context.Context) ([]User, error)
+	ListAdmins(ctx context.Context) ([]User, error)
 	UpdateCreatorStatus(ctx context.Context, creatorID uuid.UUID, isActive bool) error
 	ListAllForms(ctx context.Context) ([]Form, error)
 	DeleteForm(ctx context.Context, formID uuid.UUID) error

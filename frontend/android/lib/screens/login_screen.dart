@@ -6,8 +6,6 @@ import '../widgets/gradient_button.dart';
 import '../widgets/custom_input.dart';
 import '../widgets/hidocs_logo.dart';
 import 'register_screen.dart';
-import 'admin_home_screen.dart';
-import 'user_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _usernameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _formKey      = GlobalKey<FormState>();
   bool  _obscure      = true;
@@ -37,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
-    _usernameCtrl.dispose();
+    _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _fadeCtrl.dispose();
     super.dispose();
@@ -52,8 +50,8 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     await auth.login(
-      _usernameCtrl.text.trim(),
-      _passwordCtrl.text.trim(),
+      _emailCtrl.text.trim(),
+      _passwordCtrl.text,
     );
 
     if (!mounted) return;
@@ -65,19 +63,11 @@ class _LoginScreenState extends State<LoginScreen>
     }
 
     if (auth.isLoggedIn) {
-      if (auth.isAdmin) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/admin-home',
-          (route) => false,
-        );
-      } else {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/user-home',
-          (route) => false,
-        );
-      }
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/role-select',
+        (route) => false,
+      );
     }
   }
 
@@ -145,18 +135,18 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 0),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(32, 40, 32, 0),
                         child: Column(children: [
                           HiDocsLogo(size: 84),
-                          const SizedBox(height: 16),
-                          const Text('HiDocs!',
+                          SizedBox(height: 16),
+                          Text('HiDocs!',
                               style: TextStyle(
                                   fontSize: 38,
                                   fontWeight: FontWeight.w900,
                                   color: Colors.white,
                                   letterSpacing: -1.5)),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                         ]),
                       ),
                       const SizedBox(height: 36),
@@ -213,13 +203,19 @@ class _LoginScreenState extends State<LoginScreen>
                               const SizedBox(height: 28),
 
                               CustomInput(
-                                controller: _usernameCtrl,
-                                label: 'Username',
-                                hint: 'Enter your username',
-                                prefixIcon: Icons.person_outline_rounded,
+                                controller: _emailCtrl,
+                                label: 'Email Address',
+                                hint: 'Enter your email',
+                                prefixIcon: Icons.mail_outline_rounded,
+                                keyboardType: TextInputType.emailAddress,
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
-                                    return 'Username is required';
+                                    return 'Email is required';
+                                  }
+                                  if (!RegExp(
+                                    r'^[^@]+@[^@]+\.[^@]+',
+                                  ).hasMatch(v)) {
+                                    return 'Invalid email format';
                                   }
                                   return null;
                                 },
@@ -306,43 +302,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 28),
-
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 20),
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                              color:
-                                  Colors.white.withValues(alpha: 0.20)),
-                        ),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                          Row(children: [
-                            const Icon(Icons.info_outline_rounded,
-                                size: 15, color: AppTheme.accent),
-                            const SizedBox(width: 8),
-                            Text('Demo Accounts',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.accent)),
-                          ]),
-                          const SizedBox(height: 12),
-                          _DemoRow(
-                              icon: Icons.admin_panel_settings_rounded,
-                              label: 'Admin',
-                              value: 'Admin  /  admin123'),
-                          const SizedBox(height: 6),
-                          _DemoRow(
-                              icon: Icons.person_rounded,
-                              label: 'User',
-                              value: 'Budi  /  user123'),
-                        ]),
-                      ),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -353,32 +312,6 @@ class _LoginScreenState extends State<LoginScreen>
         ]),
       ),
     );
-  }
-}
-
-class _DemoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _DemoRow(
-      {required this.icon, required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Icon(icon, size: 14, color: AppTheme.accent),
-      const SizedBox(width: 8),
-      Text('$label: ',
-          style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.accent)),
-      Expanded(
-          child: Text(value,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.75),
-                  fontWeight: FontWeight.w400))),
-    ]);
   }
 }
 

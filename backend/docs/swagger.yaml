@@ -113,10 +113,12 @@ definitions:
     - TypeImage
   domain.UserRole:
     enum:
+    - superadmin
     - admin
     - user
     type: string
     x-enum-varnames:
+    - RoleSuperAdmin
     - RoleAdmin
     - RoleUser
   dto.AnswerDetailDTO:
@@ -146,6 +148,13 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.CpuMetrics:
+    properties:
+      cores:
+        type: integer
+      usage_percent:
+        type: number
     type: object
   dto.CreateFormRequest:
     properties:
@@ -220,12 +229,36 @@ definitions:
       name:
         type: string
     type: object
+  dto.DBPoolMetrics:
+    properties:
+      active_connections:
+        type: integer
+      idle_connections:
+        type: integer
+      max_open_connections:
+        type: integer
+      wait_count:
+        type: integer
+    type: object
   dto.ForgotPasswordRequest:
     properties:
       email:
         type: string
     required:
     - email
+    type: object
+  dto.FormMetricsDTO:
+    properties:
+      active_students:
+        type: integer
+      average_score:
+        type: number
+      form_id:
+        type: string
+      title:
+        type: string
+      total_submitted:
+        type: integer
     type: object
   dto.FormResponseDTO:
     properties:
@@ -262,6 +295,15 @@ definitions:
         minimum: 0
         type: number
     type: object
+  dto.HttpStatusBreakdown:
+    properties:
+      2xx_success:
+        type: integer
+      4xx_client_err:
+        type: integer
+      5xx_server_err:
+        type: integer
+    type: object
   dto.ImportStudentsRequest:
     properties:
       students:
@@ -270,6 +312,45 @@ definitions:
         type: array
     required:
     - students
+    type: object
+  dto.LatencyStats:
+    properties:
+      avg_ms:
+        type: number
+      p95_ms:
+        type: number
+      p99_ms:
+        type: number
+    type: object
+  dto.LiveExamDTO:
+    properties:
+      active_students:
+        type: integer
+      creator_name:
+        type: string
+      ends_at:
+        type: string
+      form_id:
+        type: string
+      started_at:
+        type: string
+      submitted_count:
+        type: integer
+      title:
+        type: string
+      total_target_students:
+        type: integer
+    type: object
+  dto.LiveExamsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.LiveExamDTO'
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   dto.LoginRequest:
     properties:
@@ -280,6 +361,15 @@ definitions:
     required:
     - email
     - password
+    type: object
+  dto.MemoryMetrics:
+    properties:
+      alloc_mb:
+        type: number
+      gc_cycles:
+        type: integer
+      sys_mb:
+        type: number
     type: object
   dto.OptionDTO:
     properties:
@@ -397,6 +487,44 @@ definitions:
       question_type:
         $ref: '#/definitions/domain.QuestionType'
     type: object
+  dto.RealtimeMetricsData:
+    properties:
+      active_connections:
+        type: integer
+      active_users:
+        type: integer
+      average_response_time_ms:
+        type: number
+      error_rate_percent:
+        type: number
+      http_status_breakdown:
+        $ref: '#/definitions/dto.HttpStatusBreakdown'
+      latency:
+        $ref: '#/definitions/dto.LatencyStats'
+      p95_response_time_ms:
+        type: number
+      p99_response_time_ms:
+        type: number
+      requests_per_second:
+        type: number
+      submissions_per_minute:
+        type: integer
+      system_metrics:
+        $ref: '#/definitions/dto.SystemMetricsDetail'
+      timestamp:
+        type: string
+      total_submissions_today:
+        type: integer
+    type: object
+  dto.RealtimeMetricsResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.RealtimeMetricsData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   dto.RegisterRequest:
     properties:
       email:
@@ -489,6 +617,66 @@ definitions:
         type: string
       total_score:
         type: number
+    type: object
+  dto.SystemMetricsData:
+    properties:
+      cpu:
+        $ref: '#/definitions/dto.CpuMetrics'
+      database_pool:
+        $ref: '#/definitions/dto.DBPoolMetrics'
+      goroutines_count:
+        type: integer
+      memory:
+        $ref: '#/definitions/dto.MemoryMetrics'
+      timestamp:
+        type: string
+    type: object
+  dto.SystemMetricsDetail:
+    properties:
+      cpu_usage_percent:
+        type: number
+      db_idle_connections:
+        type: integer
+      db_open_connections:
+        type: integer
+      memory_usage_mb:
+        type: number
+    type: object
+  dto.SystemMetricsResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.SystemMetricsData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.TimeSeriesPoint:
+    properties:
+      errors:
+        type: integer
+      latency_ms:
+        type: number
+      rps:
+        type: number
+      time:
+        type: string
+    type: object
+  dto.TrafficHistoryData:
+    properties:
+      time_series:
+        items:
+          $ref: '#/definitions/dto.TimeSeriesPoint'
+        type: array
+    type: object
+  dto.TrafficHistoryResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.TrafficHistoryData'
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   dto.UpdateCreatorStatusRequest:
     properties:
@@ -768,6 +956,101 @@ paths:
       summary: Delete form as admin
       tags:
       - Admin
+  /api/v1/admin/metrics/forms/{form_id}:
+    get:
+      description: Track live active students taking a specific exam form in real-time.
+      parameters:
+      - description: Form ID UUID
+        in: path
+        name: form_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FormMetricsDTO'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Monitor live student activity on a specific form/exam
+      tags:
+      - Telemetry & Monitoring
+  /api/v1/admin/metrics/live-exams:
+    get:
+      description: Monitor active exams currently in progress and distribution of
+        students taking each exam.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LiveExamsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get active live exams and real-time student distribution
+      tags:
+      - Telemetry & Monitoring
+  /api/v1/admin/metrics/realtime:
+    get:
+      description: Stream live telemetry via WebSocket or retrieve instantaneous snapshot
+        JSON (RPS, Latency P95/P99, Active Users, Submissions).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RealtimeMetricsResponse'
+      security:
+      - BearerAuth: []
+      summary: Stream or fetch real-time traffic telemetry metrics
+      tags:
+      - Telemetry & Monitoring
+  /api/v1/admin/metrics/system:
+    get:
+      description: Monitor CPU, memory allocations, goroutines count, and database
+        connection pool status during peak load.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SystemMetricsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Go runtime & PostgreSQL connection pool health metrics
+      tags:
+      - Telemetry & Monitoring
+  /api/v1/admin/metrics/traffic-history:
+    get:
+      description: Retrieve traffic time-series (RPS, Latency ms, Error count) over
+        the last 1-2 hours for Line Chart visualization.
+      parameters:
+      - description: Duration (e.g. 1h, today)
+        in: query
+        name: duration
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TrafficHistoryResponse'
+      security:
+      - BearerAuth: []
+      summary: Get historical traffic time-series data for dashboard charts
+      tags:
+      - Telemetry & Monitoring
   /api/v1/auth/forgot-password:
     post:
       consumes:
@@ -1463,6 +1746,55 @@ paths:
       summary: Adjust score/grade manually for a response
       tags:
       - Responses
+  /api/v1/superadmin/create-admin:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create Admin Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new admin account (SuperAdmin only)
+      tags:
+      - SuperAdmin
+  /api/v1/superadmin/list-admin:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List all admin accounts (SuperAdmin only)
+      tags:
+      - SuperAdmin
   /api/v1/users/me:
     get:
       produces:

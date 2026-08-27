@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"backend/config"
 	_ "backend/docs"
@@ -17,6 +18,7 @@ import (
 	"backend/internal/infrastructure/security"
 	"backend/internal/interfaces/http/handler"
 	"backend/internal/interfaces/http/router"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -29,7 +31,7 @@ import (
 // @contact.name HiDocs Support
 // @contact.email support@hidocs.id
 
-// @host localhost:8080
+// @host localhost:8088
 // @BasePath /
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -51,9 +53,6 @@ func main() {
 	redisClient := cache.NewRedisClient(cfg)
 	emailSender := email.NewSMTPEmailSender(cfg)
 
-	// Seed Admin User if not existing
-	seedAdmin(db, hasher)
-
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	formRepo := repository.NewFormRepository(db)
@@ -64,12 +63,13 @@ func main() {
 	// Services
 	authService := service.NewAuthService(userRepo, hasher, jwtManager, redisClient, emailSender)
 	userService := service.NewUserService(userRepo, hasher)
-	formService := service.NewFormService(formRepo)
+	formService := service.NewFormService(formRepo, redisClient)
 	questionService := service.NewQuestionService(questionRepo, formRepo)
 	responseService := service.NewResponseService(responseRepo, formRepo, questionRepo)
 	docxService := service.NewDocxService(docxParser, formRepo, questionRepo)
 	exportService := service.NewExportService(formRepo, responseRepo, questionRepo)
 	adminService := service.NewAdminService(adminRepo, userRepo, hasher)
+	metricsService := service.NewMetricsService(db, formRepo)
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -79,6 +79,7 @@ func main() {
 	responseHandler := handler.NewResponseHandler(responseService, exportService)
 	publicHandler := handler.NewPublicHandler(formService)
 	adminHandler := handler.NewAdminHandler(adminService)
+	metricsHandler := handler.NewMetricsHandler(metricsService)
 
 	// Router
 	r := router.SetupRouter(&router.RouterConfig{
@@ -89,15 +90,23 @@ func main() {
 		ResponseHandler: responseHandler,
 		PublicHandler:   publicHandler,
 		AdminHandler:    adminHandler,
+		MetricsHandler:  metricsHandler,
 		JWTManager:      jwtManager,
 	})
+
+	// Auto-seed default SuperAdmin and Test Exam Form for load testing
+	seedSuperAdmin(db, hasher)
+	seedTestExam(db)
 
 	serverAddr := fmt.Sprintf(":%s", cfg.AppPort)
 	log.Printf("🚀 HiDocs Backend Server running on port %s", cfg.AppPort)
 
 	srv := &http.Server{
-		Addr:    serverAddr,
-		Handler: r,
+		Addr:         serverAddr,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -105,21 +114,81 @@ func main() {
 	}
 }
 
-func seedAdmin(db *gorm.DB, hasher security.PasswordHasher) {
-	var count int64
-	db.Model(&domain.User{}).Where("role = ?", domain.RoleAdmin).Count(&count)
-	if count == 0 {
+func seedSuperAdmin(db *gorm.DB, hasher security.PasswordHasher) {
+	var user domain.User
+	err := db.Where("email = ?", "admin@hidocs.id").First(&user).Error
+	if err != nil {
 		hashed, _ := hasher.HashPassword("admin123")
 		admin := &domain.User{
-			ID:           uuid.New(),
+			ID:           uuid.MustParse("8763d91d-7257-4863-a42d-7ceb5047446e"),
 			Name:         "System Admin",
 			Email:        "admin@hidocs.id",
 			PasswordHash: hashed,
 			Role:         domain.RoleAdmin,
 			IsActive:     true,
 		}
-		if err := db.Create(admin).Error; err == nil {
-			log.Println("Default admin user created: admin@hidocs.id / admin123")
+		if createErr := db.Create(admin).Error; createErr == nil {
+			log.Println("✅ Default system admin created: admin@hidocs.id / admin123")
 		}
 	}
+}
+
+func seedTestExam(db *gorm.DB) {
+	var count int64
+	db.Model(&domain.Form{}).Where("custom_url = ? OR id = ?", "perhatikan-ilustrasi-berikut-berdasarkan-jenisnya", "346ed6d4-94e4-4012-924d-1ba66e048a9f").Count(&count)
+	if count > 0 {
+		// Update status to ACTIVE to ensure it is publicly accessible
+		db.Model(&domain.Form{}).Where("id = ?", "346ed6d4-94e4-4012-924d-1ba66e048a9f").Update("status", domain.StatusActive)
+		return
+	}
+
+	var admin domain.User
+	if err := db.Where("email = ?", "admin@hidocs.id").First(&admin).Error; err != nil {
+		return
+	}
+
+	formID := uuid.MustParse("346ed6d4-94e4-4012-924d-1ba66e048a9f")
+	form := &domain.Form{
+		ID:          formID,
+		UserID:      admin.ID,
+		Title:       "Perhatikan ilustrasi berikut! (Berdasarkan Jenisnya)",
+		Description: "Pada saat terjadi ketegangan di wilayah perbatasan laut Indonesia...",
+		Type:        domain.TypeExam,
+		CustomURL:   "perhatikan-ilustrasi-berikut-berdasarkan-jenisnya",
+		Status:      domain.StatusActive,
+		IsTemplate:  false,
+	}
+
+	if err := db.Create(form).Error; err != nil {
+		log.Printf("Warning: failed to seed test exam form: %v", err)
+		return
+	}
+
+	duration := 60
+	settings := &domain.FormSettings{
+		ID:                  uuid.New(),
+		FormID:              formID,
+		DurationMinutes:     &duration,
+		AutoActiveDays:      30,
+		IsActiveImmediately: true,
+	}
+	db.Create(settings)
+
+	q1ID := uuid.New()
+	q1 := &domain.Question{
+		ID:           q1ID,
+		FormID:       formID,
+		QuestionText: "Berdasarkan jenisnya, ilustrasi di atas termasuk bentuk ancaman jenis apa?",
+		QuestionType: domain.TypeMultipleChoice,
+		Points:       50,
+		OrderIndex:   1,
+		IsAutoScored: true,
+	}
+	db.Create(q1)
+
+	db.Create(&domain.QuestionOption{ID: uuid.New(), QuestionID: q1ID, OptionText: "Militer", IsCorrect: true, OrderIndex: 1})
+	db.Create(&domain.QuestionOption{ID: uuid.New(), QuestionID: q1ID, OptionText: "Non-Militer", IsCorrect: false, OrderIndex: 2})
+	db.Create(&domain.QuestionOption{ID: uuid.New(), QuestionID: q1ID, OptionText: "Hibrida", IsCorrect: false, OrderIndex: 3})
+
+	log.Println("✅ Test Exam Form seeded successfully (Status: ACTIVE)")
 }

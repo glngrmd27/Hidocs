@@ -215,7 +215,7 @@
 .dashboard-brand > span {
     color: #ffffff;
 
-    font-size: 20px;
+    font-size: 22px;
 
     font-weight: 700;
 
@@ -260,7 +260,7 @@
 
     gap: 7px;
 
-    font-size: 9px;
+    font-size: 11px;
 
     font-weight: 700;
 
@@ -270,7 +270,7 @@
 }
 
 .dashboard-greeting-badge svg {
-    font-size: 10px;
+    font-size: 12px;
 }
 
 .dashboard-greeting h1 {
@@ -278,7 +278,7 @@
 
     color: #ffffff;
 
-    font-size: 34px;
+    font-size: 36px;
 
     line-height: 1.2;
 
@@ -333,7 +333,7 @@
     color:
         rgba(255, 255, 255, 0.8);
 
-    font-size: 13px;
+    font-size: 15px;
 
     line-height: 1.65;
 }
@@ -432,7 +432,7 @@
     align-items: center;
     justify-content: center;
 
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .dashboard-summary-card.available
@@ -467,7 +467,7 @@
 .dashboard-summary-info > span {
     color: #77889d;
 
-    font-size: 9px;
+    font-size: 11px;
 
     font-weight: 600;
 }
@@ -477,7 +477,7 @@
 
     color: #263a52;
 
-    font-size: 23px;
+    font-size: 25px;
 
     line-height: 1.15;
 
@@ -487,7 +487,7 @@
 .dashboard-summary-info small {
     color: #9aa7b6;
 
-    font-size: 8px;
+    font-size: 10px;
 }
 
 
@@ -531,7 +531,7 @@
 
     color: #263a52;
 
-    font-size: 16px;
+    font-size: 18px;
 
     font-weight: 700;
 }
@@ -541,7 +541,7 @@
 
     color: #8796a9;
 
-    font-size: 10px;
+    font-size: 12px;
 
     line-height: 1.55;
 }
@@ -549,7 +549,7 @@
 .dashboard-section-eyebrow {
     color: #397ec2;
 
-    font-size: 8px;
+    font-size: 10px;
 
     font-weight: 700;
 
@@ -582,7 +582,7 @@
     align-items: center;
     justify-content: center;
 
-    font-size: 17px;
+    font-size: 19px;
 
     font-weight: 700;
 }
@@ -647,7 +647,7 @@
 
     color: #263a52;
 
-    font-size: 19px;
+    font-size: 21px;
 
     font-weight: 700;
 
@@ -659,7 +659,7 @@
 
     color: #8d9aab;
 
-    font-size: 10px;
+    font-size: 12px;
 }
 
 .dashboard-view-all-btn {
@@ -683,7 +683,7 @@
 
     font-family: inherit;
 
-    font-size: 10px;
+    font-size: 12px;
 
     font-weight: 700;
 
@@ -691,7 +691,7 @@
 }
 
 .dashboard-view-all-btn svg {
-    font-size: 9px;
+    font-size: 11px;
 
     transition:
         transform 0.2s ease;
@@ -833,7 +833,7 @@
     align-items: center;
     justify-content: center;
 
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .dashboard-form-card.purple
@@ -872,7 +872,7 @@
 
     gap: 5px;
 
-    font-size: 8px;
+    font-size: 10px;
 
     font-weight: 700;
 }
@@ -910,7 +910,7 @@
 }
 
 .dashboard-form-status svg {
-    font-size: 8px;
+    font-size: 10px;
 }
 
 
@@ -933,13 +933,13 @@
 
     gap: 5px;
 
-    font-size: 8px;
+    font-size: 10px;
 
     font-weight: 600;
 }
 
 .dashboard-form-category svg {
-    font-size: 8px;
+    font-size: 10px;
 }
 
 .dashboard-form-card-content h3 {
@@ -947,7 +947,7 @@
 
     color: #293d55;
 
-    font-size: 14px;
+    font-size: 16px;
 
     line-height: 1.4;
 
@@ -966,7 +966,7 @@
 
     color: #8b99aa;
 
-    font-size: 9px;
+    font-size: 11px;
 
     line-height: 1.65;
 
@@ -1012,7 +1012,7 @@
 
     gap: 5px;
 
-    font-size: 7px;
+    font-size: 9px;
 
     font-weight: 600;
 }
@@ -1020,7 +1020,7 @@
 .dashboard-form-meta svg {
     color: #4a86c3;
 
-    font-size: 8px;
+    font-size: 10px;
 }
 
 
@@ -1060,7 +1060,7 @@
 
     font-family: inherit;
 
-    font-size: 9px;
+    font-size: 11px;
 
     font-weight: 700;
 
@@ -1097,7 +1097,7 @@
 }
 
 .dashboard-form-action svg {
-    font-size: 9px;
+    font-size: 11px;
 }
 
 .dashboard-action-arrow {
@@ -1292,7 +1292,7 @@
     }
 
     .dashboard-greeting h1 {
-        font-size: 30px;
+        font-size: 32px;
     }
 
     .dashboard-main-content {
@@ -1314,11 +1314,11 @@
         width: 44px;
         height: 44px;
 
-        font-size: 16px;
+        font-size: 18px;
     }
 
     .dashboard-summary-info strong {
-        font-size: 21px;
+        font-size: 23px;
     }
 }
 
@@ -1350,7 +1350,7 @@
     }
 
     .dashboard-brand > span {
-        font-size: 17px;
+        font-size: 19px;
     }
 
     .dashboard-greeting {
@@ -1362,17 +1362,17 @@
 
         padding: 0 10px;
 
-        font-size: 7px;
+        font-size: 9px;
     }
 
     .dashboard-greeting h1 {
         margin-top: 12px;
 
-        font-size: 24px;
+        font-size: 26px;
     }
 
     .dashboard-greeting p {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .dashboard-dot-pattern {
@@ -1416,11 +1416,11 @@
 
         border-radius: 12px;
 
-        font-size: 15px;
+        font-size: 17px;
     }
 
     .dashboard-summary-info strong {
-        font-size: 19px;
+        font-size: 21px;
     }
 
     .dashboard-progress-card {
@@ -1430,18 +1430,18 @@
     }
 
     .dashboard-progress-top h2 {
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .dashboard-progress-top p {
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .dashboard-progress-percentage {
         min-width: 56px;
         height: 40px;
 
-        font-size: 15px;
+        font-size: 17px;
     }
 
     .dashboard-section-header {
@@ -1449,15 +1449,15 @@
     }
 
     .dashboard-section-header h2 {
-        font-size: 16px;
+        font-size: 18px;
     }
 
     .dashboard-section-header p {
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .dashboard-view-all-btn {
-        font-size: 9px;
+        font-size: 11px;
     }
 
     .dashboard-form-grid {
@@ -1479,17 +1479,17 @@
     }
 
     .dashboard-form-card-content h3 {
-        font-size: 13px;
+        font-size: 15px;
     }
 
     .dashboard-form-card-content p {
-        font-size: 8px;
+        font-size: 10px;
     }
 
     .dashboard-form-action {
         height: 38px;
 
-        font-size: 8px;
+        font-size: 10px;
     }
 }
 
@@ -1504,11 +1504,11 @@
     }
 
     .dashboard-greeting h1 {
-        font-size: 21px;
+        font-size: 23px;
     }
 
     .dashboard-greeting p {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .dashboard-progress-top {
@@ -1520,7 +1520,7 @@
 
         padding: 0 9px;
 
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .dashboard-section-header {
@@ -1534,7 +1534,7 @@
     .dashboard-form-meta span {
         padding: 0 6px;
 
-        font-size: 6px;
+        font-size: 8px;
     }
 }
 
