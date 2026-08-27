@@ -71,11 +71,11 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get sql.DB instance: %w", err)
 	}
 
-	// Performance Optimization for 1000+ Concurrent Users
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetMaxIdleConns(25)
-	sqlDB.SetConnMaxLifetime(15 * time.Minute)
-	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+	// Performance Optimization for 500+ Concurrent Students (Tuned Pool Settings)
+	sqlDB.SetMaxOpenConns(150)
+	sqlDB.SetMaxIdleConns(30)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(2 * time.Minute)
 
 	log.Println("PostgreSQL connected successfully with high-concurrency pool settings")
 

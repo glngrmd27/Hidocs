@@ -23,6 +23,12 @@ func RateLimiter(requestsPerMinute int) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
 
+		// Bypass rate limiter for localhost/loopback IP to support local stress testing & development
+		if ip == "127.0.0.1" || ip == "::1" || ip == "localhost" {
+			c.Next()
+			return
+		}
+
 		mu.Lock()
 		client, exists := clients[ip]
 		if !exists || time.Since(client.lastReset) > time.Minute {

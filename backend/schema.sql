@@ -94,10 +94,13 @@ CREATE TABLE IF NOT EXISTS response_answers (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_forms_user_id ON forms(user_id);
 CREATE INDEX IF NOT EXISTS idx_forms_custom_url ON forms(custom_url);
+CREATE INDEX IF NOT EXISTS idx_forms_status_type ON forms(status, type);
 CREATE INDEX IF NOT EXISTS idx_form_settings_form_id ON form_settings(form_id);
 CREATE INDEX IF NOT EXISTS idx_questions_form_id ON questions(form_id);
 CREATE INDEX IF NOT EXISTS idx_question_options_question_id ON question_options(question_id);
 CREATE INDEX IF NOT EXISTS idx_form_responses_form_id ON form_responses(form_id);
 CREATE INDEX IF NOT EXISTS idx_form_responses_user_id ON form_responses(user_id);
+CREATE INDEX IF NOT EXISTS idx_form_responses_submitted_at ON form_responses(submitted_at);
+CREATE INDEX IF NOT EXISTS idx_form_responses_form_email_submitted ON form_responses(form_id, respondent_email, submitted_at);
 CREATE INDEX IF NOT EXISTS idx_response_answers_response_id ON response_answers(response_id);
 CREATE INDEX IF NOT EXISTS idx_response_answers_question_id ON response_answers(question_id);
