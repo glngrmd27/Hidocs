@@ -1,3 +1,5 @@
+import { registerUser } from '../api/authApi';
+
 import {
   useState,
 } from "react";
@@ -155,7 +157,7 @@ function Register() {
   // REGISTER
   // =========================================================
 
-  const handleRegister = (
+  const handleRegister = async (
     event
   ) => {
 
@@ -265,48 +267,31 @@ function Register() {
     }
 
 
-    setIsLoading(true);
+       setIsLoading(true);
 
+    try {
+      await registerUser({
+        name: cleanUsername,
+        email: cleanEmail,
+        password: password,
+      });
 
-    // =======================================================
-    // DATA SIMULASI REGISTRASI
-    // Belum disimpan ke database atau localStorage
-    // =======================================================
-
-    const registrationData = {
-
-      email:
-        cleanEmail,
-
-      username:
-        cleanUsername,
-
-      password,
-
-      role,
-
-    };
-
-
-    // =======================================================
-    // PINDAH KE VERIFY OTP
-    // =======================================================
-
-    navigate(
-      "/verify-otp",
-      {
+      navigate("/verify-otp", {
         state: {
-
-          email:
-            cleanEmail,
-
-          registrationData,
-
+          email: cleanEmail,
+          registrationData: {
+            email: cleanEmail,
+            username: cleanUsername,
+            password,
+          },
         },
-
-      }
-    );
-
+      });
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Registrasi gagal. Coba lagi."
+      );
+      setIsLoading(false);
+    }
   };
 
 

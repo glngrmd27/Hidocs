@@ -1,3 +1,5 @@
+import { loginUser } from '../api/authApi';
+
 import {
   useEffect,
   useState,
@@ -381,7 +383,7 @@ function Login() {
   // LOGIN
   // =========================================================
 
-  const handleLogin = (
+  const handleLogin = async (
     event
   ) => {
 
@@ -457,174 +459,30 @@ function Login() {
     );
 
 
-    try {
+       try {
+      const response = await loginUser({
+        email: cleanEmail,
+        password: password,
+      });
 
-      // =====================================================
-      // USER FROM LOCAL STORAGE
-      // =====================================================
+      const apiUser = response.data.data.user;
+      const token = response.data.data.token;
 
-      const users =
-        getStoredUsers();
-
-
-      const storedUser =
-        users.find(
-          (
-            item
-          ) => {
-
-            const storedEmail =
-              String(
-                item?.email ||
-                ""
-              )
-                .trim()
-                .toLowerCase();
-
-
-            const passwordMatch =
-              String(
-                item?.password ||
-                ""
-              ) ===
-              String(
-                password
-              );
-
-
-            return (
-              storedEmail ===
-                cleanEmail &&
-              passwordMatch
-            );
-
-          }
-        );
-
-
-      // =====================================================
-      // USER FROM OTP PAGE
-      // =====================================================
-
-      const simulatedUser =
-        verifiedAccount &&
-        String(
-          verifiedAccount.email ||
-          ""
-        )
-          .trim()
-          .toLowerCase() ===
-          cleanEmail &&
-        String(
-          verifiedAccount.password ||
-          ""
-        ) ===
-        String(
-          password
-        )
-          ? verifiedAccount
-          : null;
-
-
-      // =====================================================
-      // SELECT USER
-      // =====================================================
-
-      const foundUser =
-        storedUser ||
-        simulatedUser;
-
-
-      if (
-        !foundUser
-      ) {
-
-        setError(
-          "Email atau password salah."
-        );
-
-
-        setIsLoading(
-          false
-        );
-
-
-        return;
-
-      }
-
-
-      // =====================================================
-      // NORMALIZE USER
-      // =====================================================
-
-      const user =
-        normalizeSessionUser(
-          foundUser
-        );
-
-
-      // =====================================================
-      // CLEAR OLD ACCOUNT SESSION
-      //
-      // Ini penting supaya data session akun sebelumnya
-      // tidak terbaca sebagai akun yang sekarang login.
-      // =====================================================
+      const user = normalizeSessionUser(apiUser);
 
       clearPreviousSession();
 
-
-      // =====================================================
-      // SAVE CURRENT USER
-      // =====================================================
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(
-          user
-        )
-      );
-
-
-      localStorage.setItem(
-        "isLoggedIn",
-        "true"
-      );
-
-
-      // =====================================================
-      // OPTIONAL SESSION IDENTITY
-      //
-      // Digunakan sebagai referensi tambahan agar aplikasi
-      // dapat mengetahui user aktif dengan jelas.
-      // =====================================================
-
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem(
         "hidocs_active_user_identity",
-        String(
-          user.email ||
-          user.id ||
-          user.username
-        )
+        String(user.email || user.id || user.username)
           .trim()
           .toLowerCase()
       );
 
-
-      // =====================================================
-      // NOTIFY FORM CONTEXT
-      //
-      // FormContext nanti akan mendengarkan event ini supaya:
-      //
-      // - submittedForms dihitung ulang
-      // - History berubah sesuai akun
-      // - UserForms tidak membaca submission akun lain
-      // - Dashboard ikut berubah
-      // =====================================================
-
-      notifyUserChanged(
-        user
-      );
+      notifyUserChanged(user);
 
 
       // =====================================================
@@ -661,24 +519,16 @@ function Login() {
 
       }
 
-    } catch (loginError) {
-
-      console.error(
-        "Login error:",
-        loginError
-      );
-
-
+      } catch (loginError) 
+      
+      {
+      console.error("Login error:", loginError);
       setError(
-        "Terjadi kesalahan saat login."
+        loginError.response?.data?.message ||
+        "Email atau password salah."
       );
-
-
-      setIsLoading(
-        false
-      );
-
-    }
+      setIsLoading(false);
+      }
 
   };
 

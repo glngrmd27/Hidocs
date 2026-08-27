@@ -1,3 +1,5 @@
+import { verifyOtp, resendOtp } from '../api/authApi';
+
 import {
   useEffect,
   useRef,
@@ -38,7 +40,7 @@ function VerifyOtp() {
   // OTP CONFIGURATION
   // =========================================================
 
-  const OTP_LENGTH = 4;
+  const OTP_LENGTH = 6;
 
 
   // =========================================================
@@ -625,7 +627,7 @@ function VerifyOtp() {
   // VERIFY OTP
   // =========================================================
 
-  const handleVerifyOtp = (
+  const handleVerifyOtp = async (
     event
   ) => {
 
@@ -672,7 +674,7 @@ function VerifyOtp() {
 
 
     if (
-      !/^\d{4}$/.test(
+      !/^\d{6}$/.test(
         otpCode
       )
     ) {
@@ -686,61 +688,35 @@ function VerifyOtp() {
     }
 
 
-    setIsVerifying(true);
+        setIsVerifying(true);
 
-
-    // =======================================================
-    // FRONTEND SIMULATION
-    // Semua kode angka 4 digit dianggap benar
-    // =======================================================
-
-    window.setTimeout(() => {
-
-      const accountSaved =
-        saveVerifiedUser();
-
-
-      if (!accountSaved) {
-
-        setIsVerifying(false);
-
-        return;
-
-      }
-
+    try {
+      const response = await verifyOtp({
+        email: registrationData.email,
+        otp_code: otpCode,
+      });
 
       setIsVerifying(false);
-
-
       setSuccessMessage(
         "Email berhasil diverifikasi. Akun kamu sudah aktif."
       );
 
-
       window.setTimeout(() => {
-
-        navigate(
-          "/login",
-          {
-            replace: true,
-
-            state: {
-
-              verificationSuccess:
-                true,
-
-              email:
-                registrationData.email,
-
-            },
-
-          }
-        );
-
+        navigate("/login", {
+          replace: true,
+          state: {
+            verificationSuccess: true,
+            email: registrationData.email,
+          },
+        });
       }, 1500);
-
-    }, 800);
-
+    } catch (err) {
+      setIsVerifying(false);
+      setError(
+        err.response?.data?.message ||
+        "Kode OTP salah atau kedaluwarsa."
+      );
+    }
   };
 
 
@@ -748,44 +724,32 @@ function VerifyOtp() {
   // RESEND OTP
   // =========================================================
 
-  const handleResendOtp = () => {
+    const handleResendOtp = async () => {
 
-    if (
-      resendCountdown > 0
-    ) {
-
+    if (resendCountdown > 0) {
       return;
-
     }
 
-
-    setOtpValues(
-      Array(
-        OTP_LENGTH
-      ).fill("")
-    );
-
-
+    setOtpValues(Array(OTP_LENGTH).fill(""));
     setError("");
-
     setSuccessMessage("");
 
+    try {
+      await resendOtp({ email: registrationData.email });
 
-    setResendMessage(
-      "Kode OTP baru berhasil dikirim ke email kamu."
-    );
+      setResendMessage(
+        "Kode OTP baru berhasil dikirim ke email kamu."
+      );
+      setResendCountdown(30);
 
-
-    setResendCountdown(30);
-
-
-    window.setTimeout(() => {
-
-      inputRefs.current[0]
-        ?.focus();
-
-    }, 100);
-
+      window.setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Gagal mengirim ulang OTP."
+      );
+    }
   };
 
 
