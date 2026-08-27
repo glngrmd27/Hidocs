@@ -1,3 +1,5 @@
+import { loginUser } from '../api/authApi';
+
 import {
   useEffect,
   useState,
@@ -259,218 +261,76 @@ function Login() {
   // =========================================================
   // LOGIN
   // =========================================================
-  const handleLogin = (
+  const handleLogin = async (
     event
   ) => {
     event.preventDefault();
-    setError(
-      ""
-    );
-    setSuccessMessage(
-      ""
-    );
-    const cleanEmail =
-      email
-        .trim()
-        .toLowerCase();
+    setError("");
+    setSuccessMessage("");
+
+    const cleanEmail = email.trim().toLowerCase();
+
     // =====================================================
     // VALIDATION
     // =====================================================
-    if (
-      !cleanEmail
-    ) {
-      setError(
-        "Email harus diisi."
-      );
+    if (!cleanEmail) {
+      setError("Email harus diisi.");
       return;
     }
-    if (
-      !isValidEmail(
-        cleanEmail
-      )
-    ) {
-      setError(
-        "Format email tidak valid."
-      );
+    if (!isValidEmail(cleanEmail)) {
+      setError("Format email tidak valid.");
       return;
     }
-    if (
-      !password
-    ) {
-      setError(
-        "Password harus diisi."
-      );
+    if (!password) {
+      setError("Password harus diisi.");
       return;
     }
-    setIsLoading(
-      true
-    );
+
+    setIsLoading(true);
+
     try {
-      // =====================================================
-      // USER FROM LOCAL STORAGE
-      // =====================================================
-      const users =
-        getStoredUsers();
-      const storedUser =
-        users.find(
-          (
-            item
-          ) => {
-            const storedEmail =
-              String(
-                item?.email ||
-                ""
-              )
-                .trim()
-                .toLowerCase();
-            const passwordMatch =
-              String(
-                item?.password ||
-                ""
-              ) ===
-              String(
-                password
-              );
-            return (
-              storedEmail ===
-                cleanEmail &&
-              passwordMatch
-            );
-          }
-        );
-      // =====================================================
-      // USER FROM OTP PAGE
-      // =====================================================
-      const simulatedUser =
-        verifiedAccount &&
-        String(
-          verifiedAccount.email ||
-          ""
-        )
-          .trim()
-          .toLowerCase() ===
-          cleanEmail &&
-        String(
-          verifiedAccount.password ||
-          ""
-        ) ===
-        String(
-          password
-        )
-          ? verifiedAccount
-          : null;
-      // =====================================================
-      // SELECT USER
-      // =====================================================
-      const foundUser =
-        storedUser ||
-        simulatedUser;
-      if (
-        !foundUser
-      ) {
-        setError(
-          "Email atau password salah."
-        );
-        setIsLoading(
-          false
-        );
-        return;
-      }
-      // =====================================================
-      // NORMALIZE USER
-      // =====================================================
-      const user =
-        normalizeSessionUser(
-          foundUser
-        );
-      // =====================================================
-      // CLEAR OLD ACCOUNT SESSION
-      //
-      // Ini penting supaya data session akun sebelumnya
-      // tidak terbaca sebagai akun yang sekarang login.
-      // =====================================================
+      const response = await loginUser({
+        email: cleanEmail,
+        password: password,
+      });
+
+      const apiUser = response.data.data.user;
+      const token = response.data.data.token;
+
+      const user = normalizeSessionUser(apiUser);
+
       clearPreviousSession();
-      // =====================================================
-      // SAVE CURRENT USER
-      // =====================================================
-      localStorage.setItem(
-        "user",
-        JSON.stringify(
-          user
-        )
-      );
-      localStorage.setItem(
-        "isLoggedIn",
-        "true"
-      );
-      // =====================================================
-      // OPTIONAL SESSION IDENTITY
-      //
-      // Digunakan sebagai referensi tambahan agar aplikasi
-      // dapat mengetahui user aktif dengan jelas.
-      // =====================================================
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem(
         "hidocs_active_user_identity",
-        String(
-          user.email ||
-          user.id ||
-          user.username
-        )
+        String(user.email || user.id || user.username)
           .trim()
           .toLowerCase()
       );
-      // =====================================================
-      // NOTIFY FORM CONTEXT
-      //
-      // FormContext nanti akan mendengarkan event ini supaya:
-      //
-      // - submittedForms dihitung ulang
-      // - History berubah sesuai akun
-      // - UserForms tidak membaca submission akun lain
-      // - Dashboard ikut berubah
-      // =====================================================
-      notifyUserChanged(
-        user
-      );
+
+      notifyUserChanged(user);
+
       // =====================================================
       // REDIRECT BASED ON ROLE
       // =====================================================
-      if (
-        String(
-          user.role ||
-          ""
-        )
-          .trim()
-          .toLowerCase() ===
-        "admin"
-      ) {
-        navigate(
-          "/admin",
-          {
-            replace: true,
-          }
-        );
+      if (String(user.role || "").trim().toLowerCase() === "admin") {
+        navigate("/admin", { replace: true });
       } else {
-        navigate(
-          "/dashboard",
-          {
-            replace: true,
-          }
-        );
+        navigate("/dashboard", { replace: true });
       }
     } catch (loginError) {
-      console.error(
-        "Login error:",
-        loginError
-      );
+      console.error("Login error:", loginError);
       setError(
-        "Terjadi kesalahan saat login."
+        loginError.response?.data?.message ||
+        "Email atau password salah."
       );
-      setIsLoading(
-        false
-      );
+      setIsLoading(false);
     }
   };
+  
   // =========================================================
   // KEYBOARD
   // =========================================================

@@ -1,3 +1,5 @@
+import { registerUser } from '../api/authApi';
+
 import {
   useState,
 } from "react";
@@ -104,9 +106,11 @@ function Register() {
   // =========================================================
   // REGISTER
   // =========================================================
-  const handleRegister = (
+
+  const handleRegister = async (
     event
   ) => {
+    
     event.preventDefault();
     if (isLoading) {
       return;
@@ -172,32 +176,7 @@ function Register() {
       );
       return;
     }
-    setIsLoading(true);
-    // =======================================================
-    // DATA SIMULASI REGISTRASI
-    // Belum disimpan ke database atau localStorage
-    // =======================================================
-    const registrationData = {
-      email:
-        cleanEmail,
-      username:
-        cleanUsername,
-      password,
-      role,
-    };
-    // =======================================================
-    // PINDAH KE VERIFY OTP
-    // =======================================================
-    navigate(
-      "/verify-otp",
-      {
-        state: {
-          email:
-            cleanEmail,
-          registrationData,
-        },
-      }
-    );
+
   };
   // =========================================================
   // CLEAR FORM WITH ESCAPE
