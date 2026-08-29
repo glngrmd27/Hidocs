@@ -1,5 +1,10 @@
+import { getFormById } from '../api/formApi';
+import { getQuestionsByForm } from '../api/questionApi';
+import { getFormResponses, gradeResponse as gradeResponseApi } from '../api/responseApi';
+
 import {
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -212,6 +217,30 @@ const normalizeForm = (
     questions,
   };
 };
+
+const reverseQuestionTypeMapResults = {
+  SHORT_TEXT: "short",
+  LONG_TEXT: "long",
+  MULTIPLE_CHOICE: "multiple",
+  CHECKBOXES: "checkbox",
+  YES_NO: "yesno",
+  RATING: "rating",
+  MATH: "math",
+  CODE: "code",
+  IMAGE: "image",
+};
+
+const mapApiQuestionForResults = (q) => ({
+  id: q.id,
+  title: q.question_text,
+  type: reverseQuestionTypeMapResults[q.question_type] || "short",
+  required: q.is_required,
+  scoring: q.is_auto_scored,
+  points: q.points,
+  options: (q.options || []).map((o) => o.option_text),
+  correctAnswer:
+    (q.options || []).find((o) => o.is_correct)?.option_text || "",
+});
 // =========================================================
 // HAS ANSWER
 // =========================================================
@@ -601,90 +630,78 @@ function AdminResults() {
   // =========================================================
   // LOAD FORM
   // =========================================================
-  const form =
-    useMemo(
-      () => {
-        const savedForms =
-          getStoredArray(
-            FORMS_STORAGE_KEY
-          );
-        const deletedFormIds =
-          getStoredArray(
-            DELETED_FORMS_STORAGE_KEY
-          ).map(
-            (
-              deletedId
-            ) =>
-              String(
-                deletedId
-              )
-          );
-        if (
-          deletedFormIds.includes(
-            String(
-              id
-            )
-          )
-        ) {
-          return null;
+  const [form, setForm] = useState(null);
+  const [isLoadingResults, setIsLoadingResults] = useState(true);
+  const [formSubmissions, setFormSubmissions] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadResults = async () => {
+      setIsLoadingResults(true);
+      try {
+        const formRes = await getFormById(id);
+        const apiForm = formRes.data.data;
+
+        const questionsForFormRes = await getQuestionsByForm(id);
+        const apiQuestionsForForm = questionsForFormRes.data.data || [];
+
+        const mappedForm = normalizeForm({
+          id: apiForm.id,
+          title: apiForm.title,
+          description: apiForm.description,
+          customLink: apiForm.custom_url,
+          type: apiForm.type,
+          active: apiForm.status === "ACTIVE",
+          questions: apiQuestionsForForm.map(mapApiQuestionForResults),
+        });
+
+        const responsesRes = await getFormResponses(id);
+        const apiResponses = responsesRes.data.data || [];
+
+        const mappedSubmissions = apiResponses.map((r) => ({
+          id: r.id,
+          formId: id,
+          respondentEmail: r.respondent_email,
+          submittedAt: r.submitted_at,
+          isAutoSubmitted: r.is_auto_submitted,
+          score: r.total_score,
+          maxScore: (r.answers || []).reduce(
+            (sum, a) => sum + (a.points_earned || 0),
+            0
+          ),
+          answers: (r.answers || []).reduce((acc, a) => {
+            acc[a.question_id] = a.selected_option_text || a.answer_text;
+            return acc;
+          }, {}),
+          questionResults: (r.answers || []).map((a) => ({
+            questionId: a.question_id,
+            questionText: a.question_text,
+            answer: a.selected_option_text || a.answer_text,
+            isCorrect: a.is_correct,
+            pointsEarned: a.points_earned,
+            scoreGiven: a.score_given,
+          })),
+        }));
+
+        if (isMounted) {
+          setForm(mappedForm);
+          setFormSubmissions(mappedSubmissions);
         }
-        const allForms = [
-          ...defaultForms,
-          ...savedForms,
-        ];
-        const selectedForm =
-          [...allForms]
-            .reverse()
-            .find(
-              (
-                item
-              ) =>
-                String(
-                  item.id
-                ) ===
-                String(
-                  id
-                )
-            );
-        return selectedForm
-          ? normalizeForm(
-              selectedForm
-            )
-          : null;
-      },
-      [
-        id,
-      ]
-    );
-  // =========================================================
-  // SUBMISSIONS
-  // =========================================================
-  const formSubmissions =
-    useMemo(
-      () => {
-        return allSubmissions.filter(
-          (
-            submission
-          ) => {
-            const formId =
-              submission.formId ??
-              submission.id;
-            return (
-              String(
-                formId
-              ) ===
-              String(
-                id
-              )
-            );
-          }
-        );
-      },
-      [
-        allSubmissions,
-        id,
-      ]
-    );
+      } catch (error) {
+        console.error("Gagal memuat hasil form:", error);
+        if (isMounted) {
+          setForm(null);
+          setFormSubmissions([]);
+        }
+      } finally {
+        if (isMounted) setIsLoadingResults(false);
+      }
+    };
+
+    loadResults();
+    return () => { isMounted = false; };
+  }, [id]);
   // =========================================================
   // BUILD QUESTION RESULTS
   // ADMIN ALWAYS HAS FULL ACCESS
@@ -3270,11 +3287,14 @@ function AdminResults() {
                           </span>
                         )}
                       </div>
-                      <h3>
-                        {item.question.title ||
-                          item.question.question ||
-                          `Question ${item.number}`}
-                      </h3>
+                      <h3
+                        dangerouslySetInnerHTML={{
+                          __html:
+                            item.question.title ||
+                            item.question.question ||
+                            `Question ${item.number}`,
+                        }}
+                      />
                       {item.question.image && (
                         <div className="admin-answer-question-image">
                           <img

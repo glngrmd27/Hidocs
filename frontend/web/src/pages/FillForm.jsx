@@ -1,3 +1,6 @@
+import { getFormById, submitForm as submitFormApi } from '../api/formApi';
+import { getQuestionsByForm } from '../api/questionApi';
+
 import {
   useCallback,
   useContext,
@@ -756,6 +759,33 @@ const normalizeTimer = (form) => {
     duration,
   };
 };
+const reverseQuestionTypeMap = {
+  SHORT_TEXT: "short",
+  LONG_TEXT: "long",
+  MULTIPLE_CHOICE: "multiple",
+  CHECKBOXES: "checkbox",
+  YES_NO: "yesno",
+  RATING: "rating",
+  MATH: "math",
+  CODE: "code",
+  IMAGE: "image",
+};
+
+const mapApiQuestionForFill = (q) => ({
+  id: q.id,
+  title: q.question_text,
+  type: reverseQuestionTypeMap[q.question_type] || "short",
+  required: q.is_required,
+  scoring: q.is_auto_scored,
+  points: q.points,
+  language: q.code_language || "",
+  options: (q.options || []).map((o) => o.option_text),
+  optionIds: (q.options || []).reduce((acc, o) => {
+    acc[o.option_text] = o.id;
+    return acc;
+  }, {}),
+});
+
 
 // =========================================================
 // NORMALIZE FORM
@@ -846,31 +876,42 @@ function FillForm() {
   // LOAD SELECTED FORM
   // =========================================================
 
-  const form = useMemo(() => {
-    const storedForms = getStoredArray(FORMS_STORAGE_KEY);
+  const [form, setForm] = useState(null);
+  const [isLoadingForm, setIsLoadingForm] = useState(true);
 
-    const deletedFormIds = getStoredArray(DELETED_FORMS_STORAGE_KEY).map((deletedId) =>
-      String(deletedId)
-    );
+  useEffect(() => {
+    let isMounted = true;
 
-    if (deletedFormIds.includes(String(id))) {
-      return null;
-    }
+    const loadForm = async () => {
+      setIsLoadingForm(true);
+      try {
+        const formRes = await getFormById(id);
+        const questionsRes = await getQuestionsByForm(id);
 
-    const allForms = [...defaultForms, ...storedForms];
+        const apiForm = formRes.data.data;
+        const apiQuestions = questionsRes.data.data || [];
 
-    /*
-      Reverse dipakai agar form terbaru
-      dari localStorage diprioritaskan.
-    */
+        const mapped = normalizeForm({
+          id: apiForm.id,
+          title: apiForm.title,
+          description: apiForm.description,
+          customLink: apiForm.custom_url,
+          type: apiForm.type,
+          active: apiForm.status === "ACTIVE",
+          questions: apiQuestions.map(mapApiQuestionForFill),
+        });
 
-    const selectedForm = [...allForms].reverse().find((item) => String(item.id) === String(id));
+        if (isMounted) setForm(mapped);
+      } catch (error) {
+        console.error("Gagal memuat form:", error);
+        if (isMounted) setForm(null);
+      } finally {
+        if (isMounted) setIsLoadingForm(false);
+      }
+    };
 
-    if (!selectedForm) {
-      return null;
-    }
-
-    return normalizeForm(selectedForm);
+    loadForm();
+    return () => { isMounted = false; };
   }, [id, formVersion]);
 
   // =========================================================
@@ -1102,6 +1143,10 @@ function FillForm() {
   // =========================================================
 
   useEffect(() => {
+    if (isLoadingForm) {
+      return;
+    }
+
     if (!form) {
       navigate("/dashboard", {
         replace: true,
@@ -1147,97 +1192,66 @@ function FillForm() {
   // COMPLETE NORMAL SUBMISSION
   // =========================================================
 
-  const completeSubmission = useCallback(() => {
+  const completeSubmission = useCallback(async () => {
     if (hasSubmittedRef.current || !form || !canFillForm || isSubmitting) {
       return;
     }
 
     hasSubmittedRef.current = true;
-
     setIsSubmitting(true);
 
     try {
-      const submittedAt = new Date().toISOString();
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const respondentEmail = currentUser.email || "";
 
-      const scoreResult = calculateFormScore(questions, answersRef.current);
+      const answerPayload = questions.map((q) => {
+        const answerValue = answersRef.current[q.id];
+        const isChoiceType = ["multiple", "checkbox", "yesno"].includes(q.type);
 
-      const result = submitForm({
-        formId: form.id,
-        title: form.title,
-        answers: answersRef.current,
-        answeredQuestions: Object.values(answersRef.current).filter(hasAnswerValue).length,
-        totalQuestions,
-        status: "completed",
-        isTimeExpired: false,
-        submittedAt,
-        resultMode: form.resultMode,
-        score: scoreResult.score,
-        maxScore: scoreResult.maxScore,
-        percentage: scoreResult.percentage,
-        correctAnswers: scoreResult.correctAnswers,
-        scoredQuestions: scoreResult.scoredQuestions,
-        incorrectAnswers: scoreResult.incorrectAnswers,
-        questionResults: scoreResult.questionResults,
-        gradingEnabled: scoreResult.gradingEnabled,
-        grading: {
-          enabled: scoreResult.gradingEnabled,
-          score: scoreResult.score,
-          maxScore: scoreResult.maxScore,
-          percentage: scoreResult.percentage,
-          correctAnswers: scoreResult.correctAnswers,
-          incorrectAnswers: scoreResult.incorrectAnswers,
-          scoredQuestions: scoreResult.scoredQuestions,
-        },
+        if (isChoiceType) {
+          return {
+            question_id: q.id,
+            selected_option_id: q.optionIds?.[answerValue] || null,
+            answer_text: "",
+          };
+        }
+        return {
+          question_id: q.id,
+          selected_option_id: null,
+          answer_text: String(answerValue || ""),
+        };
       });
 
-      if (!result?.success) {
-        hasSubmittedRef.current = false;
+      const response = await submitFormApi(form.id, {
+        respondent_email: respondentEmail,
+        passcode: "",
+        is_auto_submitted: false,
+        answers: answerPayload,
+      });
 
-        setIsSubmitting(false);
-
-        alert(result?.message || "Form gagal dikirim.");
-
-        if (result?.message?.toLowerCase().includes("sudah")) {
-          navigate("/history", {
-            replace: true,
-          });
-        }
-
-        return;
-      }
+      const result = response.data.data;
 
       navigate("/submit-success", {
         replace: true,
         state: {
           formId: form.id,
           formTitle: form.title,
-          submittedAt,
+          submittedAt: result.submitted_at,
           status: "completed",
-          resultMode: form.resultMode,
-          showResult: form.resultMode === "result" || form.resultMode === "score",
-          showScore: form.resultMode === "score",
-          score: scoreResult.score,
-          maxScore: scoreResult.maxScore,
-          percentage: scoreResult.percentage,
-          correctAnswers: scoreResult.correctAnswers,
-          scoredQuestions: scoreResult.scoredQuestions,
-          incorrectAnswers: scoreResult.incorrectAnswers,
-          questionResults: scoreResult.questionResults,
-          gradingEnabled: scoreResult.gradingEnabled,
-          answeredQuestions: Object.values(answersRef.current).filter(hasAnswerValue).length,
+          score: result.total_score,
           totalQuestions,
         },
       });
     } catch (error) {
       console.error("Gagal mengirim form:", error);
-
       hasSubmittedRef.current = false;
-
       setIsSubmitting(false);
-
-      alert("Terjadi kesalahan saat mengirim form. Silakan coba lagi.");
+      alert(
+        error.response?.data?.message ||
+        "Terjadi kesalahan saat mengirim form. Silakan coba lagi."
+      );
     }
-  }, [form, canFillForm, isSubmitting, navigate, questions, submitForm, totalQuestions]);
+  }, [form, canFillForm, isSubmitting, navigate, questions, totalQuestions]);
 
   // =========================================================
   // HANDLE TIMER EXPIRED
