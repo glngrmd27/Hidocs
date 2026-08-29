@@ -1,3 +1,5 @@
+import { getForms } from '../api/formApi';
+
 import {
   useContext,
   useEffect,
@@ -355,52 +357,27 @@ function ManageForms() {
   // =========================================================
   // LOAD FORMS
   // =========================================================
-  const loadForms = () => {
+  const loadForms = async () => {
     try {
-      const savedForms =
-        parseStoredArray(
-          FORMS_STORAGE_KEY
-        );
-      const deletedFormIds =
-        parseStoredArray(
-          DELETED_FORMS_STORAGE_KEY
-        ).map(
-          (deletedId) =>
-            String(
-              deletedId
-            )
-        );
-      const visibleDefaultForms =
-        defaultForms.filter(
-          (form) =>
-            !deletedFormIds.includes(
-              String(
-                form.id
-              )
-            )
-        );
-      const visibleSavedForms =
-        savedForms.filter(
-          (form) =>
-            !deletedFormIds.includes(
-              String(
-                form.id
-              )
-            )
-        );
-      const combinedForms =
-        mergeForms(
-          visibleDefaultForms,
-          visibleSavedForms
-        );
-      setForms(
-        combinedForms
-      );
+      const response = await getForms();
+      const apiForms = response.data.data || [];
+
+      const mappedForms = apiForms.map((form) => ({
+        id: form.id,
+        title: form.title,
+        description: form.description,
+        customLink: form.custom_url,
+        active: form.status === "ACTIVE",
+        responses: form.response_count || 0,
+        questions: form.questions || [],
+        createdAt: form.created_at,
+        type: form.type,
+        isDefault: false,
+      }));
+
+      setForms(mappedForms);
     } catch (error) {
-      console.error(
-        "Gagal memuat data form:",
-        error
-      );
+      console.error("Gagal memuat data form:", error);
       setForms([]);
     }
   };

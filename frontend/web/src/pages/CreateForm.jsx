@@ -1,3 +1,8 @@
+import { createForm } from '../api/formApi';
+import { addQuestion } from '../api/questionApi';
+import { updateFormSettings } from '../api/formApi';
+import { updateForm } from '../api/formApi';
+
 import {
   useContext,
   useState,
@@ -80,6 +85,8 @@ function CreateForm() {
   ] = useState(
     "info"
   );
+    const [isSaving, setIsSaving] = useState(false);
+
   const tabOrder = [
     "info",
     "settings",
@@ -607,6 +614,22 @@ function CreateForm() {
         )
     );
   };
+    // =========================================================
+  // SET CORRECT OPTION
+  // =========================================================
+  const setCorrectOption = (
+    questionId,
+    optionValue
+  ) => {
+    setQuestions((previous) =>
+      previous.map((question) =>
+        question.id === questionId
+          ? { ...question, correctAnswer: optionValue }
+          : question
+      )
+    );
+  };
+  
   // =========================================================
   // ADD OPTION
   // =========================================================
@@ -1666,8 +1689,10 @@ function CreateForm() {
   // =========================================================
   // SAVE FORM
   // =========================================================
-  const handleSave =
-    () => {
+    const handleSave = async () => {
+      if (isSaving) {
+        return;
+      }
       if (
         !validateInfo() ||
         !validateSettings() ||
@@ -2024,90 +2049,123 @@ function CreateForm() {
           new Date()
             .toISOString(),
       };
+
+          setIsSaving(true);
+
+
       try {
-        const existingForms =
-          getStoredForms();
-        const customLinkAlreadyUsed =
-          existingForms.some(
-            (
-              item
-            ) => {
-              return (
-                String(
-                  item.customLink ||
-                  ""
-                )
-                  .trim()
-                  .toLowerCase() ===
-                savedForm.customLink
-                  .trim()
-                  .toLowerCase()
-              );
-            }
-          );
-        if (
-          customLinkAlreadyUsed
-        ) {
-          alert(
-            "Custom Link sudah digunakan. Silakan gunakan link lain."
-          );
-          setActiveTab(
-            "info"
-          );
-          return;
-        }
-        const updatedForms = [
-          ...existingForms,
-          savedForm,
-        ];
-        localStorage.setItem(
-          FORMS_STORAGE_KEY,
-          JSON.stringify(
-            updatedForms
-          )
-        );
-        localStorage.setItem(
-          NEW_FORM_STORAGE_KEY,
-          JSON.stringify(
-            savedForm
-          )
-        );
-        if (
-          isPublicForm
-        ) {
-          alert(
-            "Form berhasil disimpan dan akan tampil di halaman user."
-          );
-        } else {
-          alert(
-            "Form berhasil disimpan sebagai QR Code Only. Form hanya dapat dibuka melalui QR atau direct link."
-          );
-        }
-        navigate(
-          "/admin/forms",
-          {
-            replace: true,
-          }
-        );
-      } catch (error) {
-        console.error(
-          "Gagal menyimpan form:",
-          error
-        );
-        if (
-          error?.name ===
-          "QuotaExceededError"
-        ) {
-          alert(
-            "Form gagal disimpan karena kapasitas penyimpanan browser penuh. Gunakan gambar yang lebih kecil atau hapus form lama."
-          );
-        } else {
-          alert(
-            "Terjadi kesalahan saat menyimpan form."
-          );
-        }
-      }
+           const questionTypeMap = {
+      short: "SHORT_TEXT",
+      long: "LONG_TEXT",
+      multiple: "MULTIPLE_CHOICE",
+      checkbox: "CHECKBOXES",
+      yesno: "YES_NO",
+      rating: "RATING",
+      math: "MATH",
+      code: "CODE",
+      image: "IMAGE",
     };
+
+    const hasScoring = questions.some((q) => Boolean(q.scoring));
+      // =====================================================
+      // 1. CREATE FORM
+      // =====================================================
+      const formResponse = await createForm({
+        title: formData.title.trim(),
+        description: "Form created using HiDocs Form Builder.",
+        type: hasScoring ? "EXAM" : "SURVEY",
+        custom_url: normalizedLink,
+      });
+
+      const newFormId = formResponse.data.data.id;
+
+      // =====================================================
+      // 2. ADD QUESTIONS ONE BY ONE
+      // =====================================================
+      for (let index = 0; index < questions.length; index++) {
+        const question = questions[index];
+
+        const optionsSource =
+          question.type === "yesno"
+            ? (Array.isArray(question.options) && question.options.length
+                ? question.options
+                : ["Yes", "No"])
+            : question.options || [];
+
+        const mappedOptions = optionsSource.map((option, optIndex) => ({
+          option_text: String(option || "").trim(),
+          is_correct:
+            String(option || "").trim() ===
+            String(question.correctAnswer || "").trim(),
+          order_index: optIndex,
+        }));
+
+        await addQuestion(newFormId, {
+          question_text: String(question.title || "").trim(),
+          question_type: questionTypeMap[question.type] || "SHORT_TEXT",
+          code_language: question.type === "code" ? (question.language || "") : "",
+          is_auto_scored: Boolean(question.scoring),
+          points: Boolean(question.scoring)
+            ? Math.max(Number(question.points) || 1, 1)
+            : 0,
+          order_index: index,
+          is_required: question.required !== false,
+          options: mappedOptions,
+        });
+      }
+
+      // =====================================================
+      // 3. UPDATE FORM SETTINGS
+      // =====================================================
+        const toISOOrNull = (value) => {
+        if (!value) return null;
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return null;
+        return date.toISOString();
+      };
+
+      await updateFormSettings(newFormId, {
+        duration_minutes: formData.timerEnabled
+          ? normalizedTimerDuration
+          : null,
+        auto_active_days: responseDays,
+        is_active_immediately: Boolean(formData.activateImmediately),
+        is_one_time_submission: Boolean(formData.oneTimeOnly),
+        randomize_questions: Boolean(formData.shuffleQuestions),
+        randomize_options: Boolean(formData.shuffleAnswers),
+        start_time: toISOOrNull(schedule.openAt),
+        end_time: toISOOrNull(schedule.closeAt),
+      });
+
+            await updateForm(newFormId, {
+        title: formData.title.trim(),
+        description: "Form created using HiDocs Form Builder.",
+        type: hasScoring ? "EXAM" : "SURVEY",
+        custom_url: normalizedLink,
+        status: "ACTIVE",
+      });
+
+      if (isPublicForm) {
+        alert("Form berhasil disimpan dan akan tampil di halaman user.");
+      } else {
+        alert(
+          "Form berhasil disimpan sebagai QR Code Only. Form hanya dapat dibuka melalui QR atau direct link."
+        );
+      }
+
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Gagal menyimpan form:", err);
+      const detail = err.response?.data?.errors;
+      alert(
+        (err.response?.data?.message || "Gagal menyimpan form.") +
+        (detail ? "\n\nDetail: " + JSON.stringify(detail) : "")
+      );
+    } finally {
+      setIsSaving(false);
+    }
+
+  };
   // =========================================================
   // INFO TAB
   // =========================================================
@@ -2809,9 +2867,22 @@ function CreateForm() {
                     `${question.id}-${index}`
                   }
                 >
-                  <span className="answer-radio">
+                 
+                  <span
+                    className={
+                      question.correctAnswer === option
+                        ? "answer-radio answer-radio-selected"
+                        : "answer-radio"
+                    }
+                    onClick={() =>
+                      setCorrectOption(question.id, option)
+                    }
+                    style={{ cursor: "pointer" }}
+                    title="Tandai sebagai jawaban benar"
+                  >
                     <FaCircle />
                   </span>
+
                   <input
                     type="text"
                     value={
@@ -3672,17 +3743,17 @@ function CreateForm() {
               Previous
             </button>
           )}
-          {isLastTab ? (
+                {isLastTab ? (
             <button
               type="button"
               className="create-save-btn"
-              onClick={
-                handleSave
-              }
+              onClick={handleSave}
+              disabled={isSaving}
             >
-              Save Form
+              {isSaving ? "Saving..." : "Save Form"}
             </button>
           ) : (
+
             <button
               type="button"
               className="create-save-btn"

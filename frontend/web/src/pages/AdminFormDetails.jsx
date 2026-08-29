@@ -1,5 +1,9 @@
+import { getFormById } from '../api/formApi';
+import { getQuestionsByForm } from '../api/questionApi';
+
 import {
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -388,6 +392,31 @@ const normalizeTimer = (
     duration,
   };
 };
+const reverseQuestionTypeMap = {
+  SHORT_TEXT: "short",
+  LONG_TEXT: "long",
+  MULTIPLE_CHOICE: "multiple",
+  CHECKBOXES: "checkbox",
+  YES_NO: "yesno",
+  RATING: "rating",
+  MATH: "math",
+  CODE: "code",
+  IMAGE: "image",
+};
+
+const mapApiQuestion = (q) => ({
+  id: q.id,
+  title: q.question_text,
+  type: reverseQuestionTypeMap[q.question_type] || "short",
+  required: q.is_required,
+  scoring: q.is_auto_scored,
+  points: q.points,
+  language: q.code_language || "",
+  options: (q.options || []).map((o) => o.option_text),
+  correctAnswer:
+    (q.options || []).find((o) => o.is_correct)?.option_text || "",
+});
+
 const normalizeForm = (
   rawForm
 ) => {
@@ -651,25 +680,55 @@ function AdminFormDetails() {
     closeDate: "",
     closeTime: "",
   });
-  const form =
-    useMemo(
-      () => {
-        const selectedForm =
-          findRawForm(
-            id
-          );
-        if (!selectedForm) {
-          return null;
+  const [form, setForm] = useState(null);
+  const [isLoadingForm, setIsLoadingForm] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadFormDetail = async () => {
+      setIsLoadingForm(true);
+      try {
+        const formRes = await getFormById(id);
+        const questionsRes = await getQuestionsByForm(id);
+
+        const apiForm = formRes.data.data;
+        const apiQuestions = questionsRes.data.data || [];
+
+        const mapped = {
+          id: apiForm.id,
+          title: apiForm.title,
+          description: apiForm.description,
+          customLink: apiForm.custom_url,
+          type: apiForm.type,
+          active: apiForm.status === "ACTIVE",
+          responses: apiForm.response_count || 0,
+          createdAt: apiForm.created_at,
+          questions: apiQuestions.map(mapApiQuestion),
+        };
+
+        if (isMounted) {
+          setForm(normalizeForm(mapped));
         }
-        return normalizeForm(
-          selectedForm
-        );
-      },
-      [
-        id,
-        formVersion,
-      ]
-    );
+      } catch (error) {
+        console.error("Gagal memuat detail form:", error);
+        if (isMounted) {
+          setForm(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingForm(false);
+        }
+      }
+    };
+
+    loadFormDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, formVersion]);
+
   const updateFormActiveStatus = (
     nextActiveStatus
   ) => {
@@ -1889,11 +1948,14 @@ function AdminFormDetails() {
                           {question.type ||
                           "Question"}
                         </span>
-                        <strong>
-                          {question.title ||
-                          question.question ||
-                          `Question ${index + 1}`}
-                        </strong>
+                        <strong
+                          dangerouslySetInnerHTML={{
+                            __html:
+                              question.title ||
+                              question.question ||
+                              `Question ${index + 1}`,
+                          }}
+                        />
                         {/* IMAGE */}
                         {question.image && (
                           <div className="detail-question-image">
