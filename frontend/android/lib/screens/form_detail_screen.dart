@@ -45,7 +45,7 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
   }
 
   void _shareLink() {
-    Share.share('Fill out this form: ${_form.fullLink}');
+    SharePlus.instance.share(ShareParams(text: 'Fill out this form: ${_form.fullLink}'));
   }
 
   void _copyLink() {

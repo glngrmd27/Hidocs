@@ -281,18 +281,14 @@ class _DashboardTab extends StatelessWidget {
 
   Future<void> _handlePickAndImport(BuildContext context) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['docx'],
-        allowMultiple: false,
-        withData: true,
       );
 
-      if (result == null || result.files.isEmpty) {
+      if (picked == null) {
         return;
       }
-
-      final picked = result.files.first;
 
       // Validate extension
       final fileName = picked.name;
@@ -312,7 +308,7 @@ class _DashboardTab extends StatelessWidget {
       }
 
       // Validate size > 0
-      final size = picked.size;
+      final size = await picked.length();
       if (size == 0) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -345,7 +341,13 @@ class _DashboardTab extends StatelessWidget {
       }
 
       final String? filePath = picked.path;
-      final Uint8List? fileBytes = picked.bytes;
+      Uint8List? fileBytes;
+      try {
+        fileBytes = await picked.readAsBytes();
+        if (fileBytes.isEmpty) fileBytes = null;
+      } catch (_) {
+        fileBytes = null;
+      }
 
       if ((filePath == null || filePath.isEmpty) && fileBytes == null) {
         if (context.mounted) {

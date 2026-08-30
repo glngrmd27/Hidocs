@@ -600,7 +600,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       final safeTitle = widget.form.title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
       final file = File('${dir.path}/${safeTitle}_responses.xlsx');
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([XFile(file.path)], text: 'Export ${widget.form.title}');
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'Export ${widget.form.title}'));
       messenger.showSnackBar(
         SnackBar(
           content: const Row(children: [Icon(Icons.check_circle_rounded, color: Colors.white, size: 18), SizedBox(width: 8), Text('Excel berhasil diexport')]),
@@ -692,7 +692,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       final safeTitle = title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
       final file = File('${dir.path}/${safeTitle}_responses.pdf');
       await file.writeAsBytes(pdfBytes);
-      await Share.shareXFiles([XFile(file.path)], text: 'Export PDF $title');
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'Export PDF $title'));
       messenger.showSnackBar(
         SnackBar(
           content: const Row(children: [Icon(Icons.check_circle_rounded, color: Colors.white, size: 18), SizedBox(width: 8), Text('PDF berhasil diexport')]),
