@@ -64,7 +64,7 @@ class _CreatorHomeScreenState extends State<CreatorHomeScreen> {
               backgroundColor: AppTheme.primary,
               elevation: 3,
               icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const Text('New Form',
+              label: const Text('Form Baru',
                   style: TextStyle(
                       color: Colors.white, fontWeight: FontWeight.w700)),
             )
@@ -81,15 +81,15 @@ class _CreatorHomeScreenState extends State<CreatorHomeScreen> {
           _NavItem(
               icon: Icons.space_dashboard_outlined,
               activeIcon: Icons.space_dashboard_rounded,
-              label: 'Home'),
+              label: 'Beranda'),
           _NavItem(
               icon: Icons.article_outlined,
               activeIcon: Icons.article_rounded,
-              label: 'Forms'),
+              label: 'Form'),
           _NavItem(
               icon: Icons.settings_outlined,
               activeIcon: Icons.settings_rounded,
-              label: 'Profile'),
+              label: 'Profil'),
         ],
       ),
     );
@@ -136,6 +136,27 @@ class _DashboardTab extends StatelessWidget {
               flexibleSpace: FlexibleSpaceBar(
                 background: _HeaderBg(auth: auth),
               ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                tooltip: 'Kembali',
+                onPressed: () {
+                  // Kembali ke pemilihan peran (role selection) hapus stack
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, '/role-select', (_) => false);
+                },
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                  tooltip: 'Keluar',
+                  onPressed: () async {
+                    final nav = Navigator.of(context);
+                    final a = Provider.of<AuthProvider>(context, listen: false);
+                    nav.pushNamedAndRemoveUntil('/login', (_) => false);
+                    await a.logout();
+                  },
+                ),
+              ],
               title: const Row(children: [
                 HiDocsLogo(size: 28, showShadow: false),
                 SizedBox(width: 10),
@@ -159,7 +180,7 @@ class _DashboardTab extends StatelessWidget {
                     Expanded(
                       child: _QuickAction(
                         icon: Icons.add_circle_rounded,
-                        label: 'New Form',
+                        label: 'Form Baru',
                         color: AppTheme.info,
                         onTap: () async {
                           await Navigator.push(
@@ -177,7 +198,7 @@ class _DashboardTab extends StatelessWidget {
                     Expanded(
                       child: _QuickAction(
                         icon: Icons.upload_file_rounded,
-                        label: 'Import Word',
+                        label: 'Impor Word',
                         color: AppTheme.info,
                         onTap: () => _showImportDialog(context),
                       ),
@@ -188,14 +209,14 @@ class _DashboardTab extends StatelessWidget {
                   Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                    Text('Recent Forms',
+                    Text('Form Terbaru',
                         style: Theme.of(context).textTheme.titleLarge),
                     TextButton(
                       onPressed: onViewAll,
                       style: TextButton.styleFrom(
                         foregroundColor: AppTheme.info,
                       ),
-                      child: const Text('View All'),
+                      child: const Text('Lihat Semua'),
                     ),
                   ]),
                   const SizedBox(height: 8),
@@ -208,8 +229,8 @@ class _DashboardTab extends StatelessWidget {
                   else if (myForms.isEmpty)
                     const _EmptyState(
                       icon: Icons.article_outlined,
-                      title: 'No forms yet',
-                      subtitle: 'Tap "New Form" to get started',
+                      title: 'Belum ada form',
+                      subtitle: 'Ketuk "Form Baru" untuk memulai',
                     )
                   else
                     ...myForms
@@ -245,14 +266,14 @@ class _DashboardTab extends StatelessWidget {
         title: const Row(children: [
           Icon(Icons.upload_file_rounded, color: AppTheme.primary),
           SizedBox(width: 10),
-          Text('Import Word', style: TextStyle(fontSize: 18)),
+          Text('Impor Word', style: TextStyle(fontSize: 18)),
         ]),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Convert a Word document (.docx) into a form template automatically.',
+              'Ubah dokumen Word (.docx) menjadi template form secara otomatis.',
               style: TextStyle(height: 1.5),
             ),
             SizedBox(height: 12),
@@ -265,14 +286,14 @@ class _DashboardTab extends StatelessWidget {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel')),
+              child: const Text('Batal')),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(dialogCtx);
               _handlePickAndImport(context);
             },
             icon: const Icon(Icons.folder_open_rounded, size: 16),
-            label: const Text('Choose File'),
+            label: const Text('Pilih File'),
           ),
         ],
       ),
@@ -500,15 +521,15 @@ class _HeaderBg extends StatelessWidget {
                 children: [
               Text(
                   user == null
-                      ? 'Hello! 👋'
-                      : 'Hello, ${user.name.split(' ').first}! 👋',
+                      ? 'Halo! 👋'
+                      : 'Halo, ${user.name.split(' ').first}! 👋',
                   style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                       letterSpacing: -0.3)),
               const SizedBox(height: 4),
-              Text('Create and manage your forms & quizzes',
+              Text('Buat dan kelola form & kuis Anda',
                   style: TextStyle(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.65))),
@@ -525,59 +546,197 @@ class _HeaderBg extends StatelessWidget {
       decoration: BoxDecoration(shape: BoxShape.circle, color: color));
 }
 
-class _FormsTab extends StatelessWidget {
+class _FormsTab extends StatefulWidget {
   final FormProvider formProvider;
   const _FormsTab({required this.formProvider});
 
   @override
+  State<_FormsTab> createState() => _FormsTabState();
+}
+
+class _FormsTabState extends State<_FormsTab> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() {
+      setState(() => _query = _searchCtrl.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final forms  = formProvider.forms;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final allForms = widget.formProvider.forms;
+    final filtered = _query.isEmpty
+        ? allForms
+        : allForms.where((f) {
+            final searchable =
+                '${f.title} ${f.slug} ${f.customLinkAlias} ${f.typeForApi}'
+                    .toLowerCase();
+            return searchable.contains(_query);
+          }).toList();
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
       appBar: AppBar(
-        title: const Text('My Forms'),
+        title: const Text('Form Saya'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Kembali',
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context, '/role-select', (_) => false),
+        ),
         actions: [
           IconButton(
-              icon: const Icon(Icons.search_rounded),
-              onPressed: () {}),
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Cari',
+            onPressed: () async {
+              await showSearch(
+                context: context,
+                delegate: _FormSearchDelegate(allForms),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Keluar',
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              final a = Provider.of<AuthProvider>(context, listen: false);
+              nav.pushNamedAndRemoveUntil('/login', (_) => false);
+              await a.logout();
+            },
+          ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => formProvider.loadForms(),
-        child: forms.isEmpty
-            ? SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  child: const _EmptyState(
-                    icon: Icons.article_outlined,
-                    title: 'No forms yet',
-                    subtitle: 'Tap the + button to create your first form',
-                  ),
-                ),
-              )
-            : ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding:
-                    const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                itemCount: forms.length,
-                itemBuilder: (_, i) => _FormCard(
-                  form: forms[i],
-                  onTap: () async {
-                    await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                FormDetailScreen(form: forms[i])));
-                    if (context.mounted) {
-                      context.read<FormProvider>().loadForms();
-                    }
-                  },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Cari form, link, atau tipe...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () => _searchCtrl.clear(),
+                      )
+                    : null,
+                filled: true,
+                fillColor: isDark ? AppTheme.darkSurface : Colors.white,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      BorderSide(color: isDark ? AppTheme.darkBorder : AppTheme.border),
                 ),
               ),
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => widget.formProvider.loadForms(),
+              child: filtered.isEmpty
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        child: _EmptyState(
+                          icon: Icons.search_off_rounded,
+                          title: _query.isEmpty ? 'Belum ada form' : 'Tidak ada hasil',
+                          subtitle: _query.isEmpty
+                              ? 'Ketuk tombol + untuk membuat form pertama'
+                              : 'Coba kata kunci lain',
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) => _FormCard(
+                        form: filtered[i],
+                        onTap: () async {
+                          await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      FormDetailScreen(form: filtered[i])));
+                          if (context.mounted) {
+                            context.read<FormProvider>().loadForms();
+                          }
+                        },
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FormSearchDelegate extends SearchDelegate {
+  final List<FormModel> forms;
+  _FormSearchDelegate(this.forms);
+
+  @override
+  String get searchFieldLabel => 'Cari form...';
+
+  @override
+  List<Widget>? buildActions(BuildContext context) => [
+        IconButton(
+            icon: const Icon(Icons.clear_rounded),
+            onPressed: () => query = ''),
+      ];
+
+  @override
+  Widget? buildLeading(BuildContext context) => IconButton(
+      icon: const Icon(Icons.arrow_back_rounded),
+      onPressed: () => close(context, null));
+
+  @override
+  Widget buildResults(BuildContext context) => _buildList(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildList(context);
+
+  Widget _buildList(BuildContext context) {
+    final q = query.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? forms
+        : forms.where((f) {
+            final s =
+                '${f.title} ${f.slug} ${f.customLinkAlias} ${f.typeForApi}'.toLowerCase();
+            return s.contains(q);
+          }).toList();
+    if (filtered.isEmpty) {
+      return const Center(child: Text('Tidak ada hasil'));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      itemCount: filtered.length,
+      itemBuilder: (_, i) => _FormCard(
+        form: filtered[i],
+        onTap: () {
+          close(context, null);
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => FormDetailScreen(form: filtered[i])));
+        },
       ),
     );
   }
@@ -596,7 +755,7 @@ class _FormCard extends StatelessWidget {
           children: [
             Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
             SizedBox(width: 8),
-            Text('Link copied to clipboard!'),
+            Text('Link berhasil disalin!'),
           ],
         ),
         backgroundColor: AppTheme.success,
@@ -888,7 +1047,7 @@ class _StatusPill extends StatelessWidget {
               color: isActive ? AppTheme.success : AppTheme.error),
         ),
         const SizedBox(width: 5),
-        Text(isActive ? 'Active' : 'Closed',
+        Text(isActive ? 'Aktif' : 'Tutup',
             style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,

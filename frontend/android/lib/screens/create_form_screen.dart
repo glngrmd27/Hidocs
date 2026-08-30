@@ -352,7 +352,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
 
     if (_questions.isEmpty) {
       _showMessage(
-        'Please add at least 1 question',
+        'Tambahkan minimal 1 pertanyaan',
         backgroundColor: AppTheme.warning,
       );
 
@@ -363,7 +363,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
     for (var i = 0; i < _questions.length; i++) {
       if (!_hasQuestionContent(_questions[i])) {
         _showMessage(
-          'Question ${i + 1} is empty. Write the question text first.',
+          'Pertanyaan ${i + 1} masih kosong. Isi teks pertanyaan terlebih dahulu.',
           backgroundColor: AppTheme.warning,
         );
 
@@ -374,7 +374,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
 
     if (_closeDateTime.isBefore(_openDateTime)) {
       _showMessage(
-        'Close time cannot be before open time',
+        'Waktu tutup tidak boleh sebelum waktu buka',
         backgroundColor: AppTheme.error,
       );
 
@@ -396,7 +396,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
 
     if (currentUser == null) {
       _showMessage(
-        'You must be logged in to create a form',
+        'Anda harus login untuk membuat form',
         backgroundColor: AppTheme.error,
       );
       return;
@@ -476,8 +476,8 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       SnackBar(
         content: Text(
           editing != null
-              ? 'Form updated successfully!'
-              : 'Form created successfully!',
+              ? 'Form berhasil diperbarui!'
+              : 'Form berhasil dibuat!',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -488,7 +488,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Form' : 'Create Form'),
+        title: Text(widget.isEditing ? 'Edit Form' : 'Buat Form'),
         bottom: TabBar(
           controller: _tabCtrl,
           indicatorColor: Colors.white,
@@ -505,15 +505,15 @@ class _CreateFormScreenState extends State<CreateFormScreen>
           ),
           tabs: const [
             Tab(text: 'Info'),
-            Tab(text: 'Settings'),
-            Tab(text: 'Questions'),
+            Tab(text: 'Pengaturan'),
+            Tab(text: 'Pertanyaan'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: _saveForm,
             child: const Text(
-              'Save',
+              'Simpan',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,

@@ -304,7 +304,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Logout / Ganti akun',
+                              'Keluar / Ganti akun',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,

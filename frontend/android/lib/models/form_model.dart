@@ -92,6 +92,9 @@ class FormModel {
         DateTime.tryParse(settings['end_time']?.toString() ?? '')?.toLocal();
 
     final now = DateTime.now();
+    // Default window 1 day if backend returns null (new form / import word)
+    final defaultOpen = now;
+    final defaultClose = now.add(const Duration(days: 1));
 
     final status = (json['status'] ?? '').toString();
 
@@ -108,8 +111,8 @@ class FormModel {
       creatorId: (json['user_id'] ?? '').toString(),
       shortLink: (json['custom_url'] ?? '').toString(),
       customLinkAlias: (json['custom_url'] ?? '').toString(),
-      scheduledOpen: startTime ?? now,
-      scheduledClose: endTime ?? now,
+      scheduledOpen: startTime ?? defaultOpen,
+      scheduledClose: endTime ?? defaultClose,
       timerMinutes: settings['duration_minutes'] is num
           ? ((settings['duration_minutes'] as num).toInt()).clamp(0, 100000)
           : 0,
@@ -183,6 +186,9 @@ class FormModel {
   }
 
   Map<String, dynamic> toSettingsJson() {
+    // Only send schedule if isScheduled (open != close). Otherwise send null
+    // so backend keeps StartTime/EndTime = nil -> no "time limit has passed"
+    final bool hasSchedule = isScheduled && scheduledClose.isAfter(scheduledOpen);
     return {
       'duration_minutes': hasTimer ? timerMinutes : null,
       'auto_active_days': 30,
@@ -190,8 +196,8 @@ class FormModel {
       'is_one_time_submission': oneTimeOnly,
       'randomize_questions': shuffleQuestions,
       'randomize_options': shuffleOptions,
-      'start_time': scheduledOpen.toUtc().toIso8601String(),
-      'end_time': scheduledClose.toUtc().toIso8601String(),
+      'start_time': hasSchedule ? scheduledOpen.toUtc().toIso8601String() : null,
+      'end_time': hasSchedule ? scheduledClose.toUtc().toIso8601String() : null,
     };
   }
 }

@@ -48,11 +48,20 @@ class _InfoTabState extends State<InfoTab> {
   }
 
   Future<void> _pickDate(DateTime initial, ValueChanged<DateTime> cb) async {
+    // Clamp initialDate to valid range to avoid assertion when stored date is old
+    final safeInitial = initial.isBefore(DateTime(2024))
+        ? DateTime(2024)
+        : initial.isAfter(DateTime(2035))
+            ? DateTime(2035)
+            : initial;
     final d = await showDatePicker(
       context: context,
-      initialDate: initial,
+      initialDate: safeInitial,
       firstDate: DateTime(2024),
       lastDate: DateTime(2035),
+      helpText: 'Pilih tanggal',
+      cancelText: 'Batal',
+      confirmText: 'OK',
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(primary: AppTheme.primary),
@@ -67,6 +76,14 @@ class _InfoTabState extends State<InfoTab> {
     final t = await showTimePicker(
       context: context,
       initialTime: initial,
+      // Force dial mode to prevent manual keyboard entry errors (e.g. 25:00, 9:5)
+      initialEntryMode: TimePickerEntryMode.dial,
+      helpText: 'Pilih waktu',
+      cancelText: 'Batal',
+      confirmText: 'OK',
+      errorInvalidText: 'Format waktu tidak valid',
+      hourLabelText: 'Jam',
+      minuteLabelText: 'Menit',
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(primary: AppTheme.primary),
@@ -89,11 +106,11 @@ class _InfoTabState extends State<InfoTab> {
 
   String _timerLabel() {
     final m = widget.timerMinutes;
-    if (m <= 0) return 'No time limit';
-    if (m < 60) return '$m minutes';
+    if (m <= 0) return 'Tanpa batas waktu';
+    if (m < 60) return '$m menit';
     final h = m ~/ 60;
     final rem = m % 60;
-    return rem == 0 ? '${h}h' : '${h}h ${rem}m';
+    return rem == 0 ? '${h} jam' : '${h} jam ${rem} menit';
   }
 
   @override
@@ -105,22 +122,22 @@ class _InfoTabState extends State<InfoTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionLabel('Form Information', Icons.info_outline_rounded, isDark),
+          _SectionLabel('Informasi Form', Icons.info_outline_rounded, isDark),
           const SizedBox(height: 16),
           CustomInput(
             controller: widget.titleController,
-            label: 'Form Title',
-            hint: 'e.g. Student Satisfaction Survey',
+            label: 'Judul Form',
+            hint: 'mis. Survei Kepuasan Siswa',
             prefixIcon: Icons.title_rounded,
             validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Title is required' : null,
+                (v == null || v.trim().isEmpty) ? 'Judul wajib diisi' : null,
           ),
           const SizedBox(height: 24),
 
-          _SectionLabel('Form Link', Icons.link_rounded, isDark),
+          _SectionLabel('Link Form', Icons.link_rounded, isDark),
           const SizedBox(height: 8),
           Text(
-            'Create a short, easy-to-share link for your form.',
+            'Buat link singkat yang mudah dibagikan untuk form Anda.',
             style: TextStyle(
               fontSize: 13,
               color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -134,8 +151,8 @@ class _InfoTabState extends State<InfoTab> {
               Expanded(
                 child: CustomInput(
                   controller: widget.linkController,
-                  label: 'Custom Link',
-                  hint: 'e.g. my-survey-2026',
+                  label: 'Link Kustom',
+                  hint: 'mis. survei-saya-2026',
                   prefixIcon: Icons.link_rounded,
                   onChanged: (_) => setState(() {}),
                   inputFormatters: [
@@ -145,7 +162,7 @@ class _InfoTabState extends State<InfoTab> {
               ),
               const SizedBox(width: 10),
               Tooltip(
-                message: 'Generate random link',
+                message: 'Buat link acak',
                 child: GestureDetector(
                   onTap: _randomizeLink,
                   child: Container(
@@ -174,11 +191,11 @@ class _InfoTabState extends State<InfoTab> {
           ),
           const SizedBox(height: 28),
 
-          _SectionLabel('Sharing & Visibility', Icons.public_rounded, isDark),
+          _SectionLabel('Berbagi & Visibilitas', Icons.public_rounded, isDark),
           const SizedBox(height: 8),
           Text(
-            'Public forms appear on the user page and can be shared by link '
-            'and QR code. Private forms can only be accessed by scanning the QR code.',
+            'Form publik muncul di halaman pengguna dan dapat dibagikan lewat link '
+            'dan QR code. Form privat hanya bisa diakses dengan scan QR code.',
             style: TextStyle(
               fontSize: 13,
               color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -191,8 +208,8 @@ class _InfoTabState extends State<InfoTab> {
                 child: _VisibilityCard(
                   selected: widget.isPublic,
                   icon: Icons.public_rounded,
-                  title: 'Public',
-                  subtitle: 'QR · Link · User page',
+                  title: 'Publik',
+                  subtitle: 'QR · Link · Halaman pengguna',
                   color: AppTheme.success,
                   isDark: isDark,
                   onTap: () => widget.onIsPublic(true),
@@ -203,8 +220,8 @@ class _InfoTabState extends State<InfoTab> {
                 child: _VisibilityCard(
                   selected: !widget.isPublic,
                   icon: Icons.lock_outline_rounded,
-                  title: 'Private',
-                  subtitle: 'QR only',
+                  title: 'Privat',
+                  subtitle: 'QR saja',
                   color: AppTheme.warning,
                   isDark: isDark,
                   onTap: () => widget.onIsPublic(false),
@@ -214,10 +231,10 @@ class _InfoTabState extends State<InfoTab> {
           ),
           const SizedBox(height: 28),
 
-          _SectionLabel('Schedule', Icons.schedule_rounded, isDark),
+          _SectionLabel('Jadwal', Icons.schedule_rounded, isDark),
           const SizedBox(height: 8),
           Text(
-            'Set when the form opens and closes. The timer is calculated automatically.',
+            'Atur kapan form dibuka dan ditutup. Timer dihitung otomatis.',
             style: TextStyle(
               fontSize: 13,
               color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -229,7 +246,7 @@ class _InfoTabState extends State<InfoTab> {
             children: [
               Expanded(
                 child: _DateTimeField(
-                  label: 'Opens',
+                  label: 'Buka',
                   icon: Icons.calendar_today_rounded,
                   value: _fmtDate(widget.openDate),
                   isDark: isDark,
@@ -254,7 +271,7 @@ class _InfoTabState extends State<InfoTab> {
             children: [
               Expanded(
                 child: _DateTimeField(
-                  label: 'Closes',
+                  label: 'Tutup',
                   icon: Icons.calendar_today_rounded,
                   value: _fmtDate(widget.closeDate),
                   isDark: isDark,
@@ -299,7 +316,7 @@ class _InfoTabState extends State<InfoTab> {
                         : AppTheme.primaryFaint,
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(
+                    child: Icon(
                     widget.timerMinutes > 0
                         ? Icons.timer_rounded
                         : Icons.timer_off_outlined,
@@ -315,7 +332,7 @@ class _InfoTabState extends State<InfoTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Time Limit • Auto Calculated',
+                        'Batas Waktu • Otomatis',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
