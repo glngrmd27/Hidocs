@@ -16,7 +16,7 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  static const String baseUrl = AppConstants.appBaseUrl;
+  static String get baseUrl => AppConstants.appBaseUrl;
 
   static const Duration _timeout = Duration(seconds: 30);
 

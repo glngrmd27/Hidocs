@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +15,13 @@ import 'screens/register_screen.dart';
 import 'screens/role_selection_screen.dart';
 import 'screens/user_home_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (_) {
+    // .env optional saat test/widget test - fallback ke AppConstants default
+  }
   runApp(const FormMakerApp());
 }
 
