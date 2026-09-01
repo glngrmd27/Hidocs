@@ -812,6 +812,135 @@ function AdminFormDetails() {
         }
       } catch (error) {
         console.error("Gagal memuat detail form:", error);
+        const localForm =
+          findRawForm(id);
+        if (
+          isMounted &&
+          localForm &&
+          typeof localForm ===
+            "object"
+        ) {
+          const localQuestions =
+            Array.isArray(
+              localForm.questions
+            )
+              ? localForm.questions
+              : [];
+          const localMapped = {
+            ...localForm,
+            id:
+              localForm.id ||
+              id,
+            title:
+              String(
+                localForm.title ||
+                ""
+              ).trim() ||
+              "Untitled Form",
+            description:
+              String(
+                localForm.description ||
+                ""
+              ).trim() ||
+              "Form created using HiDocs Form Builder.",
+            customLink:
+              localForm.customLink ||
+              localForm.custom_url ||
+              "",
+            type:
+              localForm.type ||
+              localForm.category ||
+              "Form",
+            active:
+              localForm.active !==
+              false,
+            responses:
+              Number(
+                localForm.responses
+              ) ||
+              0,
+            createdAt:
+              localForm.createdAt ||
+              "",
+            questions:
+              localQuestions.map(
+                (
+                  question,
+                  qIndex
+                ) => ({
+                  ...question,
+                  id:
+                    question.id ||
+                    `local-question-${qIndex}`,
+                  title:
+                    String(
+                      question.title ||
+                      question.question ||
+                      ""
+                    ).trim() ||
+                    `Question ${qIndex + 1}`,
+                  type:
+                    question.type ||
+                    "short",
+                  required:
+                    question.required !==
+                    false,
+                  scoring:
+                    Boolean(
+                      question.scoring ||
+                      question.grading?.enabled
+                    ),
+                  points:
+                    Math.max(
+                      Number(
+                        question.points ||
+                        question.grading?.points
+                      ) || 1,
+                      1
+                    ),
+                  correctAnswer:
+                    String(
+                      question.correctAnswer ||
+                      question.grading?.correctAnswer ||
+                      ""
+                    ).trim(),
+                  options:
+                    Array.isArray(
+                      question.options
+                    )
+                      ? question.options.map(
+                          (option) =>
+                            String(
+                              option ||
+                              ""
+                            ).trim()
+                        )
+                      : [],
+                  image:
+                    question.image ||
+                    "",
+                  imageName:
+                    question.imageName ||
+                    "",
+                  imageAnswerType:
+                    question.imageAnswerType ||
+                    "",
+                  imageOptions:
+                    Array.isArray(
+                      question.imageOptions
+                    )
+                      ? question.imageOptions
+                      : [],
+                })
+              ),
+          };
+          setForm(
+            normalizeForm(
+              localMapped
+            )
+          );
+          return;
+        }
         if (isMounted) {
           setForm(null);
         }
