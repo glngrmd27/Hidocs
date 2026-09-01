@@ -24,7 +24,12 @@ import {
 } from "react-icons/fa";
 import {
   Html5Qrcode,
+  Html5QrcodeSupportedFormats,
 } from "html5-qrcode";
+import {
+  getFormById,
+  getPublicForm,
+} from "../api/formApi";
 import {
   FormContext,
 } from "../context/FormContext";
@@ -1160,6 +1165,44 @@ function UserForms() {
     );
   };
   // =========================================================
+  // NORMALIZE QR TOKEN
+  // =========================================================
+  const normalizeQrToken = (
+    value
+  ) => {
+    return String(
+      value ??
+      ""
+    )
+      .trim()
+      .replace(
+        /^https?:\/\//i,
+        ""
+      )
+      .replace(
+        /^hidocs\.app\/r\//i,
+        ""
+      )
+      .replace(
+        /^form-details\//i,
+        ""
+      )
+      .replace(
+        /^r\//i,
+        ""
+      )
+      .replace(
+        /^\/+/, ""
+      )
+      .replace(
+        /\/+$/,
+        ""
+      )
+      .split("?")[0]
+      .split("#")[0]
+      .toLowerCase();
+  };
+  // =========================================================
   // EXTRACT VALUE FROM QR
   // =========================================================
   const extractQrIdentifier = (
@@ -1266,90 +1309,190 @@ function UserForms() {
     }
   };
   // =========================================================
+  // FETCH REMOTE FORM FROM QR
+  // =========================================================
+  const fetchRemoteFormFromQr =
+    useCallback(
+      async (
+        identifier
+      ) => {
+        if (!identifier) {
+          return null;
+        }
+
+        const candidateRequests = [];
+        if (/^\d+$/.test(identifier)) {
+          candidateRequests.push(async () => {
+            const response = await getFormById(identifier);
+            return response?.data?.data ?? response?.data ?? response;
+          });
+        }
+
+        candidateRequests.push(async () => {
+          const response = await getPublicForm(identifier);
+          return response?.data?.data ?? response?.data ?? response;
+        });
+
+        for (const request of candidateRequests) {
+          try {
+            const payload = await request();
+            if (!payload) {
+              continue;
+            }
+
+            const remoteForm = {
+              id:
+                payload.id ??
+                payload.form_id ??
+                payload.formId ??
+                identifier,
+              title:
+                payload.title ||
+                "Form",
+              description:
+                payload.description ||
+                "",
+              category:
+                payload.category ||
+                payload.type ||
+                "General",
+              active:
+                payload.active !==
+                false &&
+                payload.status !==
+                "INACTIVE",
+              customLink:
+                payload.custom_url ||
+                payload.customUrl ||
+                payload.short_code ||
+                payload.shortCode ||
+                identifier,
+              link:
+                payload.link ||
+                payload.url ||
+                payload.public_link ||
+                payload.publicLink ||
+                (payload.custom_url
+                  ? `hidocs.app/r/${payload.custom_url}`
+                  : ""),
+              createdAt:
+                payload.created_at ||
+                payload.createdAt ||
+                new Date().toISOString(),
+              accessMode:
+                payload.access_mode ||
+                payload.accessMode ||
+                "public",
+              showInUserList:
+                payload.show_in_user_list ??
+                payload.showInUserList ??
+                true,
+              qrOnly:
+                payload.qr_only ??
+                payload.qrOnly ??
+                false,
+              isRemote: true,
+            };
+
+            return remoteForm;
+          } catch (error) {
+            console.warn(
+              "QR fetch fallback gagal:",
+              identifier,
+              error
+            );
+          }
+        }
+
+        return null;
+      },
+      []
+    );
+
+  // =========================================================
   // FIND FORM FROM QR
   // =========================================================
   const findFormFromQr =
     useCallback(
-      (
+      async (
         scannedValue
       ) => {
         const identifier =
-          extractQrIdentifier(
-            scannedValue
-          )
-            .trim()
-            .toLowerCase();
+          normalizeQrToken(
+            extractQrIdentifier(
+              scannedValue
+            )
+          );
         if (!identifier) {
           return null;
         }
+
         const normalizedScannedLink =
-          String(
-            scannedValue ||
-            ""
-          )
-            .trim()
-            .replace(
-              /^https?:\/\//i,
-              ""
-            )
-            .replace(
-              /\/+$/,
-              ""
-            )
-            .toLowerCase();
-        return (
+          normalizeQrToken(
+            scannedValue
+          );
+
+        const localMatch =
           allForms.find(
             (
               form
             ) => {
-              const idMatch =
-                String(
+              const formId =
+                normalizeQrToken(
                   form.id
-                )
-                  .trim()
-                  .toLowerCase() ===
-                identifier;
-              const customLinkMatch =
-                String(
-                  form.customLink ||
-                  ""
-                )
-                  .trim()
-                  .toLowerCase() ===
-                identifier;
-              const normalizedFormLink =
-                String(
-                  form.link ||
-                  ""
-                )
-                  .trim()
-                  .replace(
-                    /^https?:\/\//i,
-                    ""
-                  )
-                  .replace(
-                    /\/+$/,
-                    ""
-                  )
-                  .toLowerCase();
-              const fullLinkMatch =
-                Boolean(
-                  normalizedFormLink
-                ) &&
-                normalizedFormLink ===
-                normalizedScannedLink;
+                );
+              const formCustomLink =
+                normalizeQrToken(
+                  form.customLink
+                );
+              const formLink =
+                normalizeQrToken(
+                  form.link
+                );
+              const formPublicLink =
+                normalizeQrToken(
+                  form.publicLink
+                );
+              const formUrl =
+                normalizeQrToken(
+                  form.url
+                );
+
               return (
-                idMatch ||
-                customLinkMatch ||
-                fullLinkMatch
+                formId ===
+                  identifier ||
+                formCustomLink ===
+                  identifier ||
+                formLink ===
+                  identifier ||
+                formPublicLink ===
+                  identifier ||
+                formUrl ===
+                  identifier ||
+                formLink ===
+                  normalizedScannedLink ||
+                formPublicLink ===
+                  normalizedScannedLink ||
+                formUrl ===
+                  normalizedScannedLink ||
+                formCustomLink ===
+                  normalizedScannedLink
               );
             }
-          ) ||
-          null
+          );
+
+        if (localMatch) {
+          return localMatch;
+        }
+
+        return fetchRemoteFormFromQr(
+          identifier
         );
       },
       [
         allForms,
+        fetchRemoteFormFromQr,
+        normalizeQrToken,
       ]
     );
   // =========================================================
@@ -1419,6 +1562,103 @@ function UserForms() {
       ]
     );
   // =========================================================
+  // RESOLVE DIRECT QR ROUTE
+  // =========================================================
+  const resolveQrNavigationTarget =
+    useCallback(
+      (
+        scannedValue
+      ) => {
+        const rawValue =
+          String(
+            scannedValue ||
+            ""
+          ).trim();
+        if (!rawValue) {
+          return null;
+        }
+
+        try {
+          const parsedUrl =
+            new URL(
+              rawValue
+            );
+          const pathParts =
+            parsedUrl.pathname
+              .split("/")
+              .filter(
+                Boolean
+              );
+
+          const formIndex =
+            pathParts.findIndex(
+              (
+                part
+              ) =>
+                part ===
+                "form-details"
+            );
+          if (
+            formIndex !==
+              -1 &&
+            pathParts[
+              formIndex +
+              1
+            ]
+          ) {
+            return `/fill-form/${pathParts[formIndex + 1]}`;
+          }
+
+          const shortLinkIndex =
+            pathParts.findIndex(
+              (
+                part
+              ) =>
+                part === "r"
+            );
+          if (
+            shortLinkIndex !==
+              -1 &&
+            pathParts[
+              shortLinkIndex +
+              1
+            ]
+          ) {
+            return `/fill-form/${pathParts[shortLinkIndex + 1]}`;
+          }
+        } catch {
+          // URL parse gagal: fallback gunakan raw string.
+        }
+
+        const fallbackIdentifier =
+          normalizeQrToken(
+            extractQrIdentifier(
+              rawValue
+            )
+          );
+        if (!fallbackIdentifier) {
+          return null;
+        }
+
+        if (/^\d+$/.test(fallbackIdentifier)) {
+          return `/fill-form/${fallbackIdentifier}`;
+        }
+
+        const routeLikeMatch =
+          String(
+            fallbackIdentifier
+          ).match(
+            /(?:^|[/?#])(?:form-details|r)[/?#]?([^/?#]+)/i
+          );
+        if (routeLikeMatch?.[1]) {
+          return `/fill-form/${routeLikeMatch[1]}`;
+        }
+
+        return null;
+      },
+      []
+    );
+  // =========================================================
   // HANDLE SCAN SUCCESS
   // =========================================================
   const handleScanSuccess =
@@ -1433,11 +1673,17 @@ function UserForms() {
         }
         scanHandledRef.current =
           true;
-        const matchedForm =
-          findFormFromQr(
+
+        const directTarget =
+          resolveQrNavigationTarget(
             decodedText
           );
-        if (!matchedForm) {
+        const matchedForm =
+          await findFormFromQr(
+            decodedText
+          );
+
+        if (!matchedForm && !directTarget) {
           scanHandledRef.current =
             false;
           setScannerStatus(
@@ -1448,10 +1694,15 @@ function UserForms() {
           );
           return;
         }
-        // =====================================================
-        // ADMIN INACTIVE
-        // =====================================================
+
+        const finalTarget =
+          matchedForm
+            ? `/fill-form/${matchedForm.id}`
+            : directTarget;
+
         if (
+          matchedForm &&
+          !matchedForm.isRemote &&
           !isFormActive(
             matchedForm
           )
@@ -1466,37 +1717,39 @@ function UserForms() {
           );
           return;
         }
-        // =====================================================
-        // SCHEDULE CHECK
-        //
-        // QR masih dikenali, tetapi user akan diarahkan ke
-        // FormDetails agar status Not Open / Closed terlihat.
-        // =====================================================
+
         setScannerError(
           ""
         );
-        if (
-          matchedForm.scheduleStatus ===
-          "not-open"
-        ) {
-          setScannerStatus(
-            `Form "${matchedForm.title}" berhasil ditemukan. Form belum dibuka.`
-          );
-        } else if (
-          matchedForm.scheduleStatus ===
-          "closed"
-        ) {
-          setScannerStatus(
-            `Form "${matchedForm.title}" berhasil ditemukan. Form sudah ditutup.`
+        if (matchedForm) {
+          if (
+            matchedForm.scheduleStatus ===
+            "not-open"
+          ) {
+            setScannerStatus(
+              `Form "${matchedForm.title}" berhasil ditemukan. Form belum dibuka.`
+            );
+          } else if (
+            matchedForm.scheduleStatus ===
+            "closed"
+          ) {
+            setScannerStatus(
+              `Form "${matchedForm.title}" berhasil ditemukan. Form sudah ditutup.`
+            );
+          } else {
+            setScannerStatus(
+              `Form "${matchedForm.title}" berhasil ditemukan.`
+            );
+          }
+          saveFormToUser(
+            matchedForm.id
           );
         } else {
           setScannerStatus(
-            `Form "${matchedForm.title}" berhasil ditemukan.`
+            "QR Code valid. Membuka form..."
           );
         }
-        saveFormToUser(
-          matchedForm.id
-        );
+
         await stopScanner();
         window.setTimeout(
           () => {
@@ -1504,7 +1757,7 @@ function UserForms() {
               false
             );
             navigate(
-              `/form-details/${matchedForm.id}`
+              finalTarget
             );
           },
           700
@@ -1513,6 +1766,7 @@ function UserForms() {
       [
         findFormFromQr,
         navigate,
+        resolveQrNavigationTarget,
         saveFormToUser,
         stopScanner,
       ]
@@ -1560,11 +1814,13 @@ function UserForms() {
                   height: 240,
                 },
               aspectRatio: 1,
+              disableFlip: false,
             },
             handleScanSuccess,
             () => {
               // Error pembacaan tiap frame sengaja diabaikan.
-            }
+            },
+            [Html5QrcodeSupportedFormats.QR_CODE]
           );
           setScannerRunning(
             true

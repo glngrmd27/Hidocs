@@ -47,6 +47,10 @@ import {
 import {
   ThemeContext,
 } from "../context/ThemeContext";
+import {
+  createForm,
+  importFormFromDocx,
+} from "../api/formApi";
 import "../assets/css/ImportWord.css";
 // =========================================================
 // STORAGE KEYS
@@ -330,6 +334,193 @@ function ImportWord() {
         )
         .toLowerCase();
   };
+  const normalizeImportedApiQuestions = (
+    items = []
+  ) => {
+    return items
+      .map(
+        (
+          item,
+          index
+        ) => {
+          const questionType =
+            String(
+              item?.type ||
+              item?.question_type ||
+              item?.kind ||
+              "short"
+            )
+              .trim()
+              .toLowerCase();
+
+          const normalizedOptions =
+            Array.isArray(
+              item?.options
+            )
+              ? item.options.map(
+                  option =>
+                    String(
+                      option ?? ""
+                    ).trim()
+                )
+              : Array.isArray(
+                  item?.choices
+                )
+                ? item.choices.map(
+                    choice =>
+                      String(
+                        choice ?? ""
+                      ).trim()
+                  )
+                : [];
+
+          const inferredFromOptions =
+            normalizedOptions.length >= 2;
+          const normalizedType =
+            [
+              "multiple",
+              "short",
+              "long",
+              "rating",
+              "yesno",
+              "math",
+              "code",
+            ].includes(
+              questionType
+            )
+              ? questionType
+              : inferredFromOptions
+                ? "multiple"
+                : "short";
+
+          const title =
+            String(
+              item?.title ||
+              item?.question ||
+              item?.prompt ||
+              `Question ${index + 1}`
+            ).trim();
+
+          return {
+            id:
+              item?.id ||
+              item?.question_id ||
+              `${Date.now()}-${index}`,
+            title,
+            question: title,
+            type: normalizedType,
+            required:
+              item?.required !==
+              false,
+            scoring:
+              Boolean(
+                item?.scoring ||
+                item?.points > 0 ||
+                item?.grading?.enabled
+              ),
+            points:
+              Math.max(
+                Number(
+                  item?.points ||
+                  item?.grading?.points ||
+                  1
+                ) || 1,
+                1
+              ),
+            correctAnswer:
+              String(
+                item?.correctAnswer ||
+                item?.correct_answer ||
+                item?.grading?.correctAnswer ||
+                ""
+              ).trim(),
+            options:
+              normalizedType ===
+              "yesno"
+                ? [
+                    "Yes",
+                    "No",
+                  ]
+                : normalizedType ===
+                    "multiple" &&
+                  normalizedOptions.length >=
+                    2
+                  ? normalizedOptions
+                  : [],
+            image: "",
+            imageName: "",
+            imageAnswerType: "",
+            imageOptions: [],
+          };
+        }
+      )
+      .filter(
+        (
+          question
+        ) =>
+          question &&
+          String(
+            question.title ||
+            ""
+          ).trim()
+      );
+  };
+
+  const normalizeImportedApiPayload = (
+    payload
+  ) => {
+    const source =
+      payload?.data?.data ??
+      payload?.data ??
+      payload ??
+      {};
+
+    const candidateForm =
+      source.form &&
+      typeof source.form ===
+        "object"
+        ? source.form
+        : source;
+
+    const normalizedQuestions =
+      normalizeImportedApiQuestions(
+        Array.isArray(
+          candidateForm.questions
+        )
+          ? candidateForm.questions
+          : Array.isArray(
+              source.questions
+            )
+            ? source.questions
+            : []
+      );
+
+    if (
+      normalizedQuestions.length ===
+      0
+    ) {
+      return null;
+    }
+
+    return {
+      title:
+        String(
+          candidateForm.title ||
+          source.title ||
+          "Imported Word Form"
+        ).trim(),
+      customLink:
+        String(
+          candidateForm.customLink ||
+          candidateForm.custom_link ||
+          source.customLink ||
+          source.custom_link ||
+          ""
+        ).trim(),
+      questions:
+        normalizedQuestions,
+    };
+  };
   const isCustomLinkUsed = (
     customLink
   ) => {
@@ -556,25 +747,58 @@ function ImportWord() {
       [];
     let currentQuestion =
       null;
+    let pendingType =
+      null;
     const saveCurrentQuestion =
       () => {
         if (!currentQuestion) {
           return;
         }
-        if (
-          !String(
+        const rawTitle =
+          String(
             currentQuestion.title ||
             ""
-          ).trim()
-        ) {
+          );
+        const cleanedTitle =
+          rawTitle
+            .replace(
+              /\s*(?:kunci|jawaban|correct\s+answer|jawaban\s+benar|poin|point|points|nilai)\s*[:\-]?\s*(?:[A-D]|\d+)\s*$/i,
+              ""
+            )
+            .trim();
+        if (!cleanedTitle) {
           currentQuestion =
             null;
           return;
         }
+        const currentOptions =
+          Array.isArray(
+            currentQuestion.options
+          )
+            ? currentQuestion.options.filter(
+                (option) =>
+                  String(
+                    option || ""
+                  ).trim()
+              )
+            : [];
+        const hasMultipleChoiceText =
+          /(?:^|\s)(?:[A-D]|[1-4])\s*[.)]\s*.+/i.test(
+            cleanedTitle
+          ) ||
+          /(?:^|\s)(?:pilihan|opsi)\s*(?:[A-D]|[1-4])\s*[:\-]/i.test(
+            cleanedTitle
+          );
+        currentQuestion.title =
+          cleanedTitle;
+        currentQuestion.question =
+          cleanedTitle;
+        currentQuestion.options =
+          currentOptions;
         if (
           currentQuestion.type ===
             "multiple" &&
-          currentQuestion.options.length <
+          currentOptions.length <
             2
         ) {
           currentQuestion.type =
@@ -582,11 +806,80 @@ function ImportWord() {
           currentQuestion.options =
             [];
         }
+        if (
+          (currentOptions.length >= 2 ||
+            hasMultipleChoiceText) &&
+          currentQuestion.type !==
+            "yesno"
+        ) {
+          currentQuestion.type =
+            "multiple";
+        }
         parsedQuestions.push(
           currentQuestion
         );
         currentQuestion =
           null;
+      };
+    const extractInlineMultipleChoice =
+      (
+        value
+      ) => {
+        const text =
+          String(
+            value || ""
+          ).trim();
+        if (!text) {
+          return {
+            title: "",
+            options: [],
+            hasChoices: false,
+          };
+        }
+        const choicePattern =
+          /(?:^|\s)([A-D])\s*[.)]\s*([^A-D]*?)(?=\s+[A-D]\s*[.)]|\s*$)/gi;
+        const matches =
+          [...text.matchAll(
+            choicePattern
+          )];
+        if (
+          matches.length < 2
+        ) {
+          return {
+            title: text,
+            options: [],
+            hasChoices: false,
+          };
+        }
+        const options =
+          matches
+            .map(
+              (
+                match
+              ) =>
+                String(
+                  match[2] || ""
+                )
+                  .trim()
+            )
+            .filter(Boolean);
+        const title =
+          text
+            .replace(
+              choicePattern,
+              " "
+            )
+            .replace(
+              /\s{2,}/g,
+              " "
+            )
+            .trim();
+        return {
+          title,
+          options,
+          hasChoices:
+            options.length >= 2,
+        };
       };
     const detectTypeFromQuestion =
       (
@@ -622,6 +915,29 @@ function ImportWord() {
             title:
               text.replace(
                 /^\[LONG\]\s*/i,
+                ""
+              ),
+          };
+        }
+        if (
+          upper.startsWith(
+            "[MULTIPLE]"
+          ) ||
+          upper.startsWith(
+            "[PG]"
+          ) ||
+          upper.startsWith(
+            "[PILIHAN GANDA]"
+          ) ||
+          upper.startsWith(
+            "[MCQ]"
+          )
+        ) {
+          return {
+            type: "multiple",
+            title:
+              text.replace(
+                /^\[(?:MULTIPLE|PG|PILIHAN GANDA|MCQ)\]\s*/i,
                 ""
               ),
           };
@@ -682,6 +998,35 @@ function ImportWord() {
               ),
           };
         }
+        const inlineChoice =
+          extractInlineMultipleChoice(
+            text
+          );
+        if (
+          inlineChoice.hasChoices
+        ) {
+          return {
+            type: "multiple",
+            title:
+              inlineChoice.title,
+            options:
+              inlineChoice.options,
+          };
+        }
+        if (
+          /\b(?:PG|PILIHAN GANDA|MULTIPLE CHOICE|MULTIPLECHOICE|MCQ)\b/i.test(
+            text
+          )
+        ) {
+          return {
+            type: "multiple",
+            title:
+              text.replace(
+                /\b(?:PG|PILIHAN GANDA|MULTIPLE CHOICE|MULTIPLECHOICE|MCQ)\b\s*[:\-]?\s*/i,
+                ""
+              ).trim(),
+          };
+        }
         return {
           type: "short",
           title:
@@ -722,29 +1067,64 @@ function ImportWord() {
                 2
               ]
             );
+          const baseType =
+            pendingType ||
+            detected.type;
+          pendingType =
+            null;
           currentQuestion = {
             ...createQuestionObject(
-              detected.type
+              baseType
             ),
             title:
               detected.title,
             question:
               detected.title,
           };
+          if (
+            detected.options &&
+            detected.options.length >= 2
+          ) {
+            currentQuestion.type =
+              "multiple";
+            currentQuestion.options =
+              detected.options;
+          }
           return;
         }
-        // =====================================================
-        // QUESTION WITH TYPE BUT NO NUMBER
-        // =====================================================
+        const typeTagMatch =
+          line.match(
+            /^\[(SHORT|LONG|YESNO|RATING|MATH|CODE|MULTIPLE|PG|PILIHAN GANDA|MCQ)\](?:\s*(.+))?$/i
+          );
         if (
-          /^\[(SHORT|LONG|YESNO|RATING|MATH|CODE)\]/i.test(
-            line
-          )
+          typeTagMatch
         ) {
           saveCurrentQuestion();
+          const rawTagContent =
+            String(
+              typeTagMatch[
+                2
+              ] || ""
+            ).trim();
+          if (!rawTagContent) {
+            pendingType =
+              String(
+                typeTagMatch[
+                  1
+                ]
+              ).toLowerCase();
+            if (
+              pendingType ===
+                "pg"
+            ) {
+              pendingType =
+                "multiple";
+            }
+            return;
+          }
           const detected =
             detectTypeFromQuestion(
-              line
+              rawTagContent
             );
           currentQuestion = {
             ...createQuestionObject(
@@ -755,6 +1135,17 @@ function ImportWord() {
             question:
               detected.title,
           };
+          if (
+            detected.options &&
+            detected.options.length >= 2
+          ) {
+            currentQuestion.type =
+              "multiple";
+            currentQuestion.options =
+              detected.options;
+          }
+          pendingType =
+            null;
           return;
         }
         // =====================================================
@@ -763,33 +1154,101 @@ function ImportWord() {
         // A. Jawaban
         // B) Jawaban
         // =====================================================
+        const labeledOptionMatch =
+          line.match(
+            /^(?:pilihan|opsi)\s*(?:[A-Z]|\d{1,2})\s*[:\-]\s*(.+)$/i
+          );
+        if (
+          labeledOptionMatch &&
+          currentQuestion
+        ) {
+          if (
+            !Array.isArray(
+              currentQuestion.options
+            )
+          ) {
+            currentQuestion.options =
+              [];
+          }
+          currentQuestion.options =
+            currentQuestion.options.filter(
+              (option) =>
+                String(
+                  option || ""
+                ).trim()
+            );
+          if (
+            [
+              "short",
+              "long",
+              "rating",
+              "yesno",
+              "math",
+              "code",
+            ].includes(
+              currentQuestion.type
+            )
+          ) {
+            currentQuestion.type =
+              "multiple";
+          }
+          currentQuestion.options.push(
+            labeledOptionMatch[
+              1
+            ].trim()
+          );
+          return;
+        }
         const optionMatch =
           line.match(
-            /^([A-Z])[.)]\s+(.+)$/i
+            /^(?:([A-Z])[.)]|[-*•])\s*(.+)$|^(?:\d+)[.)]\s*(.+)$/i
           );
         if (
           optionMatch &&
           currentQuestion
         ) {
           if (
-            currentQuestion.type ===
-            "short"
+            !Array.isArray(
+              currentQuestion.options
+            )
           ) {
-            currentQuestion.type =
-              "multiple";
             currentQuestion.options =
               [];
           }
-          if (
-            currentQuestion.type ===
-            "multiple"
-          ) {
-            currentQuestion.options.push(
-              optionMatch[
-                2
-              ].trim()
+          currentQuestion.options =
+            currentQuestion.options.filter(
+              (option) =>
+                String(
+                  option || ""
+                ).trim()
             );
+          const optionValue =
+            String(
+              optionMatch[2] ||
+              optionMatch[3] ||
+              ""
+            ).trim();
+          if (!optionValue) {
+            return;
           }
+          if (
+            [
+              "short",
+              "long",
+              "rating",
+              "yesno",
+              "math",
+              "code",
+            ].includes(
+              currentQuestion.type
+            )
+          ) {
+            currentQuestion.type =
+              "multiple";
+          }
+          currentQuestion.options.push(
+            optionValue
+          );
           return;
         }
         // =====================================================
@@ -798,10 +1257,11 @@ function ImportWord() {
         // Kunci: A
         // Jawaban: B
         // Correct Answer: C
+        // Jawaban benar: D
         // =====================================================
         const answerMatch =
           line.match(
-            /^(?:kunci(?:\s+jawaban)?|jawaban|correct\s+answer)\s*:\s*(.+)$/i
+            /^(?:kunci(?:\s+jawaban)?|jawaban(?:\s+benar)?|correct\s+answer|benar)\s*[:\-]?\s*(.+)$/i
           );
         if (
           answerMatch &&
@@ -917,21 +1377,51 @@ function ImportWord() {
             detectTypeFromQuestion(
               line
             );
+          const baseType =
+            pendingType ||
+            detected.type;
+          pendingType =
+            null;
           currentQuestion = {
             ...createQuestionObject(
-              detected.type
+              baseType
             ),
             title:
               detected.title,
             question:
               detected.title,
           };
+          if (
+            detected.options &&
+            detected.options.length >= 2
+          ) {
+            currentQuestion.type =
+              "multiple";
+            currentQuestion.options =
+              detected.options;
+          }
         } else {
           currentQuestion.title =
             `${currentQuestion.title} ${line}`
               .trim();
           currentQuestion.question =
             currentQuestion.title;
+          const inlineChoice =
+            extractInlineMultipleChoice(
+              currentQuestion.title
+            );
+          if (
+            inlineChoice.hasChoices
+          ) {
+            currentQuestion.type =
+              "multiple";
+            currentQuestion.options =
+              inlineChoice.options;
+            currentQuestion.title =
+              inlineChoice.title;
+            currentQuestion.question =
+              inlineChoice.title;
+          }
         }
       }
     );
@@ -1174,6 +1664,17 @@ function ImportWord() {
           safeTitle
         );
       // ============================================
+      // FETCH API IMPORT (jika backend mendukung)
+      // ============================================
+      let apiImportedPayload = null;
+      try {
+        const apiImportResponse = await importFormFromDocx(file);
+        apiImportedPayload = normalizeImportedApiPayload(apiImportResponse);
+      } catch (apiImportError) {
+        console.warn("API import DOCX gagal, gunakan fallback lokal:", apiImportError);
+      }
+
+      // ============================================
       // PARSE QUESTIONS
       // ============================================
       const parsedQuestions =
@@ -1190,6 +1691,36 @@ function ImportWord() {
         ) ||
         parsedQuestions.length === 0
       ) {
+        if (
+          apiImportedPayload &&
+          Array.isArray(
+            apiImportedPayload.questions
+          ) &&
+          apiImportedPayload.questions.length > 0
+        ) {
+          const apiQuestions = apiImportedPayload.questions;
+          const apiTitle =
+            String(
+              apiImportedPayload.title ||
+              safeTitle
+            ).trim();
+          setFormData(
+            previous => ({
+              ...previous,
+              title: apiTitle,
+              customLink:
+                previous.customLink ||
+                createLinkSlug(apiTitle) ||
+                "imported-form",
+            })
+          );
+          setQuestions(apiQuestions);
+          setImportedText(rawText);
+          setSelectedFile(file);
+          setImportSuccess(true);
+          setImportError("");
+          return;
+        }
         throw new Error(
           "Tidak ada pertanyaan yang berhasil ditemukan."
         );
@@ -1342,6 +1873,49 @@ function ImportWord() {
       ) {
         generatedLink =
           `${generatedSlug}-${Date.now()}`;
+      }
+
+      if (
+        apiImportedPayload &&
+        Array.isArray(
+          apiImportedPayload.questions
+        ) &&
+        apiImportedPayload.questions.length > 0
+      ) {
+        const apiTitle =
+          String(
+            apiImportedPayload.title ||
+            safeTitle
+          ).trim();
+        const apiLink =
+          String(
+            apiImportedPayload.customLink ||
+            generatedLink
+          ).trim();
+
+        setFormData(
+          previous => ({
+            ...previous,
+            title: apiTitle,
+            customLink:
+              apiLink ||
+              generatedLink,
+          })
+        );
+        setQuestions(
+          apiImportedPayload.questions
+        );
+        setImportedText(
+          rawText
+        );
+        setSelectedFile(
+          file
+        );
+        setImportSuccess(
+          true
+        );
+        setImportError("");
+        return;
       }
       // ============================================
       // UPDATE FORM
@@ -2212,7 +2786,7 @@ function ImportWord() {
   // SAVE FORM
   // =========================================================
   const handleSave =
-    () => {
+    async () => {
       if (
         !validateUpload() ||
         !validateInfo() ||
@@ -2254,9 +2828,7 @@ function ImportWord() {
           formData.responseDays
         ) ||
         30;
-      const savedForm = {
-        id:
-          Date.now(),
+      const payload = {
         title:
           formData.title
             .trim(),
@@ -2303,10 +2875,6 @@ function ImportWord() {
         qrOnly:
           !isPublicForm,
         responses: 0,
-        // =====================================================
-        // INTERNAL ADMIN GRADING
-        // Tidak bergantung pada resultMode user.
-        // =====================================================
         grading: {
           enabled:
             questions.some(
@@ -2331,8 +2899,7 @@ function ImportWord() {
                   Math.max(
                     Number(
                       question.points
-                    ) ||
-                    1,
+                    ) || 1,
                     1
                   )
                 );
@@ -2440,8 +3007,7 @@ function ImportWord() {
                   ? Math.max(
                       Number(
                         question.points
-                      ) ||
-                      1,
+                      ) || 1,
                       1
                     )
                   : 0;
@@ -2481,9 +3047,6 @@ function ImportWord() {
                 required:
                   question.required !==
                   false,
-                // ===============================================
-                // INTERNAL ADMIN SCORING
-                // ===============================================
                 scoring:
                   scoringEnabled,
                 points:
@@ -2503,8 +3066,7 @@ function ImportWord() {
                 image: "",
                 imageName: "",
                 imageAnswerType: "",
-                imageOptions:
-                  [],
+                imageOptions: [],
               };
             }
           ),
@@ -2538,9 +3100,39 @@ function ImportWord() {
           );
           return;
         }
+
+        let savedForm = null;
+        try {
+          const response = await createForm(payload);
+          const apiForm = response?.data?.data || response?.data || payload;
+          savedForm = {
+            ...payload,
+            ...apiForm,
+            id:
+              apiForm.id ||
+              Date.now(),
+            customLink:
+              apiForm.customLink ||
+              apiForm.custom_link ||
+              normalizedLink,
+            title:
+              apiForm.title ||
+              payload.title,
+          };
+        } catch (apiError) {
+          console.warn("API createForm gagal, fallback ke localStorage:", apiError);
+        }
+
+        const finalForm =
+          savedForm || {
+            id:
+              Date.now(),
+            ...payload,
+          };
+
         const updatedForms = [
           ...existingForms,
-          savedForm,
+          finalForm,
         ];
         localStorage.setItem(
           FORMS_STORAGE_KEY,
@@ -2551,7 +3143,7 @@ function ImportWord() {
         localStorage.setItem(
           NEW_FORM_STORAGE_KEY,
           JSON.stringify(
-            savedForm
+            finalForm
           )
         );
         window.dispatchEvent(
@@ -2560,7 +3152,7 @@ function ImportWord() {
             {
               detail: {
                 formId:
-                  savedForm.id,
+                  finalForm.id,
               },
             }
           )
@@ -2585,7 +3177,8 @@ function ImportWord() {
           "Form gagal disimpan."
         );
       }
-  };
+    };
+
   // =========================================================
   // RENDER TOGGLE
   // =========================================================

@@ -1,6 +1,7 @@
 import {
   useContext,
   useMemo,
+  useState,
 } from "react";
 import {
   useLocation,
@@ -513,6 +514,42 @@ const formatSubmissionTime = (
     );
     return "-";
   }
+};
+const stripHtmlFromText = (
+  value
+) => {
+  return String(
+    value ??
+      ""
+  )
+    .replace(
+      /<[^>]*>/g,
+      " "
+    )
+    .replace(
+      /&nbsp;/gi,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+};
+const getQuestionTitle = (
+  question,
+  index
+) => {
+  const rawTitle =
+    question?.title ||
+    question?.question ||
+    `Question ${index + 1}`;
+  return (
+    stripHtmlFromText(
+      rawTitle
+    ) ||
+    `Question ${index + 1}`
+  );
 };
 // =========================================================
 // FIND STORED FORM
@@ -1376,6 +1413,322 @@ function FormResult() {
         "/dashboard"
       );
   };
+  const [exportStatus, setExportStatus] = useState("");
+  const escapeHtml =
+    (value) =>
+      String(
+        value ??
+          ""
+      )
+        .replace(
+          /&/g,
+          "&amp;"
+        )
+        .replace(
+          /</g,
+          "&lt;"
+        )
+        .replace(
+          />/g,
+          "&gt;"
+        )
+        .replace(
+          /\"/g,
+          "&quot;"
+        )
+        .replace(
+          /'/g,
+          "&#039;"
+        );
+  const exportExcel =
+    () => {
+      if (
+        !form ||
+        !submission
+      ) {
+        return;
+      }
+
+      const headers = [
+        "No",
+        "Question",
+        "Your Answer",
+        "Correct Answer",
+        "Score",
+        "Result",
+      ];
+
+      const rows =
+        questionResults.map(
+          (
+            item,
+            index
+          ) => [
+            index +
+              1,
+            getQuestionTitle(
+              item.question,
+              index
+            ),
+            normalizeAnswerText(
+              item.userAnswer
+            ) ||
+              "No answer",
+            item.hasCorrectAnswer
+              ? normalizeAnswerText(
+                  item.correctAnswer
+                )
+              : "-",
+            item.scoringEnabled
+              ? `${Number(item.earnedPoints) || 0}/${Number(item.maxPoints) || 0}`
+              : "-",
+            item.isCorrect ===
+              null
+              ? "Not graded"
+              : item.isCorrect
+              ? "Correct"
+              : "Incorrect",
+          ]
+        );
+
+      const html =
+        `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+  table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11pt; }
+  th { padding: 9px 11px; border: 1px solid #cbd5e1; background: #1f5fa4; color: #fff; font-weight: 700; text-align: center; }
+  td { padding: 8px 10px; border: 1px solid #d9e2ec; color: #24364b; vertical-align: top; white-space: pre-wrap; }
+  tr:nth-child(even) td { background: #f7fafe; }
+</style>
+</head>
+<body>
+<table>
+  <thead>
+    <tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
+  </thead>
+  <tbody>
+    ${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}
+  </tbody>
+</table>
+</body>
+</html>`;
+
+      const blob =
+        new Blob(
+          [
+            "\uFEFF",
+            html,
+          ],
+          {
+            type: "application/vnd.ms-excel;charset=utf-8;",
+          }
+        );
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+      const link =
+        document.createElement(
+          "a"
+        );
+      const safeTitle =
+        String(
+          formTitle ||
+            "hidocs-result"
+        )
+          .replace(
+            /[^a-z0-9]/gi,
+            "-"
+          )
+          .replace(
+            /-+/g,
+            "-"
+          )
+          .replace(
+            /^-+|-+$/g,
+            ""
+          )
+          .toLowerCase();
+      link.href =
+        url;
+      link.download =
+        `${safeTitle || "hidocs-result"}-submission.xls`;
+      document.body.appendChild(
+        link
+      );
+      link.click();
+      document.body.removeChild(
+        link
+      );
+      URL.revokeObjectURL(
+        url
+      );
+      setExportStatus(
+        "excel"
+      );
+      window.setTimeout(
+        () =>
+          setExportStatus(
+            ""
+          ),
+        1800
+      );
+    };
+
+  const exportPDF =
+    () => {
+      if (
+        !form ||
+        !submission
+      ) {
+        return;
+      }
+
+      const detailRows =
+        questionResults
+          .map(
+            (
+              item,
+              index
+            ) => {
+              const questionText =
+                getQuestionTitle(
+                  item.question,
+                  index
+                );
+              const answerText =
+                normalizeAnswerText(
+                  item.userAnswer
+                ) ||
+                  "No answer";
+              const correctText =
+                item.hasCorrectAnswer
+                  ? normalizeAnswerText(
+                      item.correctAnswer
+                    )
+                  : "-";
+              const resultText =
+                item.isCorrect ===
+                  null
+                  ? "Not graded"
+                  : item.isCorrect
+                  ? "Correct"
+                  : "Incorrect";
+
+              return `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${escapeHtml(questionText)}</td>
+                  <td>${escapeHtml(answerText)}</td>
+                  <td>${escapeHtml(correctText)}</td>
+                  <td>${escapeHtml(resultText)}</td>
+                  <td>${escapeHtml(item.scoringEnabled ? `${Number(item.earnedPoints) || 0}/${Number(item.maxPoints) || 0}` : "-")}</td>
+                </tr>
+              `;
+            }
+          )
+          .join("");
+
+      const reportHtml =
+        `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>${escapeHtml(formTitle)} - Submission Result</title>
+<style>
+  @page { size: A4 portrait; margin: 12mm; }
+  body { margin: 0; font-family: Arial, sans-serif; color: #1f2f3d; background: #fff; }
+  .report { padding: 20px; }
+  .header { padding: 18px 20px; border-radius: 12px; background: #1f5fa4; color: #fff; margin-bottom: 18px; }
+  .header span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: .8; }
+  .header h1 { margin: 8px 0 4px; font-size: 24px; }
+  .header p { margin: 0; font-size: 11px; opacity: .85; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th { padding: 8px; background: #edf4ff; color: #214e7b; border: 1px solid #dfeaf8; font-size: 9px; text-align: left; }
+  td { padding: 8px; border: 1px solid #dfeaf8; font-size: 9px; vertical-align: top; white-space: pre-wrap; word-break: break-word; }
+  tbody tr:nth-child(even) td { background: #fafcff; }
+  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .summary-card { border: 1px solid #dfeaf8; border-radius: 10px; padding: 12px; background: #f9fbff; }
+  .summary-card span { display: block; font-size: 8px; color: #7a8ea3; text-transform: uppercase; }
+  .summary-card strong { display: block; margin-top: 6px; font-size: 18px; }
+</style>
+</head>
+<body>
+<div class="report">
+  <header class="header">
+    <span>HiDocs • Submission Result</span>
+    <h1>${escapeHtml(formTitle)}</h1>
+    <p>${escapeHtml(form?.description || "Result summary for submitted form.")}</p>
+  </header>
+  <section class="summary">
+    <div class="summary-card">
+      <span>Score</span>
+      <strong>${score}/${maxScore}</strong>
+    </div>
+    <div class="summary-card">
+      <span>Percentage</span>
+      <strong>${percentage}%</strong>
+    </div>
+    <div class="summary-card">
+      <span>Submitted</span>
+      <strong>${escapeHtml(formatSubmissionDate(submission.submittedAt))}</strong>
+    </div>
+  </section>
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Question</th>
+        <th>Your Answer</th>
+        <th>Correct Answer</th>
+        <th>Result</th>
+        <th>Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${detailRows}
+    </tbody>
+  </table>
+</div>
+<script>
+  window.addEventListener("load", function () {
+    window.setTimeout(function () {
+      window.print();
+    }, 250);
+  });
+</script>
+</body>
+</html>`;
+
+      const printWindow =
+        window.open(
+          "",
+          "_blank",
+          "width=1200,height=800"
+        );
+      if (!printWindow) {
+        alert(
+          "Please allow pop-ups to export the PDF report."
+        );
+        return;
+      }
+      printWindow.document.write(
+        reportHtml
+      );
+      printWindow.document.close();
+      setExportStatus(
+        "pdf"
+      );
+      window.setTimeout(
+        () =>
+          setExportStatus(
+            ""
+          ),
+        1800
+      );
+    };
   // =========================================================
   // FORM ID NOT FOUND
   // =========================================================
@@ -2000,6 +2353,34 @@ function FormResult() {
               Back to History
             </span>
           </button>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="form-result-home-btn"
+              onClick={
+                exportExcel
+              }
+              style={{ minWidth: "150px" }}
+            >
+              <FaFileAlt />
+              <span>
+                {exportStatus === "excel" ? "Exported" : "Export Excel"}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="form-result-home-btn"
+              onClick={
+                exportPDF
+              }
+              style={{ minWidth: "140px" }}
+            >
+              <FaFileAlt />
+              <span>
+                {exportStatus === "pdf" ? "Exported" : "Export PDF"}
+              </span>
+            </button>
+          </div>
           <button
             type="button"
             className="form-result-home-btn"

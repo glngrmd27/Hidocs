@@ -142,6 +142,105 @@ function CreateForm() {
   // =========================================================
   // SAFE STORAGE READER
   // =========================================================
+  const dedupeForms =
+    (forms) => {
+      const uniqueForms = [];
+      const seenKeys = new Map();
+
+      forms.forEach((form) => {
+        if (!form || typeof form !== "object") {
+          return;
+        }
+
+        const formId = String(form.id ?? "").trim();
+        const customLink = String(form.customLink || form.custom_url || form.link || "")
+          .trim()
+          .toLowerCase();
+
+        if (!formId && !customLink) {
+          return;
+        }
+
+        const keys = [];
+        if (formId) {
+          keys.push(`id:${formId}`);
+        }
+        if (customLink) {
+          keys.push(`link:${customLink}`);
+        }
+
+        const existingIndex = keys.reduce((foundIndex, key) => {
+          if (foundIndex !== null) {
+            return foundIndex;
+          }
+          return seenKeys.has(key) ? seenKeys.get(key) : null;
+        }, null);
+
+        if (existingIndex !== null) {
+          uniqueForms[existingIndex] = form;
+        } else {
+          const index = uniqueForms.length;
+          uniqueForms.push(form);
+          keys.forEach((key) => seenKeys.set(key, index));
+        }
+
+        const indexAfterWrite = uniqueForms.length - 1;
+        keys.forEach((key) => seenKeys.set(key, indexAfterWrite));
+      });
+
+      return uniqueForms;
+    };
+
+  const normalizeStoredLink = (form) => {
+    if (!form || typeof form !== "object") {
+      return "";
+    }
+
+    return String(
+      form.customLink ||
+      form.custom_url ||
+      form.customUrl ||
+      form.link ||
+      ""
+    )
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^hidocs\.app\/r\//i, "")
+      .replace(/^\/+/, "")
+      .replace(/\/+$/, "");
+  };
+
+  const sanitizeStorageForms = (forms) => {
+    const cleaned = [];
+    const seenCustomLinks = new Map();
+
+    forms.forEach((form) => {
+      if (!form || typeof form !== "object") {
+        return;
+      }
+
+      const customLink = normalizeStoredLink(form);
+      if (customLink) {
+        const existingIndex = seenCustomLinks.get(customLink);
+        if (existingIndex !== undefined) {
+          const previousForm = cleaned[existingIndex];
+          const previousTime = new Date(previousForm?.createdAt || 0).getTime();
+          const currentTime = new Date(form?.createdAt || 0).getTime();
+          if (Number.isFinite(currentTime) && currentTime >= previousTime) {
+            cleaned[existingIndex] = form;
+          }
+          return;
+        }
+        seenCustomLinks.set(customLink, cleaned.length);
+      }
+
+      cleaned.push(form);
+    });
+
+    return cleaned;
+  };
+
   const getStoredForms =
     () => {
       try {
@@ -156,11 +255,10 @@ function CreateForm() {
           JSON.parse(
             storedValue
           );
-        return Array.isArray(
-          parsedValue
-        )
+        const list = Array.isArray(parsedValue)
           ? parsedValue
           : [];
+        return dedupeForms(sanitizeStorageForms(list));
       } catch (error) {
         console.error(
           "Gagal membaca data form:",
@@ -1701,13 +1799,21 @@ function CreateForm() {
         return;
       }
       const normalizedLink =
-        formData.customLink
-          .trim()
-          .toLowerCase()
-          .replace(
-            /\s+/g,
-            "-"
-          );
+        (
+          formData.customLink
+            .trim()
+            .toLowerCase()
+            .replace(
+              /\s+/g,
+              "-"
+            ) ||
+          `form-${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}`
+        ).replace(
+          /[^a-z0-9-_]/g,
+          ""
+        );
       const isPublicForm =
         formData.accessMode ===
         "public";
@@ -1735,7 +1841,8 @@ function CreateForm() {
         30;
       const savedForm = {
         id:
-          Date.now(),
+          Date.now() +
+          Math.random(),
         title:
           formData.title
             .trim(),
@@ -2054,19 +2161,19 @@ function CreateForm() {
 
 
       try {
-           const questionTypeMap = {
-      short: "SHORT_TEXT",
-      long: "LONG_TEXT",
-      multiple: "MULTIPLE_CHOICE",
-      checkbox: "CHECKBOXES",
-      yesno: "YES_NO",
-      rating: "RATING",
-      math: "MATH",
-      code: "CODE",
-      image: "IMAGE",
-    };
+        const questionTypeMap = {
+          short: "SHORT_TEXT",
+          long: "LONG_TEXT",
+          multiple: "MULTIPLE_CHOICE",
+          checkbox: "CHECKBOXES",
+          yesno: "YES_NO",
+          rating: "RATING",
+          math: "MATH",
+          code: "CODE",
+          image: "IMAGE",
+        };
 
-    const hasScoring = questions.some((q) => Boolean(q.scoring));
+        const hasScoring = questions.some((q) => Boolean(q.scoring));
       // =====================================================
       // 1. CREATE FORM
       // =====================================================
@@ -2077,7 +2184,7 @@ function CreateForm() {
         custom_url: normalizedLink,
       });
 
-      const newFormId = formResponse.data.data.id;
+      const newFormId = formResponse?.data?.data?.id ?? savedForm.id;
 
       // =====================================================
       // 2. ADD QUESTIONS ONE BY ONE
@@ -2144,6 +2251,56 @@ function CreateForm() {
         custom_url: normalizedLink,
         status: "ACTIVE",
       });
+
+      const storedForms = getStoredForms();
+      const normalizedLocalForm = {
+        ...savedForm,
+        id: newFormId,
+        title: formData.title.trim(),
+        description: "Form created using HiDocs Form Builder.",
+        type: hasScoring ? "EXAM" : "SURVEY",
+        customLink: normalizedLink,
+        link: `hidocs.app/r/${normalizedLink}`,
+        active: true,
+        responses: 0,
+        createdAt: new Date().toISOString(),
+        accessMode: formData.accessMode,
+        showInUserList: isPublicForm,
+        qrOnly: !isPublicForm,
+      };
+
+      const cleanedStoredForms = storedForms.filter((item) => {
+        const itemCustomLink = String(item.customLink || item.custom_url || item.link || "").trim().toLowerCase();
+        const matchesTempId = String(item.id) === String(savedForm.id);
+        const matchesFinalId = String(item.id) === String(newFormId);
+        const matchesCustomLink = itemCustomLink === normalizedLink;
+        return !(matchesTempId || matchesFinalId || matchesCustomLink);
+      });
+
+      const updatedLocalForms = dedupeForms([
+        ...cleanedStoredForms,
+        normalizedLocalForm,
+      ]);
+
+      const backupForms = sanitizeStorageForms(
+        Array.isArray(JSON.parse(localStorage.getItem(NEW_FORM_STORAGE_KEY) || "[]"))
+          ? JSON.parse(localStorage.getItem(NEW_FORM_STORAGE_KEY) || "[]")
+          : []
+      ).filter((item) => {
+        const itemCustomLink = String(item.customLink || item.custom_url || item.link || "").trim().toLowerCase();
+        return itemCustomLink !== normalizedLink;
+      });
+
+      localStorage.setItem(FORMS_STORAGE_KEY, JSON.stringify(updatedLocalForms));
+      localStorage.setItem(NEW_FORM_STORAGE_KEY, JSON.stringify([...backupForms, normalizedLocalForm]));
+      window.dispatchEvent(
+        new CustomEvent("hidocs-forms-updated", {
+          detail: {
+            formId: newFormId,
+            type: "form-created",
+          },
+        })
+      );
 
       if (isPublicForm) {
         alert("Form berhasil disimpan dan akan tampil di halaman user.");

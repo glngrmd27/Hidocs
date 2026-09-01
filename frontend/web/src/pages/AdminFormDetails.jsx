@@ -1,4 +1,4 @@
-import { getFormById } from '../api/formApi';
+import { deleteForm, getFormById } from '../api/formApi';
 import { getQuestionsByForm } from '../api/questionApi';
 
 import {
@@ -40,6 +40,8 @@ import {
 import "../assets/css/AdminFormDetails.css";
 const FORMS_STORAGE_KEY =
   "hidocs_forms";
+const NEW_FORM_STORAGE_KEY =
+  "hidocs_new_form";
 const DELETED_FORMS_STORAGE_KEY =
   "hidocs_deleted_forms";
 const defaultForms = [
@@ -257,6 +259,56 @@ const getStoredArray = (
     );
     return [];
   }
+};
+
+const normalizeStoredLinkValue = (form) => {
+  if (!form || typeof form !== "object") {
+    return "";
+  }
+
+  return String(
+    form.customLink ||
+    form.custom_url ||
+    form.customUrl ||
+    form.link ||
+    ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^hidocs\.app\/r\//i, "")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "");
+};
+
+const sanitizeDuplicateStorageForms = (forms) => {
+  const cleaned = [];
+  const seenLinks = new Map();
+
+  forms.forEach((form) => {
+    if (!form || typeof form !== "object") {
+      return;
+    }
+
+    const customLink = normalizeStoredLinkValue(form);
+    if (customLink) {
+      const existingIndex = seenLinks.get(customLink);
+      if (existingIndex !== undefined) {
+        const previousForm = cleaned[existingIndex];
+        const previousTime = new Date(previousForm?.createdAt || 0).getTime();
+        const currentTime = new Date(form?.createdAt || 0).getTime();
+        if (Number.isFinite(currentTime) && currentTime >= previousTime) {
+          cleaned[existingIndex] = form;
+        }
+        return;
+      }
+      seenLinks.set(customLink, cleaned.length);
+    }
+
+    cleaned.push(form);
+  });
+
+  return cleaned;
 };
 const formatDate = (
   dateValue
@@ -592,8 +644,16 @@ const findRawForm = (
   formId
 ) => {
   const savedForms =
-    getStoredArray(
-      FORMS_STORAGE_KEY
+    sanitizeDuplicateStorageForms(
+      getStoredArray(
+        FORMS_STORAGE_KEY
+      )
+    );
+  const backupForms =
+    sanitizeDuplicateStorageForms(
+      getStoredArray(
+        NEW_FORM_STORAGE_KEY
+      )
     );
   const deletedFormIds =
     getStoredArray(
@@ -615,12 +675,52 @@ const findRawForm = (
   ) {
     return null;
   }
-  const allForms = [
+  const dedupedForms = [
     ...defaultForms,
     ...savedForms,
-  ];
+    ...backupForms,
+  ].reduce((uniqueForms, form) => {
+    if (!form || typeof form !== "object") {
+      return uniqueForms;
+    }
+
+    const formId = String(form?.id ?? "").trim();
+    const customLink = String(form?.customLink || form?.custom_url || form?.link || "")
+      .trim()
+      .toLowerCase();
+
+    if (!formId && !customLink) {
+      return uniqueForms;
+    }
+
+    const keys = [];
+    if (formId) {
+      keys.push(`id:${formId}`);
+    }
+    if (customLink) {
+      keys.push(`link:${customLink}`);
+    }
+
+    const existingIndex = keys.reduce((foundIndex, key) => {
+      if (foundIndex !== null) {
+        return foundIndex;
+      }
+      const seenIndex = uniqueForms.seenKeys.get(key);
+      return seenIndex !== undefined ? seenIndex : null;
+    }, null);
+
+    if (existingIndex !== null) {
+      uniqueForms.values[existingIndex] = form;
+    } else {
+      const nextIndex = uniqueForms.values.length;
+      uniqueForms.values.push(form);
+      keys.forEach((key) => uniqueForms.seenKeys.set(key, nextIndex));
+    }
+
+    return uniqueForms;
+  }, { values: [], seenKeys: new Map() }).values;
   return (
-    [...allForms]
+    [...dedupedForms]
       .reverse()
       .find(
         (
@@ -869,6 +969,119 @@ function AdminFormDetails() {
       updateFormActiveStatus(
         nextStatus
       );
+    };
+  const handleDeleteForm =
+    async () => {
+      if (!form) {
+        return;
+      }
+      const confirmed =
+        window.confirm(
+          `Apakah kamu yakin ingin menghapus form "${form.title}"?\n\nForm yang dihapus tidak dapat dikembalikan.`
+        );
+      if (!confirmed) {
+        return;
+      }
+      try {
+        const targetFormId =
+          String(
+            form.id ??
+            id ??
+            ""
+          );
+
+        if (!targetFormId) {
+          throw new Error(
+            "Form ID tidak valid."
+          );
+        }
+
+        try {
+          await deleteForm(
+            targetFormId
+          );
+        } catch (error) {
+          console.warn(
+            "Delete form via API gagal, lanjutkan dengan lokal storage:",
+            error
+          );
+        }
+
+        const storedForms =
+          getStoredArray(
+            FORMS_STORAGE_KEY
+          );
+        const safeStoredForms =
+          Array.isArray(
+            storedForms
+          )
+            ? storedForms
+            : [];
+        const updatedStoredForms =
+          safeStoredForms.filter(
+            (item) =>
+              String(
+                item.id
+              ) !==
+              targetFormId
+          );
+
+        localStorage.setItem(
+          FORMS_STORAGE_KEY,
+          JSON.stringify(
+            updatedStoredForms
+          )
+        );
+
+        const deletedFormIds =
+          getStoredArray(
+            DELETED_FORMS_STORAGE_KEY
+          );
+        const hasDeleted =
+          deletedFormIds.some(
+            (deletedId) =>
+              String(
+                deletedId
+              ) ===
+              targetFormId
+          );
+        if (!hasDeleted) {
+          localStorage.setItem(
+            DELETED_FORMS_STORAGE_KEY,
+            JSON.stringify([
+              ...deletedFormIds,
+              targetFormId,
+            ])
+          );
+        }
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "hidocs-forms-updated",
+            {
+              detail: {
+                formId:
+                  targetFormId,
+                type: "delete",
+              },
+            }
+          )
+        );
+
+        setShowMoreMenu(false);
+        alert(
+          `Form "${form.title}" berhasil dihapus.`
+        );
+        navigate("/admin/forms");
+      } catch (error) {
+        console.error(
+          "Gagal menghapus form:",
+          error
+        );
+        alert(
+          "Form gagal dihapus. Silakan coba lagi."
+        );
+      }
     };
   const openScheduleEditor =
     () => {
@@ -1436,6 +1649,25 @@ function AdminFormDetails() {
                         ? "Hide this form from users."
                         : "Make this form available again."
                       }
+                    </small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="detail-more-menu-item delete"
+                  onClick={
+                    handleDeleteForm
+                  }
+                >
+                  <span className="detail-menu-icon delete">
+                    <FaTimes />
+                  </span>
+                  <span className="detail-menu-text">
+                    <strong>
+                      Delete Form
+                    </strong>
+                    <small>
+                      Permanently remove this form from the system.
                     </small>
                   </span>
                 </button>

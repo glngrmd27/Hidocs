@@ -2,6 +2,7 @@ import { getFormById } from '../api/formApi';
 import { getQuestionsByForm } from '../api/questionApi';
 import { getFormResponses, gradeResponse as gradeResponseApi } from '../api/responseApi';
 
+
 import {
   useContext,
   useEffect,
@@ -241,6 +242,24 @@ const mapApiQuestionForResults = (q) => ({
   correctAnswer:
     (q.options || []).find((o) => o.is_correct)?.option_text || "",
 });
+
+const isManualGradingEligible = (question) => {
+  if (!question) return false;
+
+  const type = String(question.type || "").toLowerCase();
+  const hasNoCorrectAnswer = !hasAnswer(
+    question.correctAnswer ??
+    question.correctOption ??
+    question.answer ??
+    question.correctValue ??
+    question.expectedAnswer
+  );
+
+  return type === "short" || type === "long" || (
+    question.scoring !== true &&
+    hasNoCorrectAnswer
+  );
+};
 // =========================================================
 // HAS ANSWER
 // =========================================================
@@ -627,6 +646,8 @@ function AdminResults() {
     gradingSaving,
     setGradingSaving,
   ] = useState(false);
+
+
   // =========================================================
   // LOAD FORM
   // =========================================================
@@ -706,6 +727,8 @@ function AdminResults() {
   // BUILD QUESTION RESULTS
   // ADMIN ALWAYS HAS FULL ACCESS
   // =========================================================
+
+
   const buildQuestionResults = (
     submission
   ) => {
@@ -784,9 +807,18 @@ function AdminResults() {
               correctAnswer
             );
         }
+        const isTextQuestion =
+          ["short", "long"].includes(
+            String(question.type || "").toLowerCase()
+          );
+        const manualGradingEligible =
+          isManualGradingEligible(question) || isTextQuestion;
         const isAutoGraded =
-          question.scoring === true ||
-          hasCorrectAnswer;
+          !manualGradingEligible &&
+          (
+            question.scoring === true ||
+            hasCorrectAnswer
+          );
         const manuallyGraded =
           !isAutoGraded &&
           storedResult?.manuallyGraded === true;
@@ -811,7 +843,14 @@ function AdminResults() {
                   ) || 0,
                   0
                 )
-              : 0;
+              : Math.max(
+                  Number(
+                    storedResult?.manualMaxPoints ??
+                    storedResult?.points ??
+                    question.points
+                  ) || 10,
+                  1
+                );
         const earnedPoints =
           isAutoGraded
             ? (
@@ -1000,6 +1039,7 @@ function AdminResults() {
               id:
                 submission.submissionId ||
                 `${submission.formId || submission.id}-${index}-${submission.submittedAt || "submission"}`,
+                 responseId: submission.id,
               submission,
               name:
                 respondentName ||
@@ -1397,13 +1437,18 @@ function AdminResults() {
     const initialGrades = {};
     respondent.questionResults.forEach((item) => {
       if (!item.isAutoGraded) {
+        const defaultMaxPoints =
+          Number(item.maxPoints) ||
+          Number(item.question?.points) ||
+          10;
+
         initialGrades[String(item.questionId)] = {
           earnedPoints: item.manuallyGraded
             ? Number(item.earnedPoints) || 0
             : "",
           maxPoints: item.manuallyGraded
-            ? Number(item.maxPoints) || 0
-            : "",
+            ? Number(item.maxPoints) || defaultMaxPoints
+            : defaultMaxPoints,
           graded: item.manuallyGraded === true,
         };
       }
@@ -1425,59 +1470,84 @@ function AdminResults() {
       },
     }));
   };
-  const saveManualGrades = () => {
-    if (!selectedRespondent) return;
-    const gradesToSave = {};
-    for (const item of selectedRespondent.questionResults) {
-      if (item.isAutoGraded) continue;
-      const draft = manualGrades[String(item.questionId)] || {};
-      const earnedRaw = draft.earnedPoints;
-      const maxRaw = draft.maxPoints;
-      const untouched =
-        earnedRaw === "" &&
-        maxRaw === "" &&
-        draft.graded !== true;
-      if (untouched) continue;
-      const earned = Number(earnedRaw);
-      const max = Number(maxRaw);
-      if (!Number.isFinite(max) || max <= 0) {
-        alert(`Isi nilai maksimal untuk soal nomor ${item.number}.`);
-        return;
-      }
-      if (!Number.isFinite(earned) || earned < 0 || earned > max) {
-        alert(`Nilai soal nomor ${item.number} harus antara 0 sampai ${max}.`);
-        return;
-      }
-      gradesToSave[String(item.questionId)] = {
-        earnedPoints: earned,
-        maxPoints: max,
-        graded: true,
-      };
+const saveManualGrades = async () => {
+  if (!selectedRespondent) return;
+
+  const gradesToSave = {};
+  let hasError = false;
+
+  for (const item of selectedRespondent.questionResults) {
+    if (item.isAutoGraded) continue;
+    const draft = manualGrades[String(item.questionId)] || {};
+    const earnedRaw = draft.earnedPoints;
+    const maxRaw = draft.maxPoints;
+    const untouched = earnedRaw === "" || earnedRaw === undefined;
+    if (untouched) continue;
+
+    const earned = Number(earnedRaw);
+    const max = Number(maxRaw);
+    if (!Number.isFinite(max) || max <= 0) {
+      alert(`Isi nilai maksimal untuk soal nomor ${item.number}.`);
+      hasError = true;
+      break;
     }
-    if (Object.keys(gradesToSave).length === 0) {
-      alert("Belum ada nilai manual yang diisi.");
-      return;
+    if (!Number.isFinite(earned) || earned < 0 || earned > max) {
+      alert(`Nilai soal nomor ${item.number} harus antara 0 sampai ${max}.`);
+      hasError = true;
+      break;
     }
-    if (typeof updateSubmissionGrading !== "function") {
-      alert("Fungsi penyimpanan nilai belum tersedia. Pastikan FormContext sudah diperbarui.");
-      return;
-    }
-    setGradingSaving(true);
-    try {
-      updateSubmissionGrading(
-        selectedRespondent.id,
-        gradesToSave
-      );
-      alert("Nilai manual berhasil disimpan dan total nilai telah diperbarui.");
-      closeRespondentAnswers();
-    } catch (error) {
-      console.error("Gagal menyimpan nilai manual:", error);
-      alert("Nilai manual gagal disimpan.");
-    } finally {
-      setGradingSaving(false);
-    }
-  };
-  // =========================================================
+    gradesToSave[String(item.questionId)] = { earnedPoints: earned, maxPoints: max };
+  }
+
+  if (hasError) return;
+
+  if (Object.keys(gradesToSave).length === 0) {
+    alert("Belum ada nilai manual yang diisi.");
+    return;
+  }
+
+  const totalScore = selectedRespondent.questionResults.reduce((sum, item) => {
+    if (item.isAutoGraded) return sum + (item.earnedPoints || 0);
+    const newGrade = gradesToSave[String(item.questionId)];
+    if (newGrade) return sum + newGrade.earnedPoints;
+    if (item.manuallyGraded) return sum + (item.earnedPoints || 0);
+    return sum;
+  }, 0);
+
+  setGradingSaving(true);
+  try {
+    await gradeResponseApi(selectedRespondent.responseId, totalScore);
+
+    setFormSubmissions((prev) =>
+      prev.map((s) => {
+        if (s.id !== selectedRespondent.responseId) return s;
+        return {
+          ...s,
+          score: totalScore,
+          questionResults: s.questionResults.map((qr) => {
+            const g = gradesToSave[String(qr.questionId)];
+            if (!g) return qr;
+            return {
+              ...qr,
+              manuallyGraded: true,
+              manualEarnedPoints: g.earnedPoints,
+              manualMaxPoints: g.maxPoints,
+            };
+          }),
+        };
+      })
+    );
+
+    alert("Nilai manual berhasil disimpan dan total nilai telah diperbarui.");
+    closeRespondentAnswers();
+  } catch (error) {
+    console.error("Gagal menyimpan nilai manual:", error);
+    alert("Nilai manual gagal disimpan.");
+  } finally {
+    setGradingSaving(false);
+  }
+};
+  // ========================================================
   // CLOSE ANSWERS
   // =========================================================
   const closeRespondentAnswers =
@@ -3007,7 +3077,7 @@ function AdminResults() {
                         type="button"
                         className="respondent-view-answers-btn"
                         onClick={() =>
-                          setSelectedRespondent(
+                          openRespondentAnswers(
                             respondent
                           )
                         }
@@ -3231,6 +3301,12 @@ function AdminResults() {
                 (
                   item
                 ) => {
+                  const isTextQuestion =
+                    ["short", "long"].includes(
+                      String(item.question?.type || "").toLowerCase()
+                    );
+                  const allowManualGrading =
+                    !item.isAutoGraded || isTextQuestion;
                   const incorrect =
                     item.isCorrect ===
                     false;
@@ -3341,7 +3417,7 @@ function AdminResults() {
                           </strong>
                         </div>
                       )}
-                      {!item.isAutoGraded && (
+                      {allowManualGrading && (
                         <div className="admin-manual-grade-box">
                           <div className="admin-manual-grade-heading">
                             <div>
@@ -3431,7 +3507,9 @@ function AdminResults() {
                 This detailed result is visible to administrators only.
               </span>
               <div className="admin-answer-footer-actions">
-                {selectedRespondent.ungradedQuestions > 0 && (
+                {selectedRespondent.questionResults.some(
+                  (item) => !item.isAutoGraded || ["short", "long"].includes(String(item.question?.type || "").toLowerCase())
+                ) && (
                   <button
                     type="button"
                     className="admin-save-grades-btn"

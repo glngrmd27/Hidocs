@@ -474,30 +474,61 @@ const formatRecentDate = (
 const getCompleteFormLink = (
   form
 ) => {
-
-  const formLink =
+  const rawLink =
     String(
       form?.link ||
+      form?.publicLink ||
+      form?.customLink ||
+      form?.custom_url ||
       ""
-    );
+    ).trim();
 
+  if (rawLink) {
+    const cleanedLink =
+      rawLink
+        .replace(
+          /^https?:\/\//i,
+          ""
+        )
+        .replace(
+          /^\/+/, ""
+        );
 
-  if (
-    formLink.startsWith(
-      "http://"
-    ) ||
-    formLink.startsWith(
-      "https://"
-    )
-  ) {
+    if (
+      cleanedLink.startsWith(
+        "form-details/"
+      ) ||
+      cleanedLink.startsWith(
+        "/form-details/"
+      )
+    ) {
+      return `${window.location.origin}/${cleanedLink.replace(/^\/+/, "")}`;
+    }
 
-    return formLink;
+    if (
+      cleanedLink.includes(
+        "/r/"
+      ) ||
+      cleanedLink.includes(
+        "hidocs.app"
+      )
+    ) {
+      return `https://${cleanedLink.replace(/^\/+/, "")}`;
+    }
 
+    return `https://hidocs.app/r/${cleanedLink}`;
   }
 
+  const formId =
+    form?.id ??
+    form?.formId ??
+    "";
 
-  return `https://${formLink}`;
+  if (formId) {
+    return `${window.location.origin}/form-details/${formId}`;
+  }
 
+  return `${window.location.origin}/form-details/unknown`;
 };
 
 const createSafeFileName = (

@@ -157,6 +157,11 @@ function AdminProfile() {
         true
       );
     };
+
+    const handleSwitchToUser = () => {
+  navigate("/dashboard");
+};
+
   // =========================================================
   // CLOSE EDIT MODAL
   // =========================================================
@@ -318,6 +323,8 @@ function AdminProfile() {
       handleCloseEdit();
     }
   };
+
+  
   // =========================================================
   // THEME
   // =========================================================
@@ -652,6 +659,7 @@ function AdminProfile() {
             </div>
           </div>
           <div className="admin-profile-settings">
+            
             {/* THEME */}
             <div className="profile-setting-row">
               <div className="profile-setting-left">
@@ -694,9 +702,29 @@ function AdminProfile() {
                   darkMode
                 }
               >
+
+                
                 <span className="profile-toggle-circle"></span>
               </button>
             </div>
+
+            {/* SWITCH TO USER */}
+<button
+  type="button"
+  className="profile-setting-row about-row"
+  onClick={handleSwitchToUser}
+>
+  <div className="profile-setting-left">
+    <div className="profile-setting-icon info">
+      <FaUser />
+    </div>
+    <div className="profile-setting-text">
+      <strong>Switch to User Mode</strong>
+      <span>Go back to the regular user dashboard</span>
+    </div>
+  </div>
+  <FaChevronRight className="about-arrow" />
+</button>
             {/* ABOUT */}
             <button
               type="button"
