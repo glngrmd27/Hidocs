@@ -21,6 +21,7 @@ import {
   FaCode,
   FaCog,
   FaCopy,
+  FaExclamationTriangle,
   FaEye,
   FaEyeSlash,
   FaFileAlt,
@@ -50,7 +51,11 @@ import {
 import {
   createForm,
   importFormFromDocx,
+  updateForm,
 } from "../api/formApi";
+import {
+  addQuestion,
+} from "../api/questionApi";
 import "../assets/css/ImportWord.css";
 // =========================================================
 // STORAGE KEYS
@@ -125,6 +130,10 @@ function ImportWord() {
     importedText,
     setImportedText,
   ] = useState("");
+  const [
+    importedFormId,
+    setImportedFormId,
+  ] = useState(null);
   // =========================================================
   // FORM DATA
   // =========================================================
@@ -359,18 +368,18 @@ function ImportWord() {
             )
               ? item.options.map(
                   option =>
-                    String(
-                      option ?? ""
-                    ).trim()
+                    typeof option === "object" && option !== null
+                      ? String(option.option_text ?? option.text ?? option.value ?? "").trim()
+                      : String(option ?? "").trim()
                 )
               : Array.isArray(
                   item?.choices
                 )
                 ? item.choices.map(
                     choice =>
-                      String(
-                        choice ?? ""
-                      ).trim()
+                      typeof choice === "object" && choice !== null
+                        ? String(choice.option_text ?? choice.text ?? choice.value ?? "").trim()
+                        : String(choice ?? "").trim()
                   )
                 : [];
 
@@ -396,6 +405,7 @@ function ImportWord() {
           const title =
             String(
               item?.title ||
+              item?.question_text ||
               item?.question ||
               item?.prompt ||
               `Question ${index + 1}`
@@ -503,6 +513,10 @@ function ImportWord() {
     }
 
     return {
+      id:
+        candidateForm.id ||
+        source.id ||
+        null,
       title:
         String(
           candidateForm.title ||
@@ -519,6 +533,117 @@ function ImportWord() {
         ).trim(),
       questions:
         normalizedQuestions,
+    };
+  };
+  const buildServerQuestionPayload = (
+    question,
+    index
+  ) => {
+    const questionTypeMap = {
+      multiple: "MULTIPLE_CHOICE",
+      short: "SHORT_TEXT",
+      long: "LONG_TEXT",
+      checkbox: "CHECKBOXES",
+      yesno: "YES_NO",
+      rating: "RATING",
+      math: "MATH",
+      code: "CODE",
+      image: "IMAGE",
+    };
+    const localType = String(
+      question.type || "short"
+    ).toLowerCase();
+    const serverType =
+      questionTypeMap[localType] ||
+      "SHORT_TEXT";
+    const rawOptions =
+      Array.isArray(
+        question.options
+      )
+        ? question.options
+        : [];
+    const options =
+      rawOptions.map(
+        (
+          option,
+          optionIndex
+        ) => {
+          const isPlainString =
+            typeof option ===
+              "string" ||
+            option ===
+              null ||
+            option ===
+              undefined;
+          return {
+            option_text:
+              isPlainString
+                ? String(
+                    option ?? ""
+                  )
+                    .trim()
+                : String(
+                    option?.option_text ??
+                    option?.text ??
+                    option?.value ??
+                    ""
+                  )
+                    .trim(),
+            is_correct:
+              isPlainString
+                ? false
+                : Boolean(
+                    option?.is_correct ??
+                    option?.correct
+                  ),
+            order_index:
+              optionIndex,
+          };
+        }
+      )
+      .filter(
+        (
+          option
+        ) =>
+          String(
+            option.option_text || ""
+          ).trim()
+      );
+    return {
+      question_text:
+        String(
+          question.title ||
+          question.question ||
+          ""
+        ).trim(),
+      question_type:
+        serverType,
+      code_language:
+        question.code_language ||
+        question.language ||
+        "",
+      img_url:
+        String(
+          question.image ||
+          ""
+        ).trim(),
+      is_auto_scored:
+        Boolean(
+          question.scoring
+        ),
+      points:
+        Math.max(
+          Number(
+            question.points
+          ) || 0,
+          0
+        ),
+      order_index:
+        index,
+      is_required:
+        question.required !==
+        false,
+      options,
     };
   };
   const isCustomLinkUsed = (
@@ -1717,6 +1842,10 @@ function ImportWord() {
           setQuestions(apiQuestions);
           setImportedText(rawText);
           setSelectedFile(file);
+          setImportedFormId(
+            apiImportedPayload.id ||
+            null
+          );
           setImportSuccess(true);
           setImportError("");
           return;
@@ -1910,6 +2039,10 @@ function ImportWord() {
         );
         setSelectedFile(
           file
+        );
+        setImportedFormId(
+          apiImportedPayload.id ||
+          null
         );
         setImportSuccess(
           true
@@ -2833,13 +2966,15 @@ function ImportWord() {
           formData.title
             .trim(),
         description: `Imported from Microsoft Word (${selectedFile?.name || "document.docx"}).`,
-        type: "Form",
+        type: "EXAM",
         category: "Form",
         source: "word-import",
         importedFileName:
           selectedFile?.name ||
           "",
         customLink:
+          normalizedLink,
+        custom_url:
           normalizedLink,
         link: `hidocs.app/r/${normalizedLink}`,
         openDate:
@@ -3102,33 +3237,81 @@ function ImportWord() {
         }
 
         let savedForm = null;
+        const serverFormId =
+          importedFormId ||
+          null;
         try {
-          const response = await createForm(payload);
-          const apiForm = response?.data?.data || response?.data || payload;
-          savedForm = {
-            ...payload,
-            ...apiForm,
-            id:
-              apiForm.id ||
-              Date.now(),
-            customLink:
-              apiForm.customLink ||
-              apiForm.custom_link ||
-              normalizedLink,
-            title:
-              apiForm.title ||
-              payload.title,
-          };
+          if (serverFormId) {
+            const updatePayload = {
+              title: payload.title,
+              description: payload.description,
+              type: "EXAM",
+              custom_url: normalizedLink,
+              status:
+                formData.activateImmediately
+                  ? "ACTIVE"
+                  : "DRAFT",
+              is_template: false,
+            };
+            const response = await updateForm(serverFormId, updatePayload);
+            const apiForm = response?.data?.data || response?.data || payload;
+            savedForm = {
+              ...payload,
+              ...apiForm,
+              id: serverFormId,
+              customLink:
+                apiForm.customLink ||
+                apiForm.custom_link ||
+                normalizedLink,
+              title:
+                apiForm.title ||
+                payload.title,
+            };
+          } else {
+            const response = await createForm(payload);
+            const apiForm = response?.data?.data || response?.data || payload;
+            const newFormId = apiForm.id || null;
+            if (newFormId) {
+              for (let index = 0; index < questions.length; index += 1) {
+                await addQuestion(
+                  newFormId,
+                  buildServerQuestionPayload(
+                    questions[index],
+                    index
+                  )
+                );
+              }
+            }
+            savedForm = {
+              ...payload,
+              ...apiForm,
+              id:
+                newFormId ||
+                Date.now(),
+              customLink:
+                apiForm.customLink ||
+                apiForm.custom_link ||
+                normalizedLink,
+              title:
+                apiForm.title ||
+                payload.title,
+            };
+          }
         } catch (apiError) {
-          console.warn("API createForm gagal, fallback ke localStorage:", apiError);
+          console.warn("API createForm/updateForm gagal, fallback ke localStorage:", apiError);
         }
 
-        const finalForm =
-          savedForm || {
+        let finalForm;
+        if (savedForm) {
+          finalForm = savedForm;
+        } else {
+          finalForm = {
             id:
+              serverFormId ||
               Date.now(),
             ...payload,
           };
+        }
 
         const updatedForms = [
           ...existingForms,
@@ -3866,30 +4049,65 @@ Poin: 3
   // QUESTIONS TAB
   // =========================================================
   const renderQuestionsTab =
-    () => (
-      <div className="import-word-content">
-        <section className="import-question-summary">
-          <div>
-            <span>
-              Step 4
-            </span>
-            <h2>
-              Review Imported Questions
-            </h2>
-            <p>
-              Check the questions detected from Word before saving your form.
-            </p>
-          </div>
-          <div className="import-question-total">
-            <strong>
-              {questions.length}
-            </strong>
-            <span>
-              Questions
-            </span>
-          </div>
-        </section>
-        <div className="import-question-list">
+    () => {
+      try {
+        if (
+          !Array.isArray(
+            questions
+          ) ||
+          questions.length ===
+          0
+        ) {
+          return (
+            <div className="import-word-content">
+              <section className="import-question-summary">
+                <div>
+                  <span>Step 4</span>
+                  <h2>Review Imported Questions</h2>
+                  <p>Check the questions detected from Word before saving your form.</p>
+                </div>
+                <div className="import-question-total">
+                  <strong>0</strong>
+                  <span>Questions</span>
+                </div>
+              </section>
+              <div className="import-word-section" style={{ textAlign: 'center', padding: '60px 20px' }}>
+                <FaQuestionCircle style={{ fontSize: '48px', opacity: 0.3, marginBottom: '20px' }} />
+                <p style={{ color: '#999', marginBottom: '10px' }}>
+                  No questions were detected from your Word document.
+                </p>
+                <p style={{ color: '#999', fontSize: '13px' }}>
+                  Make sure your document contains numbered questions or use type tags like [SHORT], [MULTIPLE], etc.
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="import-word-content">
+            <section className="import-question-summary">
+              <div>
+                <span>
+                  Step 4
+                </span>
+                <h2>
+                  Review Imported Questions
+                </h2>
+                <p>
+                  Check the questions detected from Word before saving your form.
+                </p>
+              </div>
+              <div className="import-question-total">
+                <strong>
+                  {questions.length}
+                </strong>
+                <span>
+                  Questions
+                </span>
+              </div>
+            </section>
+            <div className="import-question-list">
           {questions.map(
             (
               question,
@@ -4292,8 +4510,24 @@ Poin: 3
           <FaPlus />
           Add Question Manually
         </button>
-      </div>
-  );
+        
+          </div>
+        );
+      } catch (error) {
+        console.error('Error rendering questions tab:', error);
+        return (
+          <div className="import-word-content">
+            <div className="import-word-section" style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <FaExclamationTriangle style={{ fontSize: '48px', color: '#dc2626', marginBottom: '20px' }} />
+              <h3 style={{ marginTop: 0 }}>Error Loading Questions</h3>
+              <p style={{ color: '#999' }}>
+                There was an error displaying your questions. Please refresh and try again.
+              </p>
+            </div>
+          </div>
+        );
+      }
+  };
   // =========================================================
   // IMPORT SUMMARY
   // =========================================================

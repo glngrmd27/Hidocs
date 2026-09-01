@@ -189,6 +189,35 @@ const getStoredArray = (key) => {
   }
 };
 
+const NEW_FORM_STORAGE_KEY = "hidocs_new_form";
+
+const findLocalForm = (formId) => {
+  const storedForms = getStoredArray(FORMS_STORAGE_KEY);
+  const backupForms = getStoredArray(NEW_FORM_STORAGE_KEY);
+  const deletedFormIds = getStoredArray(DELETED_FORMS_STORAGE_KEY).map(
+    (deletedId) => String(deletedId)
+  );
+
+  if (
+    deletedFormIds.includes(
+      String(formId)
+    )
+  ) {
+    return null;
+  }
+
+  return (
+    [...storedForms, ...backupForms, ...defaultForms]
+      .reverse()
+      .find(
+        (form) =>
+          form &&
+          typeof form === "object" &&
+          String(form.id) === String(formId)
+      ) || null
+  );
+};
+
 // =========================================================
 // ANSWER CHECKER
 // =========================================================
@@ -902,6 +931,7 @@ function FillForm() {
   // =========================================================
 
   const [form, setForm] = useState(null);
+  const [formIsLocal, setFormIsLocal] = useState(false);
   const [isLoadingForm, setIsLoadingForm] = useState(true);
 
   useEffect(() => {
@@ -956,10 +986,29 @@ function FillForm() {
           questions: apiQuestions.map(mapApiQuestionForFill),
         });
 
-        if (isMounted) setForm(mapped);
+        if (isMounted) {
+          setForm(mapped);
+          setFormIsLocal(false);
+        }
       } catch (error) {
         console.error("Gagal memuat form:", error);
-        if (isMounted) setForm(null);
+        const localForm = findLocalForm(id);
+        if (isMounted && localForm) {
+          setForm(
+            normalizeForm({
+              ...localForm,
+              id: localForm.id || id,
+              title: String(localForm.title || "").trim() || "Untitled Form",
+              type: localForm.type || localForm.category || "Form",
+              active: localForm.active !== false,
+              questions: Array.isArray(localForm.questions) ? localForm.questions : [],
+            })
+          );
+          setFormIsLocal(true);
+        } else if (isMounted) {
+          setForm(null);
+          setFormIsLocal(false);
+        }
       } finally {
         if (isMounted) setIsLoadingForm(false);
       }
@@ -1259,6 +1308,47 @@ function FillForm() {
       const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
       const respondentEmail = currentUser.email || "";
 
+      if (formIsLocal) {
+        const submittedAtValue = new Date().toISOString();
+        const scoreResult = calculateFormScore(questions, answersRef.current);
+
+        const result = submitForm({
+          formId: form.id,
+          title: form.title,
+          answers: answersRef.current,
+          answeredQuestions: Object.values(answersRef.current).filter(hasAnswerValue).length,
+          totalQuestions,
+          status: "completed",
+          submittedAt: submittedAtValue,
+          resultMode: form.resultMode,
+          score: scoreResult.score,
+          maxScore: scoreResult.maxScore,
+          percentage: scoreResult.percentage,
+          correctAnswers: scoreResult.correctAnswers,
+          incorrectAnswers: scoreResult.incorrectAnswers,
+          scoredQuestions: scoreResult.scoredQuestions,
+          questionResults: scoreResult.questionResults,
+          gradingEnabled: scoreResult.gradingEnabled,
+        });
+
+        if (!result?.success) {
+          throw new Error(result?.message || "Gagal menyimpan submit form.");
+        }
+
+        navigate("/submit-success", {
+          replace: true,
+          state: {
+            formId: form.id,
+            formTitle: form.title,
+            submittedAt: submittedAtValue,
+            status: "completed",
+            score: scoreResult.score,
+            totalQuestions,
+          },
+        });
+        return;
+      }
+
       const answerPayload = questions.map((q) => {
         const answerValue = answersRef.current[q.id];
         const isChoiceType = ["multiple", "checkbox", "yesno"].includes(q.type);
@@ -1327,7 +1417,7 @@ function FillForm() {
         "Terjadi kesalahan saat mengirim form. Silakan coba lagi."
       );
     }
-  }, [form, canFillForm, isSubmitting, navigate, questions, totalQuestions]);
+  }, [form, canFillForm, isSubmitting, navigate, questions, totalQuestions, formIsLocal]);
 
   // =========================================================
   // HANDLE TIMER EXPIRED

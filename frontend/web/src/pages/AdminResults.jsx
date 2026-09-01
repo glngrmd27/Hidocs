@@ -50,6 +50,8 @@ import "../assets/css/AdminResultsManualGrading.css";
 // =========================================================
 const FORMS_STORAGE_KEY =
   "hidocs_forms";
+const NEW_FORM_STORAGE_KEY =
+  "hidocs_new_form";
 const DELETED_FORMS_STORAGE_KEY =
   "hidocs_deleted_forms";
 // =========================================================
@@ -242,6 +244,181 @@ const mapApiQuestionForResults = (q) => ({
   correctAnswer:
     (q.options || []).find((o) => o.is_correct)?.option_text || "",
 });
+
+const findLocalForm = (
+  formId
+) => {
+  const storedForms =
+    getStoredArray(
+      FORMS_STORAGE_KEY
+    );
+  const backupForms =
+    getStoredArray(
+      NEW_FORM_STORAGE_KEY
+    );
+  const deletedFormIds =
+    getStoredArray(
+      DELETED_FORMS_STORAGE_KEY
+    ).map(
+      (
+        deletedId
+      ) =>
+        String(
+          deletedId
+        )
+    );
+  if (
+    deletedFormIds.includes(
+      String(
+        formId
+      )
+    )
+  ) {
+    return null;
+  }
+  return (
+    [
+      ...defaultForms,
+      ...storedForms,
+      ...backupForms,
+    ]
+      .reverse()
+      .find(
+        (
+          item
+        ) =>
+          item &&
+          typeof item === "object" &&
+          String(
+            item.id
+          ) ===
+          String(
+            formId
+          )
+      ) ||
+    null
+  );
+};
+
+const mapLocalQuestionForResults = (
+  question,
+  index
+) => {
+  const rawOptions =
+    Array.isArray(
+      question.options
+    )
+      ? question.options
+      : [];
+  const optionTexts =
+    rawOptions
+      .map(
+        (
+          option
+        ) =>
+          typeof option ===
+            "object" &&
+          option !== null
+            ? String(
+                option.option_text ??
+                option.text ??
+                option.value ??
+                ""
+              )
+                .trim()
+            : String(
+                option ?? ""
+              )
+                .trim()
+      )
+      .filter(
+        (
+          text
+        ) =>
+          Boolean(
+            text
+          )
+      );
+  const directCorrect =
+    question.correctAnswer ??
+    question.correctOption ??
+    question.answer ??
+    question.correctValue ??
+    question.expectedAnswer;
+  const selectedCorrectOption =
+    rawOptions.find(
+      (
+        option
+      ) =>
+        typeof option ===
+          "object" &&
+        option !== null &&
+        Boolean(
+          option.is_correct ??
+          option.correct
+        )
+    );
+  const correctAnswer =
+    directCorrect !==
+      undefined &&
+    directCorrect !==
+      null &&
+    String(
+      directCorrect
+    )
+      .trim()
+      ? String(
+          directCorrect
+        ).trim()
+      : selectedCorrectOption
+        ? String(
+            selectedCorrectOption.option_text ??
+            selectedCorrectOption.text ??
+            selectedCorrectOption.value ??
+            ""
+          )
+            .trim()
+        : "";
+  return {
+    id:
+      question.id ||
+      `question-${index + 1}`,
+    title:
+      String(
+        question.title ||
+        question.question ||
+        ""
+      )
+        .trim() ||
+      `Question ${index + 1}`,
+    type:
+      question.type ||
+      (
+        optionTexts.length > 0
+          ? "multiple"
+          : "short"
+      ),
+    required:
+      question.required !==
+      false,
+    scoring:
+      Boolean(
+        question.scoring ??
+        question.grading?.enabled
+      ),
+    points:
+      Math.max(
+        Number(
+          question.points ??
+          question.grading?.points
+        ) || 0,
+        0
+      ),
+    options:
+      optionTexts,
+    correctAnswer,
+  };
+};
 
 const isManualGradingEligible = (question) => {
   if (!question) return false;
@@ -711,9 +888,55 @@ function AdminResults() {
         }
       } catch (error) {
         console.error("Gagal memuat hasil form:", error);
+        const rawLocalForm = findLocalForm(id);
         if (isMounted) {
-          setForm(null);
-          setFormSubmissions([]);
+          if (rawLocalForm) {
+            const localQuestions = (Array.isArray(rawLocalForm.questions) ? rawLocalForm.questions : [])
+              .map(mapLocalQuestionForResults);
+            const localSubmissions = allSubmissions
+              .filter((submission) => String(submission.formId ?? submission.id) === String(id))
+              .map((submission) => ({
+                id: submission.submissionId || submission.id,
+                responseId: submission.submissionId || submission.id,
+                formId: id,
+                local: true,
+                respondentName: submission.respondentName || submission.username || "",
+                respondentEmail: submission.respondentEmail || submission.email || "",
+                submittedAt: submission.submittedAt || "",
+                isAutoSubmitted: Boolean(submission.isAutoSubmitted ?? submission.is_auto_submitted),
+                score: Number(submission.score) || 0,
+                maxScore: Number(submission.maxScore ?? submission.totalMaxScore) || 0,
+                percentage: Number(submission.percentage) || 0,
+                answers:
+                  submission.answers && typeof submission.answers === "object"
+                    ? submission.answers
+                    : {},
+                questionResults: Array.isArray(submission.questionResults) ? submission.questionResults : [],
+                totalQuestions: Number(submission.totalQuestions) || 0,
+                answeredQuestions:
+                  Number(submission.answeredQuestions) ||
+                  Object.values(
+                    submission.answers && typeof submission.answers === "object" ? submission.answers : {}
+                  ).filter(hasAnswer).length,
+                status: submission.status || "completed",
+                isTimeExpired: submission.isTimeExpired === true,
+              }));
+
+            setForm(
+              normalizeForm({
+                ...rawLocalForm,
+                id: rawLocalForm.id || id,
+                title: String(rawLocalForm.title || "").trim() || "Untitled Form",
+                type: rawLocalForm.type || rawLocalForm.category || "Form",
+                responses: Number(rawLocalForm.responses) || 0,
+                questions: localQuestions,
+              })
+            );
+            setFormSubmissions(localSubmissions);
+          } else {
+            setForm(null);
+            setFormSubmissions([]);
+          }
         }
       } finally {
         if (isMounted) setIsLoadingResults(false);
@@ -1496,7 +1719,7 @@ const saveManualGrades = async () => {
       hasError = true;
       break;
     }
-    gradesToSave[String(item.questionId)] = { earnedPoints: earned, maxPoints: max };
+    gradesToSave[String(item.questionId)] = { earnedPoints: earned, maxPoints: max, graded: true };
   }
 
   if (hasError) return;
@@ -1516,30 +1739,60 @@ const saveManualGrades = async () => {
 
   setGradingSaving(true);
   try {
-    await gradeResponseApi(selectedRespondent.responseId, totalScore);
+    const isLocalSubmission =
+      selectedRespondent?.submission?.local === true;
 
-    setFormSubmissions((prev) =>
-      prev.map((s) => {
-        if (s.id !== selectedRespondent.responseId) return s;
-        return {
-          ...s,
-          score: totalScore,
-          questionResults: s.questionResults.map((qr) => {
-            const g = gradesToSave[String(qr.questionId)];
-            if (!g) return qr;
-            return {
-              ...qr,
-              manuallyGraded: true,
-              manualEarnedPoints: g.earnedPoints,
-              manualMaxPoints: g.maxPoints,
-            };
-          }),
-        };
-      })
-    );
+    if (isLocalSubmission) {
+      const totalScore = selectedRespondent.questionResults.reduce((sum, item) => {
+        if (item.isAutoGraded) return sum + (item.earnedPoints || 0);
+        const newGrade = gradesToSave[String(item.questionId)];
+        if (newGrade) return sum + newGrade.earnedPoints;
+        if (item.manuallyGraded) return sum + (item.earnedPoints || 0);
+        return sum;
+      }, 0);
 
-    alert("Nilai manual berhasil disimpan dan total nilai telah diperbarui.");
-    closeRespondentAnswers();
+      const updatedLocal = updateSubmissionGrading(selectedRespondent.responseId, gradesToSave);
+      setFormSubmissions((prev) =>
+        prev.map((s) => {
+          if (s.id !== selectedRespondent.responseId) return s;
+          return {
+            ...s,
+            score: updatedLocal?.score ?? totalScore,
+            maxScore: updatedLocal?.maxScore ?? s.maxScore,
+            percentage: updatedLocal?.percentage ?? s.percentage,
+            questionResults: updatedLocal?.questionResults || s.questionResults,
+          };
+        })
+      );
+
+      alert("Nilai manual berhasil disimpan dan total nilai telah diperbarui.");
+      closeRespondentAnswers();
+    } else {
+      await gradeResponseApi(selectedRespondent.responseId, totalScore);
+
+      setFormSubmissions((prev) =>
+        prev.map((s) => {
+          if (s.id !== selectedRespondent.responseId) return s;
+          return {
+            ...s,
+            score: totalScore,
+            questionResults: s.questionResults.map((qr) => {
+              const g = gradesToSave[String(qr.questionId)];
+              if (!g) return qr;
+              return {
+                ...qr,
+                manuallyGraded: true,
+                manualEarnedPoints: g.earnedPoints,
+                manualMaxPoints: g.maxPoints,
+              };
+            }),
+          };
+        })
+      );
+
+      alert("Nilai manual berhasil disimpan dan total nilai telah diperbarui.");
+      closeRespondentAnswers();
+    }
   } catch (error) {
     console.error("Gagal menyimpan nilai manual:", error);
     alert("Nilai manual gagal disimpan.");
