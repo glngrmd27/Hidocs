@@ -1,4 +1,4 @@
-import { getForms } from '../api/formApi';
+import { deleteForm as deleteFormApi } from '../api/formApi';
 
 import {
   useContext,
@@ -153,11 +153,13 @@ function ManageForms() {
         JSON.parse(
           savedValue
         );
-      return Array.isArray(
-        parsedValue
-      )
-        ? parsedValue
-        : [];
+      if (Array.isArray(parsedValue)) {
+        return parsedValue;
+      }
+      if (parsedValue && typeof parsedValue === "object") {
+        return [parsedValue];
+      }
+      return [];
     } catch (error) {
       console.error(
         `Gagal membaca localStorage ${key}:`,
@@ -165,6 +167,60 @@ function ManageForms() {
       );
       return [];
     }
+  };
+
+  const dedupeForms = (forms) => {
+    const uniqueForms = [];
+    const seenKeys = new Map();
+
+    forms.forEach((form) => {
+      if (!form || typeof form !== "object") {
+        return;
+      }
+
+      const formId = String(form.id ?? "").trim();
+      const customLink = String(form.customLink || form.custom_url || form.link || "")
+        .trim()
+        .toLowerCase();
+
+      if (!formId && !customLink) {
+        return;
+      }
+
+      const keys = [];
+      if (formId) {
+        keys.push(`id:${formId}`);
+      }
+      if (customLink) {
+        keys.push(`link:${customLink}`);
+      }
+
+      const existingIndex = keys.reduce((foundIndex, key) => {
+        if (foundIndex !== null) {
+          return foundIndex;
+        }
+        return seenKeys.has(key) ? seenKeys.get(key) : null;
+      }, null);
+
+      if (existingIndex !== null) {
+        uniqueForms[existingIndex] = form;
+      } else {
+        const index = uniqueForms.length;
+        uniqueForms.push(form);
+        keys.forEach((key) => seenKeys.set(key, index));
+      }
+
+      const indexAfterWrite = uniqueForms.length - 1;
+      keys.forEach((key) => seenKeys.set(key, indexAfterWrite));
+    });
+
+    return uniqueForms;
+  };
+
+  const readAllLocalForms = () => {
+    const storedForms = parseStoredArray(FORMS_STORAGE_KEY);
+    const backupForms = parseStoredArray(NEW_FORM_STORAGE_KEY);
+    return dedupeForms([...storedForms, ...backupForms]);
   };
   // =========================================================
   // FORMAT DATE
@@ -359,25 +415,59 @@ function ManageForms() {
   // =========================================================
   const loadForms = async () => {
     try {
-      const response = await getForms();
-      const apiForms = response.data.data || [];
+      const deletedFormIds = parseStoredArray(DELETED_FORMS_STORAGE_KEY).map((id) => String(id));
+      const localRawForms = readAllLocalForms().filter(
+        (form) => form && !deletedFormIds.includes(String(form.id))
+      );
 
-      const mappedForms = apiForms.map((form) => ({
-        id: form.id,
-        title: form.title,
-        description: form.description,
-        customLink: form.custom_url,
-        active: form.status === "ACTIVE",
-        responses: form.response_count || 0,
-        questions: form.questions || [],
-        createdAt: form.created_at,
-        type: form.type,
-        isDefault: false,
-      }));
+      const localForms = localRawForms.map((form) => normalizeForm(form));
 
-      setForms(mappedForms);
+      if (localForms.length > 0) {
+        setForms(localForms);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/forms`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+          },
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          const apiForms = Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload)
+              ? payload
+              : Array.isArray(payload?.forms)
+                ? payload.forms
+                : [];
+
+          const mappedApiForms = apiForms
+            .filter((form) => form && !deletedFormIds.includes(String(form.id)))
+            .map((form) => ({
+              id: form.id,
+              title: form.title,
+              description: form.description,
+              customLink: form.custom_url || form.customLink || form.link,
+              active: form.status === 'ACTIVE' || form.active !== false,
+              responses: form.response_count || form.responses || 0,
+              questions: form.questions || [],
+              createdAt: form.created_at || form.createdAt,
+              type: form.type || 'Form',
+              isDefault: false,
+            }));
+
+          setForms(mappedApiForms);
+          return;
+        }
+      } catch (apiError) {
+        console.warn('Gagal mengambil form dari API; memakai data lokal:', apiError);
+      }
+
+      setForms([]);
     } catch (error) {
-      console.error("Gagal memuat data form:", error);
+      console.error('Gagal memuat data form:', error);
       setForms([]);
     }
   };
@@ -398,22 +488,35 @@ function ManageForms() {
         event.key ===
           FORMS_STORAGE_KEY ||
         event.key ===
-          DELETED_FORMS_STORAGE_KEY
+          DELETED_FORMS_STORAGE_KEY ||
+        event.key ===
+          NEW_FORM_STORAGE_KEY
       ) {
         loadForms();
       }
     };
+    const handleFormsUpdated = () => {
+      loadForms();
+    };
     window.addEventListener(
       "storage",
       handleStorageChange
+    );
+    window.addEventListener(
+      "hidocs-forms-updated",
+      handleFormsUpdated
     );
     return () => {
       window.removeEventListener(
         "storage",
         handleStorageChange
       );
+      window.removeEventListener(
+        "hidocs-forms-updated",
+        handleFormsUpdated
+      );
     };
-  }, []);
+  }, [loadForms]);
   // =========================================================
   // UPDATE WHEN PAGE ACTIVE
   // =========================================================
@@ -565,16 +668,27 @@ function ManageForms() {
   const getFormUrl = (
     form
   ) => {
-    /*
-      Menggunakan route yang sudah tersedia pada App.jsx:
-      /form-details/:id
-      Jadi ketika QR dipindai dari browser atau perangkat
-      yang dapat mengakses alamat ini, form yang sesuai
-      akan langsung dibuka.
-    */
-    return (
-      `${window.location.origin}/form-details/${form.id}`
-    );
+    const customLink =
+      String(
+        form?.customLink ||
+        form?.custom_url ||
+        ""
+      ).trim();
+
+    if (customLink) {
+      return `https://hidocs.app/r/${customLink}`;
+    }
+
+    const formId =
+      form?.id ??
+      form?.formId ??
+      "";
+
+    if (formId) {
+      return `${window.location.origin}/form-details/${formId}`;
+    }
+
+    return `${window.location.origin}/form-details/unknown`;
   };
   // =========================================================
   // GET DISPLAY LINK
@@ -729,7 +843,7 @@ function ManageForms() {
   // =========================================================
   // DELETE FORM
   // =========================================================
-  const deleteForm = (
+  const handleDeleteForm = async (
     form,
     event
   ) => {
@@ -751,6 +865,15 @@ function ManageForms() {
       form.id
     );
     try {
+      try {
+        await deleteFormApi(form.id);
+      } catch (apiError) {
+        console.warn(
+          "Delete form via API gagal, lanjut ke local removal:",
+          apiError
+        );
+      }
+
       const savedForms =
         parseStoredArray(
           FORMS_STORAGE_KEY
@@ -858,6 +981,18 @@ function ManageForms() {
       ) {
         closeQrModal();
       }
+      window.dispatchEvent(
+        new CustomEvent(
+          "hidocs-forms-updated",
+          {
+            detail: {
+              formId: form.id,
+              type: "delete",
+            },
+          }
+        )
+      );
+      await loadForms();
     } catch (error) {
       console.error(
         "Gagal menghapus form:",
@@ -1296,7 +1431,7 @@ function ManageForms() {
                         type="button"
                         className="manage-delete-btn"
                         onClick={(event) =>
-                          deleteForm(
+                          handleDeleteForm(
                             form,
                             event
                           )

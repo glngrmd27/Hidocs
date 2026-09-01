@@ -743,11 +743,36 @@ const normalizeTimer = (form) => {
   const timerSetting =
     form.settings?.timer && typeof form.settings.timer === "object" ? form.settings.timer : {};
 
+  const durationCandidate = Number(
+    form.timerDuration ??
+    form.settings?.timerDuration ??
+    timerSetting.duration ??
+    form.duration_minutes ??
+    form.settings?.duration_minutes ??
+    form.duration ??
+    form.settings?.duration ??
+    0
+  );
+
+  const timerEnabledFromDuration = Number.isFinite(durationCandidate) && durationCandidate > 0;
+
   const timerEnabled =
-    form.timerEnabled ?? form.settings?.timerEnabled ?? timerSetting.enabled ?? Boolean(form.duration);
+    form.timerEnabled ??
+    form.settings?.timerEnabled ??
+    timerSetting.enabled ??
+    form.is_timer_enabled ??
+    form.settings?.is_timer_enabled ??
+    timerEnabledFromDuration;
 
   const rawDuration = Number(
-    form.timerDuration ?? form.settings?.timerDuration ?? timerSetting.duration ?? form.duration ?? 20
+    form.timerDuration ??
+    form.settings?.timerDuration ??
+    timerSetting.duration ??
+    form.duration_minutes ??
+    form.settings?.duration_minutes ??
+    form.duration ??
+    form.settings?.duration ??
+    20
   );
 
   const duration = Number.isFinite(rawDuration)
@@ -755,7 +780,7 @@ const normalizeTimer = (form) => {
     : 20;
 
   return {
-    enabled: Boolean(timerEnabled),
+    enabled: Boolean(timerEnabled) || timerEnabledFromDuration,
     duration,
   };
 };
@@ -891,13 +916,43 @@ function FillForm() {
         const apiForm = formRes.data.data;
         const apiQuestions = questionsRes.data.data || [];
 
+        const timerDurationValue = Number(
+          apiForm.duration_minutes ??
+          apiForm.timerDuration ??
+          apiForm.settings?.timerDuration ??
+          apiForm.settings?.timer?.duration ??
+          apiForm.duration ??
+          apiForm.settings?.duration ??
+          0
+        );
+
+        const timerEnabledValue =
+          apiForm.timer_enabled ??
+          apiForm.timerEnabled ??
+          apiForm.settings?.timerEnabled ??
+          apiForm.settings?.timer?.enabled ??
+          (Number.isFinite(timerDurationValue) && timerDurationValue > 0);
+
         const mapped = normalizeForm({
+          ...apiForm,
           id: apiForm.id,
           title: apiForm.title,
           description: apiForm.description,
           customLink: apiForm.custom_url,
           type: apiForm.type,
           active: apiForm.status === "ACTIVE",
+          timerEnabled: Boolean(timerEnabledValue),
+          timerDuration: Number.isFinite(timerDurationValue) && timerDurationValue > 0 ? timerDurationValue : 20,
+          settings: {
+            ...(apiForm.settings || {}),
+            timerEnabled: Boolean(timerEnabledValue),
+            timerDuration: Number.isFinite(timerDurationValue) && timerDurationValue > 0 ? timerDurationValue : 20,
+            timer: {
+              ...(apiForm.settings?.timer || {}),
+              enabled: Boolean(timerEnabledValue),
+              duration: Number.isFinite(timerDurationValue) && timerDurationValue > 0 ? timerDurationValue : 20,
+            },
+          },
           questions: apiQuestions.map(mapApiQuestionForFill),
         });
 
@@ -1231,14 +1286,35 @@ function FillForm() {
 
       const result = response.data.data;
 
+      const savedSubmission = submitForm({
+        formId: form.id,
+        title: form.title,
+        answers: answersRef.current,
+        answeredQuestions: Object.values(answersRef.current).filter(hasAnswerValue).length,
+        totalQuestions,
+        status: "completed",
+        submittedAt: result?.submitted_at || new Date().toISOString(),
+        resultMode: form.resultMode,
+        score: result?.total_score ?? 0,
+        maxScore: result?.max_score ?? 0,
+        percentage: result?.percentage ?? 0,
+        correctAnswers: result?.correct_answers ?? 0,
+        scoredQuestions: result?.scored_questions ?? 0,
+        questionResults: result?.question_results || result?.answers || [],
+      });
+
+      if (!savedSubmission?.success) {
+        console.warn("Gagal menyimpan submit form ke history lokal:", savedSubmission?.message);
+      }
+
       navigate("/submit-success", {
         replace: true,
         state: {
           formId: form.id,
           formTitle: form.title,
-          submittedAt: result.submitted_at,
+          submittedAt: result?.submitted_at || new Date().toISOString(),
           status: "completed",
-          score: result.total_score,
+          score: result?.total_score ?? 0,
           totalQuestions,
         },
       });

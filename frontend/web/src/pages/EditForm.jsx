@@ -4,6 +4,14 @@ import {
   useState,
 } from "react";
 import {
+  getFormById,
+  updateForm,
+  updateFormSettings,
+} from "../api/formApi";
+import {
+  getQuestionsByForm,
+} from "../api/questionApi";
+import {
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -149,162 +157,230 @@ function EditForm() {
   // LOAD EXISTING FORM
   // =========================================================
   useEffect(() => {
-    try {
-      const storedValue =
-        localStorage.getItem(
-          FORMS_STORAGE_KEY
+    const loadFormForEdit = async () => {
+      try {
+        const storedForms = getStoredForms();
+        const selectedForm =
+          [...storedForms]
+            .reverse()
+            .find(
+              (item) =>
+                String(item.id) ===
+                String(id)
+            );
+
+        if (selectedForm) {
+          const settings =
+            selectedForm.settings &&
+            typeof selectedForm.settings === "object"
+              ? selectedForm.settings
+              : {};
+          const timerObject =
+            selectedForm.timer &&
+            typeof selectedForm.timer === "object"
+              ? selectedForm.timer
+              : {};
+          const timerEnabled =
+            settings.timerEnabled ??
+            settings.timer?.enabled ??
+            selectedForm.timerEnabled ??
+            timerObject.enabled ??
+            false;
+          const timerDuration =
+            Number(
+              settings.timerDuration ??
+              settings.timer?.duration ??
+              selectedForm.timerDuration ??
+              timerObject.duration ??
+              selectedForm.duration ??
+              20
+            ) || 20;
+          const accessMode =
+            settings.accessMode ||
+            selectedForm.accessMode ||
+            (selectedForm.qrOnly ? "qr-only" : "public");
+          const loadedQuestions =
+            Array.isArray(selectedForm.questions)
+              ? selectedForm.questions.map(
+                  (question, index) => ({
+                    ...question,
+                    id:
+                      question.id ??
+                      `${selectedForm.id}-question-${index + 1}`,
+                    title:
+                      String(
+                        question.title ||
+                        question.question ||
+                        ""
+                      ),
+                    required:
+                      question.required !== false,
+                    scoring:
+                      Boolean(
+                        question.scoring ??
+                        question.grading?.enabled
+                      ),
+                    points:
+                      Number(
+                        question.points ??
+                        question.grading?.points ??
+                        1
+                      ) || 1,
+                    correctAnswer:
+                      String(
+                        question.correctAnswer ??
+                        question.grading?.correctAnswer ??
+                        ""
+                      ),
+                    options:
+                      Array.isArray(question.options)
+                        ? [...question.options]
+                        : question.type === "yesno"
+                        ? ["Yes", "No"]
+                        : [],
+                    imageOptions:
+                      Array.isArray(question.imageOptions)
+                        ? [...question.imageOptions]
+                        : [],
+                    imageAnswerType:
+                      question.imageAnswerType ||
+                      (question.type === "image"
+                        ? "multiple"
+                        : ""),
+                    ratingMax:
+                      question.ratingMax ||
+                      (question.type === "rating" ? 5 : null),
+                  })
+                )
+              : [];
+          setOriginalForm(selectedForm);
+          setFormData({
+            title:
+              String(selectedForm.title || ""),
+            customLink:
+              String(selectedForm.customLink || ""),
+            openDate:
+              selectedForm.openDate || "",
+            closeDate:
+              selectedForm.closeDate || "",
+            openTime:
+              selectedForm.openTime || "",
+            closeTime:
+              selectedForm.closeTime || "",
+            shuffleQuestions:
+              Boolean(settings.shuffleQuestions),
+            shuffleAnswers:
+              Boolean(settings.shuffleAnswers),
+            oneTimeOnly:
+              settings.oneTimeOnly !== false,
+            activateImmediately:
+              settings.activateImmediately !== false,
+            timerEnabled:
+              Boolean(timerEnabled),
+            timerDuration,
+            responseDays:
+              Number(
+                settings.responseDays ??
+                selectedForm.responseDays ??
+                30
+              ) || 30,
+            resultMode:
+              settings.resultMode ||
+              selectedForm.resultMode ||
+              "none",
+            accessMode,
+          });
+          setQuestions(loadedQuestions);
+          setFormNotFound(false);
+          setLoadingForm(false);
+          return;
+        }
+
+        const [formResponse, questionsResponse] = await Promise.all([
+          getFormById(id),
+          getQuestionsByForm(id),
+        ]);
+
+        const apiForm = formResponse?.data?.data || formResponse?.data || {};
+        const apiQuestions = questionsResponse?.data?.data || questionsResponse?.data || [];
+
+        const mappedQuestions = (Array.isArray(apiQuestions) ? apiQuestions : []).map((question, index) => ({
+          id: question.id || `${id}-question-${index + 1}`,
+          title: String(question.question_text || question.title || ""),
+          type: question.question_type ? question.question_type.toLowerCase().replace(/_/g, "-") : "short",
+          required: question.is_required !== false,
+          scoring: Boolean(question.is_auto_scored),
+          points: Number(question.points) || 1,
+          correctAnswer: String(question.correctAnswer || question.correct_answer || ""),
+          options: Array.isArray(question.options)
+            ? question.options.map((option) => option.option_text || option)
+            : [],
+          imageOptions: [],
+          imageAnswerType: "",
+          ratingMax: null,
+        }));
+
+        const loadedForm = {
+          id,
+          title: String(apiForm.title || ""),
+          description: String(apiForm.description || "Form created using HiDocs Form Builder."),
+          customLink: String(apiForm.custom_url || apiForm.customLink || ""),
+          accessMode: apiForm.accessMode || "public",
+          qrOnly: Boolean(apiForm.qrOnly),
+          showInUserList: apiForm.showInUserList !== false,
+          timerEnabled: Boolean(apiForm.timerEnabled),
+          timerDuration: Number(apiForm.timerDuration || apiForm.duration || 20) || 20,
+          responseDays: Number(apiForm.responseDays || 30) || 30,
+          resultMode: apiForm.resultMode || "none",
+          settings: {
+            accessMode: apiForm.accessMode || "public",
+            qrOnly: Boolean(apiForm.qrOnly),
+            showInUserList: apiForm.showInUserList !== false,
+            timerEnabled: Boolean(apiForm.timerEnabled),
+            timerDuration: Number(apiForm.timerDuration || apiForm.duration || 20) || 20,
+            responseDays: Number(apiForm.responseDays || 30) || 30,
+            resultMode: apiForm.resultMode || "none",
+          },
+          timer: {
+            enabled: Boolean(apiForm.timerEnabled),
+            duration: Number(apiForm.timerDuration || apiForm.duration || 20) || 20,
+          },
+          questions: mappedQuestions,
+        };
+
+        setOriginalForm(loadedForm);
+        setFormData({
+          title: String(loadedForm.title || ""),
+          customLink: String(loadedForm.customLink || ""),
+          openDate: "",
+          closeDate: "",
+          openTime: "",
+          closeTime: "",
+          shuffleQuestions: false,
+          shuffleAnswers: false,
+          oneTimeOnly: true,
+          activateImmediately: true,
+          timerEnabled: Boolean(loadedForm.timerEnabled),
+          timerDuration: Number(loadedForm.timerDuration || 20) || 20,
+          responseDays: Number(loadedForm.responseDays || 30) || 30,
+          resultMode: loadedForm.resultMode || "none",
+          accessMode: loadedForm.accessMode || "public",
+        });
+        setQuestions(mappedQuestions);
+        setFormNotFound(false);
+      } catch (error) {
+        console.error(
+          "Gagal memuat form untuk diedit:",
+          error
         );
-      const storedForms =
-        storedValue
-          ? JSON.parse(storedValue)
-          : [];
-      const safeForms =
-        Array.isArray(storedForms)
-          ? storedForms
-          : [];
-      const selectedForm =
-        [...safeForms]
-          .reverse()
-          .find(
-            (item) =>
-              String(item.id) ===
-              String(id)
-          );
-      if (!selectedForm) {
         setFormNotFound(true);
+      } finally {
         setLoadingForm(false);
-        return;
       }
-      const settings =
-        selectedForm.settings &&
-        typeof selectedForm.settings === "object"
-          ? selectedForm.settings
-          : {};
-      const timerObject =
-        selectedForm.timer &&
-        typeof selectedForm.timer === "object"
-          ? selectedForm.timer
-          : {};
-      const timerEnabled =
-        settings.timerEnabled ??
-        settings.timer?.enabled ??
-        selectedForm.timerEnabled ??
-        timerObject.enabled ??
-        false;
-      const timerDuration =
-        Number(
-          settings.timerDuration ??
-          settings.timer?.duration ??
-          selectedForm.timerDuration ??
-          timerObject.duration ??
-          selectedForm.duration ??
-          20
-        ) || 20;
-      const accessMode =
-        settings.accessMode ||
-        selectedForm.accessMode ||
-        (selectedForm.qrOnly ? "qr-only" : "public");
-      const loadedQuestions =
-        Array.isArray(selectedForm.questions)
-          ? selectedForm.questions.map(
-              (question, index) => ({
-                ...question,
-                id:
-                  question.id ??
-                  `${selectedForm.id}-question-${index + 1}`,
-                title:
-                  String(
-                    question.title ||
-                    question.question ||
-                    ""
-                  ),
-                required:
-                  question.required !== false,
-                scoring:
-                  Boolean(
-                    question.scoring ??
-                    question.grading?.enabled
-                  ),
-                points:
-                  Number(
-                    question.points ??
-                    question.grading?.points ??
-                    1
-                  ) || 1,
-                correctAnswer:
-                  String(
-                    question.correctAnswer ??
-                    question.grading?.correctAnswer ??
-                    ""
-                  ),
-                options:
-                  Array.isArray(question.options)
-                    ? [...question.options]
-                    : question.type === "yesno"
-                    ? ["Yes", "No"]
-                    : [],
-                imageOptions:
-                  Array.isArray(question.imageOptions)
-                    ? [...question.imageOptions]
-                    : [],
-                imageAnswerType:
-                  question.imageAnswerType ||
-                  (question.type === "image"
-                    ? "multiple"
-                    : ""),
-                ratingMax:
-                  question.ratingMax ||
-                  (question.type === "rating" ? 5 : null),
-              })
-            )
-          : [];
-      setOriginalForm(selectedForm);
-      setFormData({
-        title:
-          String(selectedForm.title || ""),
-        customLink:
-          String(selectedForm.customLink || ""),
-        openDate:
-          selectedForm.openDate || "",
-        closeDate:
-          selectedForm.closeDate || "",
-        openTime:
-          selectedForm.openTime || "",
-        closeTime:
-          selectedForm.closeTime || "",
-        shuffleQuestions:
-          Boolean(settings.shuffleQuestions),
-        shuffleAnswers:
-          Boolean(settings.shuffleAnswers),
-        oneTimeOnly:
-          settings.oneTimeOnly !== false,
-        activateImmediately:
-          settings.activateImmediately !== false,
-        timerEnabled:
-          Boolean(timerEnabled),
-        timerDuration,
-        responseDays:
-          Number(
-            settings.responseDays ??
-            selectedForm.responseDays ??
-            30
-          ) || 30,
-        resultMode:
-          settings.resultMode ||
-          selectedForm.resultMode ||
-          "none",
-        accessMode,
-      });
-      setQuestions(loadedQuestions);
-      setFormNotFound(false);
-    } catch (error) {
-      console.error(
-        "Gagal memuat form untuk diedit:",
-        error
-      );
-      setFormNotFound(true);
-    } finally {
-      setLoadingForm(false);
+    };
+
+    if (id) {
+      loadFormForEdit();
     }
   }, [id]);
   // =========================================================
@@ -324,18 +400,32 @@ function EditForm() {
           localStorage.getItem(
             FORMS_STORAGE_KEY
           );
-        if (!storedValue) {
-          return [];
-        }
-        const parsedValue =
-          JSON.parse(
-            storedValue
+        const backupValue =
+          localStorage.getItem(
+            NEW_FORM_STORAGE_KEY
           );
-        return Array.isArray(
-          parsedValue
-        )
-          ? parsedValue
-          : [];
+        const storedForms =
+          storedValue
+            ? JSON.parse(storedValue)
+            : [];
+        const backupForms =
+          backupValue
+            ? JSON.parse(backupValue)
+            : [];
+
+        const parsedStored =
+          Array.isArray(storedForms)
+            ? storedForms
+            : [];
+
+        const parsedBackup =
+          Array.isArray(backupForms)
+            ? backupForms
+            : backupForms && typeof backupForms === "object"
+              ? [backupForms]
+              : [];
+
+        return [...parsedStored, ...parsedBackup];
       } catch (error) {
         console.error(
           "Gagal membaca data form:",
@@ -1718,7 +1808,7 @@ function EditForm() {
   // SAVE CHANGES
   // =========================================================
   const handleSave =
-    () => {
+    async () => {
       if (
         !validateInfo() ||
         !validateSettings() ||
@@ -1825,7 +1915,6 @@ function EditForm() {
         );
       const updatedForm = {
         ...originalForm,
-        // Bagian yang boleh diubah dari Edit Form.
         title:
           formData.title.trim(),
         accessMode:
@@ -1840,19 +1929,6 @@ function EditForm() {
           normalizedTimerDuration,
         duration:
           normalizedTimerDuration,
-        timer: {
-          ...(
-            originalForm.timer &&
-            typeof originalForm.timer === "object"
-              ? originalForm.timer
-              : {}
-          ),
-          enabled:
-            Boolean(formData.timerEnabled),
-          mode: "custom",
-          duration:
-            normalizedTimerDuration,
-        },
         responseDays,
         settings: {
           ...(
@@ -1873,19 +1949,6 @@ function EditForm() {
             Boolean(formData.timerEnabled),
           timerDuration:
             normalizedTimerDuration,
-          timer: {
-            ...(
-              originalForm.settings?.timer &&
-              typeof originalForm.settings.timer === "object"
-                ? originalForm.settings.timer
-                : {}
-            ),
-            enabled:
-              Boolean(formData.timerEnabled),
-            mode: "custom",
-            duration:
-              normalizedTimerDuration,
-          },
           responseDays,
           resultMode:
             formData.resultMode,
@@ -1926,11 +1989,10 @@ function EditForm() {
         },
         questions:
           normalizedQuestions,
-        // ID, link, customLink, createdAt, responses, dan schedule
-        // sengaja tidak diubah karena diambil dari originalForm.
         updatedAt:
           new Date().toISOString(),
       };
+
       try {
         const existingForms =
           getStoredForms();
@@ -1940,24 +2002,54 @@ function EditForm() {
               String(item.id) ===
               String(id)
           );
-        if (formIndex === -1) {
-          alert("Form tidak ditemukan di penyimpanan.");
-          return;
+
+        const normalizedLink =
+          String(formData.customLink || "").trim();
+
+        try {
+          await updateForm(String(id), {
+            title: formData.title.trim(),
+            description: originalForm.description || "Form created using HiDocs Form Builder.",
+            type: originalForm.type || "SURVEY",
+            custom_url: normalizedLink,
+            status: "ACTIVE",
+          });
+
+          await updateFormSettings(String(id), {
+            duration_minutes: formData.timerEnabled ? normalizedTimerDuration : null,
+            auto_active_days: responseDays,
+            is_active_immediately: Boolean(formData.activateImmediately),
+            is_one_time_submission: Boolean(formData.oneTimeOnly),
+            randomize_questions: Boolean(formData.shuffleQuestions),
+            randomize_options: Boolean(formData.shuffleAnswers),
+            start_time: formData.openDate ? new Date(`${formData.openDate}T${formData.openTime || '00:00'}:00`).toISOString() : null,
+            end_time: formData.closeDate ? new Date(`${formData.closeDate}T${formData.closeTime || '23:59'}:00`).toISOString() : null,
+          });
+        } catch (apiError) {
+          console.warn("Update form via API gagal, tetap simpan ke localStorage:", apiError);
         }
-        const updatedForms =
-          existingForms.map((item) =>
-            String(item.id) === String(id)
-              ? updatedForm
-              : item
+
+        if (formIndex === -1) {
+          const localForms = [...existingForms, updatedForm];
+          localStorage.setItem(FORMS_STORAGE_KEY, JSON.stringify(localForms));
+        } else {
+          const updatedForms =
+            existingForms.map((item) =>
+              String(item.id) === String(id)
+                ? updatedForm
+                : item
+            );
+          localStorage.setItem(
+            FORMS_STORAGE_KEY,
+            JSON.stringify(updatedForms)
           );
-        localStorage.setItem(
-          FORMS_STORAGE_KEY,
-          JSON.stringify(updatedForms)
-        );
+        }
+
         localStorage.setItem(
           NEW_FORM_STORAGE_KEY,
           JSON.stringify(updatedForm)
         );
+
         window.dispatchEvent(
           new CustomEvent(
             "hidocs-forms-updated",

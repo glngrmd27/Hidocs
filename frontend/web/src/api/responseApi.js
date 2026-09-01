@@ -1,5 +1,44 @@
 import api from './axiosInstance';
 
+const myHistoryEndpoints = [
+  '/responses/me',
+  '/responses/my',
+  '/responses/user',
+  '/responses/current-user',
+  '/submissions/me',
+  '/submissions/my',
+  '/users/me/responses',
+  '/users/me/submissions',
+  '/forms/my-responses',
+];
+
+export const getMySubmissionHistory = async () => {
+  let lastError = null;
+
+  for (const endpoint of myHistoryEndpoints) {
+    try {
+      const response = await api.get(endpoint);
+      return response;
+    } catch (error) {
+      lastError = error;
+      const status = error?.response?.status;
+      if (status === 404) {
+        continue;
+      }
+      if (status === 401 || status === 403) {
+        throw error;
+      }
+      continue;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  return { data: { data: [] } };
+};
+
 export const getFormResponses = (formId) =>
   api.get(`/forms/${formId}/responses`);
 

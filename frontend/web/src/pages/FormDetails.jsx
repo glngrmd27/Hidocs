@@ -5,6 +5,9 @@ import {
   useState,
 } from "react";
 import {
+  getFormById,
+} from "../api/formApi";
+import {
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -32,6 +35,8 @@ import "../assets/css/FormDetails.css";
 // =========================================================
 const FORMS_STORAGE_KEY =
   "hidocs_forms";
+const NEW_FORM_STORAGE_KEY =
+  "hidocs_new_form";
 const DELETED_FORMS_STORAGE_KEY =
   "hidocs_deleted_forms";
 // =========================================================
@@ -114,6 +119,56 @@ const getStoredArray = (
     );
     return [];
   }
+};
+
+const normalizeStoredLinkValue = (form) => {
+  if (!form || typeof form !== "object") {
+    return "";
+  }
+
+  return String(
+    form.customLink ||
+    form.custom_url ||
+    form.customUrl ||
+    form.link ||
+    ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^hidocs\.app\/r\//i, "")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "");
+};
+
+const sanitizeDuplicateStorageForms = (forms) => {
+  const cleaned = [];
+  const seenLinks = new Map();
+
+  forms.forEach((form) => {
+    if (!form || typeof form !== "object") {
+      return;
+    }
+
+    const customLink = normalizeStoredLinkValue(form);
+    if (customLink) {
+      const existingIndex = seenLinks.get(customLink);
+      if (existingIndex !== undefined) {
+        const previousForm = cleaned[existingIndex];
+        const previousTime = new Date(previousForm?.createdAt || 0).getTime();
+        const currentTime = new Date(form?.createdAt || 0).getTime();
+        if (Number.isFinite(currentTime) && currentTime >= previousTime) {
+          cleaned[existingIndex] = form;
+        }
+        return;
+      }
+      seenLinks.set(customLink, cleaned.length);
+    }
+
+    cleaned.push(form);
+  });
+
+  return cleaned;
 };
 // =========================================================
 // FORMAT DATE
@@ -507,6 +562,12 @@ function FormDetails() {
   ] = useState(
     0
   );
+  const [
+    apiFallbackForm,
+    setApiFallbackForm,
+  ] = useState(
+    null
+  );
   useEffect(() => {
     const refreshForm =
       () => {
@@ -578,15 +639,131 @@ function FormDetails() {
       );
     };
   }, []);
-  // =========================================================
-  // LOAD SELECTED FORM
-  // =========================================================
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncApiFallback = async () => {
+      if (!id) {
+        setApiFallbackForm(null);
+        return;
+      }
+
+      const savedForms = sanitizeDuplicateStorageForms(getStoredArray(FORMS_STORAGE_KEY));
+      const backupForms = sanitizeDuplicateStorageForms(getStoredArray(NEW_FORM_STORAGE_KEY));
+      const deletedFormIds = getStoredArray(DELETED_FORMS_STORAGE_KEY).map((deletedId) => String(deletedId));
+      const dedupedForms = [...defaultForms, ...savedForms, ...backupForms].reduce((uniqueForms, form) => {
+        if (!form || typeof form !== "object") {
+          return uniqueForms;
+        }
+
+        const formId = String(form?.id ?? "").trim();
+        const customLink = String(form?.customLink || form?.custom_url || form?.link || "").trim().toLowerCase();
+        if (!formId && !customLink) {
+          return uniqueForms;
+        }
+
+        const keys = [];
+        if (formId) {
+          keys.push(`id:${formId}`);
+        }
+        if (customLink) {
+          keys.push(`link:${customLink}`);
+        }
+
+        const existingIndex = keys.reduce((foundIndex, key) => {
+          if (foundIndex !== null) {
+            return foundIndex;
+          }
+          const seenIndex = uniqueForms.seenKeys.get(key);
+          return seenIndex !== undefined ? seenIndex : null;
+        }, null);
+
+        if (existingIndex !== null) {
+          uniqueForms.values[existingIndex] = form;
+        } else {
+          const nextIndex = uniqueForms.values.length;
+          uniqueForms.values.push(form);
+          keys.forEach((key) => uniqueForms.seenKeys.set(key, nextIndex));
+        }
+
+        return uniqueForms;
+      }, { values: [], seenKeys: new Map() }).values;
+
+      const existsLocally = dedupedForms.some((item) => {
+        if (deletedFormIds.includes(String(item.id))) {
+          return false;
+        }
+        return String(item.id) === String(id);
+      });
+
+      if (existsLocally) {
+        setApiFallbackForm(null);
+        return;
+      }
+
+      try {
+        const response = await getFormById(id);
+        const apiForm = response?.data?.data || response?.data || {};
+        if (!apiForm || typeof apiForm !== "object") {
+          setApiFallbackForm(null);
+          return;
+        }
+
+        const mappedForm = normalizeForm(
+          {
+            id: apiForm.id,
+            title: apiForm.title,
+            description: apiForm.description,
+            category: apiForm.type || "Form",
+            accessMode: apiForm.accessMode || "public",
+            qrOnly: Boolean(apiForm.qrOnly),
+            showInUserList: apiForm.showInUserList !== false,
+            active: apiForm.status === "ACTIVE" || apiForm.active !== false,
+            customLink: apiForm.custom_url || apiForm.customLink || "",
+            settings: {
+              accessMode: apiForm.accessMode || "public",
+              qrOnly: Boolean(apiForm.qrOnly),
+              showInUserList: apiForm.showInUserList !== false,
+            },
+            timerEnabled: Boolean(apiForm.timerEnabled),
+            timerDuration: Number(apiForm.timerDuration || apiForm.duration || 20) || 20,
+            duration: Number(apiForm.timerDuration || apiForm.duration || 20) || 20,
+          },
+          currentTime
+        );
+
+        if (isMounted) {
+          setApiFallbackForm(mappedForm);
+        }
+      } catch (error) {
+        console.warn("Form not found in local storage and API fallback failed:", error);
+        if (isMounted) {
+          setApiFallbackForm(null);
+        }
+      }
+    };
+
+    syncApiFallback();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, currentTime, storageVersion]);
+
   const form =
     useMemo(
       () => {
         const savedForms =
-          getStoredArray(
-            FORMS_STORAGE_KEY
+          sanitizeDuplicateStorageForms(
+            getStoredArray(
+              FORMS_STORAGE_KEY
+            )
+          );
+        const backupForms =
+          sanitizeDuplicateStorageForms(
+            getStoredArray(
+              NEW_FORM_STORAGE_KEY
+            )
           );
         const deletedFormIds =
           getStoredArray(
@@ -599,15 +776,48 @@ function FormDetails() {
                 deletedId
               )
           );
-        const availableForms = [
+        const dedupedForms = [
           ...defaultForms,
           ...savedForms,
-        ];
-        /*
-          Reverse sangat penting.
-          Kalau form default sudah diedit Admin,
-          versi localStorage harus mengalahkan versi default.
-        */
+          ...backupForms,
+        ].reduce((uniqueForms, form) => {
+          if (!form || typeof form !== "object") {
+            return uniqueForms;
+          }
+
+          const formId = String(form?.id ?? "").trim();
+          const customLink = String(form?.customLink || form?.custom_url || form?.link || "").trim().toLowerCase();
+          if (!formId && !customLink) {
+            return uniqueForms;
+          }
+
+          const keys = [];
+          if (formId) {
+            keys.push(`id:${formId}`);
+          }
+          if (customLink) {
+            keys.push(`link:${customLink}`);
+          }
+
+          const existingIndex = keys.reduce((foundIndex, key) => {
+            if (foundIndex !== null) {
+              return foundIndex;
+            }
+            const seenIndex = uniqueForms.seenKeys.get(key);
+            return seenIndex !== undefined ? seenIndex : null;
+          }, null);
+
+          if (existingIndex !== null) {
+            uniqueForms.values[existingIndex] = form;
+          } else {
+            const nextIndex = uniqueForms.values.length;
+            uniqueForms.values.push(form);
+            keys.forEach((key) => uniqueForms.seenKeys.set(key, nextIndex));
+          }
+
+          return uniqueForms;
+        }, { values: [], seenKeys: new Map() }).values;
+        const availableForms = dedupedForms;
         const selectedForm =
           [...availableForms]
             .reverse()
@@ -626,7 +836,7 @@ function FormDetails() {
               }
             );
         if (!selectedForm) {
-          return null;
+          return apiFallbackForm;
         }
         if (
           deletedFormIds.includes(
@@ -646,6 +856,7 @@ function FormDetails() {
         id,
         currentTime,
         storageVersion,
+        apiFallbackForm,
       ]
     );
   // =========================================================

@@ -10,6 +10,7 @@ import {
   FaAdjust,
   FaAt,
   FaChevronRight,
+  FaTh,
   FaClipboardList,
   FaEnvelope,
   FaHistory,
@@ -27,6 +28,7 @@ import {
   FaTrophy,
   FaUser,
   FaUserCircle,
+  FaUserCog,
 } from "react-icons/fa";
 import BottomNavigation from "../components/BottomNavigation";
 import {
@@ -149,6 +151,15 @@ function Profile() {
     () => {
       setShowAbout(
         true
+      );
+    };
+  // =========================================================
+  // SWITCH TO CREATOR MODE
+  // =========================================================
+  const handleSwitchToCreator =
+    () => {
+      navigate(
+        "/admin"
       );
     };
   // =========================================================
@@ -521,6 +532,7 @@ function Profile() {
               </h3>
             </div>
           </div>
+          
           {/* =================================================
               THEME
           ================================================= */}
@@ -557,6 +569,31 @@ function Profile() {
               <span className="profile-slider"></span>
             </label>
           </div>
+          {/* =================================================
+              SWITCH TO CREATOR MODE
+          ================================================= */}
+          <button
+            type="button"
+            className="profile-setting-card profile-setting-button"
+            onClick={
+              handleSwitchToCreator
+            }
+          >
+            <div className="profile-setting-left">
+              <div className="profile-setting-icon about">
+                <FaUserCog />
+              </div>
+              <div>
+                <h4>
+                  Switch to Creator Mode
+                </h4>
+                <p>
+                  Access the form creator dashboard.
+                </p>
+              </div>
+            </div>
+            <FaChevronRight className="profile-setting-arrow" />
+          </button>
           {/* =================================================
               ABOUT
           ================================================= */}

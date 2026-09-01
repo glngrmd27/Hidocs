@@ -1603,3 +1603,38 @@
 .dashboard-form-card {
     height: auto;
 }
+
+/* ===== Dark mode untuk card New Form & Import Word ===== */
+.dashboard-page.dark .admin-primary-card {
+    background: #172234;
+    border-color: #2c3b50;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .18);
+}
+
+.dashboard-page.dark .primary-card-content h2 {
+    color: #f1f5f9;
+}
+
+.dashboard-page.dark .primary-card-content p {
+    color: #8fa0b4;
+}
+
+.dashboard-page.dark .primary-card-icon.plus {
+    background: #213b5a;
+    color: #6cb1ff;
+}
+
+.dashboard-page.dark .primary-card-icon.word {
+    background: #233b65;
+    color: #7ba7ff;
+}
+
+.dashboard-page.dark .primary-card-arrow {
+    background: #1d2b3e;
+    border-color: #314359;
+    color: #8da0b5;
+}
+
+.dashboard-page.dark .admin-primary-card:hover {
+    border-color: #44617e;
+}

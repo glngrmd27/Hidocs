@@ -316,11 +316,8 @@ function Login() {
       // =====================================================
       // REDIRECT BASED ON ROLE
       // =====================================================
-      if (String(user.role || "").trim().toLowerCase() === "admin") {
-        navigate("/admin", { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
+      navigate("/select-mode", { replace: true });
+      
     } catch (loginError) {
       console.error("Login error:", loginError);
       setError(

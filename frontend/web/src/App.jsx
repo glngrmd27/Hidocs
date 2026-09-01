@@ -2,6 +2,8 @@ import {
   useEffect,
 } from "react";
 
+
+
 import {
   BrowserRouter,
   Routes,
@@ -17,6 +19,7 @@ import {
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
+import SelectMode from "./pages/SelectMode";
 
 // =========================================
 // USER PAGES
@@ -239,6 +242,10 @@ function AppRoutes() {
           element={<Dashboard />}
         />
 
+        <Route
+        path="/select-mode"
+          element={<SelectMode />} />
+          
         <Route
           path="/forms"
           element={<UserForms />}

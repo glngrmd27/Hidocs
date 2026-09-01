@@ -5,6 +5,9 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  getMySubmissionHistory,
+} from "../api/responseApi";
 
 
 // =========================================================
@@ -1463,6 +1466,224 @@ const loadInitialSubmissions =
   };
 
 
+const normalizeRemoteSubmission = (
+  submission,
+  index = 0
+) => {
+
+  const rawSubmission =
+    submission &&
+    typeof submission ===
+      "object"
+      ? submission
+      : {};
+
+  const formId =
+    rawSubmission.formId ??
+    rawSubmission.form_id ??
+    rawSubmission.form?.id ??
+    rawSubmission.id ??
+    "";
+
+  const respondentEmail =
+    rawSubmission.respondentEmail ??
+    rawSubmission.respondent_email ??
+    rawSubmission.email ??
+    rawSubmission.user?.email ??
+    "";
+
+  const respondentName =
+    rawSubmission.respondentName ??
+    rawSubmission.respondent_name ??
+    rawSubmission.username ??
+    rawSubmission.name ??
+    rawSubmission.user?.name ??
+    "HiDocs User";
+
+  const userId =
+    rawSubmission.userId ??
+    rawSubmission.user_id ??
+    rawSubmission.user?.id ??
+    null;
+
+  const rawAnswers =
+    rawSubmission.answers &&
+    typeof rawSubmission.answers ===
+      "object"
+      ? rawSubmission.answers
+      : {};
+
+  const resolvedSubmission =
+    normalizeSubmission({
+      ...rawSubmission,
+      id:
+        formId,
+      formId,
+      submissionId:
+        rawSubmission.submissionId ??
+        rawSubmission.submission_id ??
+        rawSubmission.response_id ??
+        rawSubmission.id ??
+        `${formId}-${rawSubmission.submittedAt || rawSubmission.submitted_at || Date.now()}-${index}`,
+      userId,
+      userIdentity:
+        getUserIdentity({
+          id:
+            userId,
+          username:
+            respondentName,
+          email:
+            respondentEmail,
+        }),
+      respondentName,
+      username:
+        respondentName,
+      respondentEmail,
+      email:
+        respondentEmail,
+      title:
+        rawSubmission.title ??
+        rawSubmission.form?.title ??
+        "Untitled Form",
+      submittedAt:
+        rawSubmission.submittedAt ??
+        rawSubmission.submitted_at ??
+        rawSubmission.created_at ??
+        new Date()
+          .toISOString(),
+      answers:
+        rawAnswers,
+      answerCount:
+        rawSubmission.answerCount ??
+        rawSubmission.answeredQuestions ??
+        rawSubmission.answered_questions ??
+        Object.keys(
+          rawAnswers
+        ).length,
+      answeredQuestions:
+        rawSubmission.answeredQuestions ??
+        rawSubmission.answered_questions ??
+        Object.keys(
+          rawAnswers
+        ).length,
+      totalQuestions:
+        rawSubmission.totalQuestions ??
+        rawSubmission.total_questions ??
+        0,
+      score:
+        rawSubmission.score ??
+        rawSubmission.total_score ??
+        rawSubmission.totalScore ??
+        0,
+      maxScore:
+        rawSubmission.maxScore ??
+        rawSubmission.max_score ??
+        rawSubmission.totalMaxScore ??
+        rawSubmission.total_max_score ??
+        0,
+      percentage:
+        rawSubmission.percentage ??
+        rawSubmission.score_percentage ??
+        0,
+      correctAnswers:
+        rawSubmission.correctAnswers ??
+        rawSubmission.correct_answers ??
+        0,
+      scoredQuestions:
+        rawSubmission.scoredQuestions ??
+        rawSubmission.scored_questions ??
+        0,
+      questionResults:
+        Array.isArray(
+          rawSubmission.questionResults
+        )
+          ? rawSubmission.questionResults
+          : Array.isArray(
+              rawSubmission.answers
+            )
+            ? rawSubmission.answers.map(
+                (
+                  item,
+                  itemIndex
+                ) => ({
+                  id:
+                    item.questionId ??
+                    item.question_id ??
+                    `question-${itemIndex + 1}`,
+                  questionId:
+                    item.questionId ??
+                    item.question_id ??
+                    `question-${itemIndex + 1}`,
+                  question:
+                    item.questionText ??
+                    item.question_text ??
+                    `Question ${itemIndex + 1}`,
+                  title:
+                    item.questionText ??
+                    item.question_text ??
+                    `Question ${itemIndex + 1}`,
+                  type:
+                    item.type ??
+                    "short",
+                  userAnswer:
+                    item.answer ??
+                    item.answer_text ??
+                    item.selected_option_text ??
+                    "",
+                  correctAnswer:
+                    item.correctAnswer ??
+                    item.correct_answer ??
+                    "",
+                  scoring:
+                    Boolean(
+                      item.scoring ??
+                      item.is_correct
+                    ),
+                  points:
+                    Number(
+                      item.points ??
+                      item.points_earned ??
+                      0
+                    ) || 0,
+                  earnedPoints:
+                    Number(
+                      item.pointsEarned ??
+                      item.points_earned ??
+                      0
+                    ) || 0,
+                  isCorrect:
+                    typeof item.isCorrect ===
+                      "boolean"
+                      ? item.isCorrect
+                      : typeof item.is_correct ===
+                          "boolean"
+                        ? item.is_correct
+                        : null,
+                })
+              )
+            : [],
+      resultMode:
+        rawSubmission.resultMode ??
+        rawSubmission.result_mode ??
+        "none",
+      status:
+        rawSubmission.status ??
+        "completed",
+      isTimeExpired:
+        rawSubmission.isTimeExpired ===
+          true ||
+        rawSubmission.status ===
+          "time-expired" ||
+        rawSubmission.status ===
+          "expired",
+    })
+      ;
+
+  return resolvedSubmission;
+
+};
+
+
 // =========================================================
 // PROVIDER
 // =========================================================
@@ -1824,6 +2045,197 @@ export function FormProvider({
       allSubmissions,
       activeUserIdentity,
     ]);
+
+
+  // =========================================================
+  // LOAD USER SUBMISSION HISTORY
+  // =========================================================
+
+  const loadUserSubmissionHistory =
+    useCallback(
+      async () => {
+
+        try {
+          const response =
+            await getMySubmissionHistory();
+
+          const responseData =
+            response?.data?.data ??
+            response?.data?.results ??
+            response?.data?.items ??
+            response?.data?.submissions ??
+            response?.data ??
+            [];
+
+          const remoteSubmissions =
+            Array.isArray(
+              responseData
+            )
+              ? responseData
+              : [];
+
+          if (
+            remoteSubmissions.length ===
+            0
+          ) {
+            return [];
+          }
+
+          const normalizedRemoteSubmissions =
+            remoteSubmissions.map(
+              (
+                submission,
+                index
+              ) =>
+                normalizeRemoteSubmission(
+                  submission,
+                  index
+                )
+            );
+
+          setAllSubmissions(
+            (
+              previous
+            ) => {
+
+              const existingByKey =
+                new Map();
+
+              previous.forEach(
+                (
+                  submission
+                ) => {
+
+                  const key =
+                    `${String(
+                      submission.formId ??
+                      submission.id ??
+                      ""
+                    )}::${String(
+                      submission.submissionId ??
+                      submission.id ??
+                      ""
+                    )}::${String(
+                      submission.userIdentity ||
+                      submission.respondentEmail ||
+                      submission.email ||
+                      submission.userId ||
+                      ""
+                    ).toLowerCase()}`;
+
+                  existingByKey.set(
+                    key,
+                    submission
+                  );
+
+                }
+              );
+
+
+              const merged =
+                [...previous];
+
+              normalizedRemoteSubmissions.forEach(
+                (
+                  submission
+                ) => {
+
+                  const key =
+                    `${String(
+                      submission.formId ??
+                      submission.id ??
+                      ""
+                    )}::${String(
+                      submission.submissionId ??
+                      submission.id ??
+                      ""
+                    )}::${String(
+                      submission.userIdentity ||
+                      submission.respondentEmail ||
+                      submission.email ||
+                      submission.userId ||
+                      ""
+                    ).toLowerCase()}`;
+
+                  if (
+                    existingByKey.has(
+                      key
+                    )
+                  ) {
+
+                    const index =
+                      merged.findIndex(
+                        (
+                          item
+                        ) =>
+                          `${String(
+                            item.formId ??
+                            item.id ??
+                            ""
+                          )}::${String(
+                            item.submissionId ??
+                            item.id ??
+                            ""
+                          )}::${String(
+                            item.userIdentity ||
+                            item.respondentEmail ||
+                            item.email ||
+                            item.userId ||
+                            ""
+                          ).toLowerCase()}` ===
+                          key
+                      );
+
+                    if (
+                      index !== -1
+                    ) {
+                      merged[index] =
+                        submission;
+                    }
+
+                    return;
+                  }
+
+                  merged.push(
+                    submission
+                  );
+                  existingByKey.set(
+                    key,
+                    submission
+                  );
+
+                }
+              );
+
+              return merged;
+            }
+          );
+
+          return normalizedRemoteSubmissions;
+        } catch (
+          error
+        ) {
+          console.warn(
+            "Gagal memuat history submission user:",
+            error
+          );
+          return [];
+        }
+      },
+      []
+    );
+
+
+  useEffect(() => {
+    if (!activeUserIdentity) {
+      return;
+    }
+
+    loadUserSubmissionHistory();
+  }, [
+    activeUserIdentity,
+    loadUserSubmissionHistory,
+  ]);
 
 
   // =========================================================
@@ -3332,6 +3744,8 @@ export function FormProvider({
 
         getSubmissionsByForm,
 
+        loadUserSubmissionHistory,
+
         updateSubmissionGrading,
 
         clearFormSubmissions,
@@ -3354,6 +3768,7 @@ export function FormProvider({
         getUserSubmissionByForm,
         getSubmissionById,
         getSubmissionsByForm,
+        loadUserSubmissionHistory,
         updateSubmissionGrading,
         clearFormSubmissions,
         refreshForms,

@@ -21,6 +21,9 @@ import {
   FaLayerGroup,
   FaLock,
   FaRegCalendarAlt,
+  FaChevronRight,
+  FaFileWord,
+  FaPlus,
   FaStar,
 } from "react-icons/fa";
 import {
@@ -32,11 +35,14 @@ import {
 import BottomNavigation from "../components/BottomNavigation";
 import logo from "../assets/images/logo.png";
 import "../assets/css/Dashboard.css";
+import "../assets/css/AdminDashboard.css";
 // =========================================================
 // STORAGE KEYS
 // =========================================================
 const FORMS_STORAGE_KEY =
   "hidocs_forms";
+const NEW_FORM_STORAGE_KEY =
+  "hidocs_new_form";
 const DELETED_FORMS_STORAGE_KEY =
   "hidocs_deleted_forms";
 // =========================================================
@@ -714,10 +720,14 @@ const mergeForms = (
         matchingIndex !==
         -1
       ) {
-        result[
-          matchingIndex
-        ] =
-          form;
+        const currentTime = new Date(form.createdAt || 0).getTime();
+        const existingTime = new Date(result[matchingIndex].createdAt || 0).getTime();
+        if (Number.isFinite(currentTime) && (currentTime >= existingTime || String(form.id).length > String(result[matchingIndex].id).length)) {
+          result[
+            matchingIndex
+          ] =
+            form;
+        }
       } else {
         result.push(
           form
@@ -888,6 +898,10 @@ function Dashboard() {
             getStoredArray(
               FORMS_STORAGE_KEY
             );
+          const backupForms =
+            getStoredArray(
+              NEW_FORM_STORAGE_KEY
+            );
           const deletedFormIds =
             getStoredArray(
               DELETED_FORMS_STORAGE_KEY
@@ -905,7 +919,7 @@ function Dashboard() {
           const mergedForms =
             mergeForms(
               defaultForms,
-              storedForms
+              [...storedForms, ...backupForms]
             );
           // ===================================================
           // FILTER USER VISIBLE
@@ -1544,12 +1558,15 @@ function Dashboard() {
             Find available forms, submit your
             answers, and track your progress.
           </p>
+         
+
         </div>
       </header>
       {/* =====================================================
           MAIN CONTENT
       ===================================================== */}
       <main className="dashboard-main-content">
+      
         {/* ===================================================
             SUMMARY CARDS
         =================================================== */}
