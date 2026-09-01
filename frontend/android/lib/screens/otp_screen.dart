@@ -6,7 +6,6 @@ import '../app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/hidocs_logo.dart';
-import 'login_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
@@ -26,8 +25,8 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final List<TextEditingController> _controllers =
-      List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   int _resendCooldown = 60;
   Timer? _timer;
@@ -39,13 +38,18 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   void _startCooldownTimer() {
+    if (!mounted) return;
     setState(() => _resendCooldown = 60);
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       if (_resendCooldown > 0) {
         setState(() => _resendCooldown--);
       } else {
-        _timer?.cancel();
+        timer.cancel();
       }
     });
   }
@@ -64,71 +68,68 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   String get _otpCode => _controllers.map((c) => c.text).join();
 
-    Future<void> _handleVerifyOtp() async {
+  Future<void> _handleVerifyOtp() async {
     final otp = _otpCode;
 
-    if (otp.length < 4) {
-        _showSnackBar(
-        'Enter the 4-digit OTP code.',
+    if (otp.length != 6) {
+      _showSnackBar(
+        'Masukkan kode OTP 6 digit.',
         AppTheme.error,
-        );
-        return;
+      );
+      return;
     }
 
-    final auth = Provider.of<AuthProvider>(
-        context,
-        listen: false,
-    );
+    final auth = Provider.of<AuthProvider>(context, listen: false);
 
-    await auth.register(
-        widget.email,
-        widget.username,
-        widget.password,
-    );
+    final ok = await auth.verifyOtp(otp);
 
     if (!mounted) return;
 
-    if (auth.error != null) {
-        _showSnackBar(
-        auth.error!,
+    if (!ok || auth.error != null) {
+      _showSnackBar(
+        auth.error ?? 'Kode OTP tidak valid.',
         AppTheme.error,
-        );
-
-        auth.clearError();
-        return;
+      );
+      auth.clearError();
+      return;
     }
 
     _showSnackBar(
-        'Registration successful! Please log in.',
-        Colors.green,
+      'Verifikasi berhasil!',
+      Colors.green,
     );
 
-    await Future.delayed(
-        const Duration(milliseconds: 800),
-    );
+    await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
 
-    Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-        ),
-        (route) => false,
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/role-select',
+      (route) => false,
     );
-    }
+  }
 
-  void _resendOtp() {
+  Future<void> _resendOtp() async {
     if (_resendCooldown > 0) return;
-    
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final success = await auth.resendOtp();
+    if (!mounted) return;
+    if (!success || auth.error != null) {
+      _showSnackBar(
+          auth.error ?? 'Gagal mengirim ulang kode OTP.', AppTheme.error);
+      auth.clearError();
+      return;
+    }
     _startCooldownTimer();
-    _showSnackBar('A new OTP code has been sent to your email.', Colors.blue);
+    _showSnackBar('Kode OTP baru telah dikirim ke email Anda.', Colors.blue);
   }
 
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
+        content:
+            Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -158,7 +159,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             left: -80,
             child: _Blob(220, AppTheme.primaryDark.withValues(alpha: 0.40)),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -214,9 +214,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 36),
-
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),
                         padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
@@ -261,7 +259,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 ),
                                 children: [
                                   const TextSpan(
-                                    text: 'A 4-digit OTP code has been sent to ',
+                                    text: 'Kode OTP 6 digit telah dikirim ke ',
                                   ),
                                   TextSpan(
                                     text: widget.email,
@@ -275,70 +273,77 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 32),
-
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: List.generate(4, (index) {
-                                return SizedBox(
-                                  width: 58,
-                                  height: 64,
-                                  child: TextFormField(
-                                    controller: _controllers[index],
-                                    focusNode: _focusNodes[index],
-                                    keyboardType: TextInputType.number,
-                                    textAlign: TextAlign.center,
-                                    maxLength: 1,
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? AppTheme.darkTextPrimary
-                                          : AppTheme.textPrimary,
-                                    ),
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                    ],
-                                    decoration: InputDecoration(
-                                      counterText: '',
-                                      filled: true,
-                                      fillColor: isDark
-                                          ? AppTheme.darkSurface
-                                          : AppTheme.surfaceCard,
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: BorderSide(
+                              children: List.generate(6, (index) {
+                                return Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                        right: index == 5 ? 0 : 8),
+                                    child: SizedBox(
+                                      height: 64,
+                                      child: TextFormField(
+                                        controller: _controllers[index],
+                                        focusNode: _focusNodes[index],
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        maxLength: 1,
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w700,
                                           color: isDark
-                                              ? AppTheme.darkBorder
-                                              : AppTheme.border,
+                                              ? AppTheme.darkTextPrimary
+                                              : AppTheme.textPrimary,
                                         ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: const BorderSide(
-                                          color: AppTheme.primary,
-                                          width: 2,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
+                                        ],
+                                        decoration: InputDecoration(
+                                          counterText: '',
+                                          filled: true,
+                                          fillColor: isDark
+                                              ? AppTheme.darkSurface
+                                              : AppTheme.surfaceCard,
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            borderSide: BorderSide(
+                                              color: isDark
+                                                  ? AppTheme.darkBorder
+                                                  : AppTheme.border,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            borderSide: const BorderSide(
+                                              color: AppTheme.primary,
+                                              width: 2,
+                                            ),
+                                          ),
                                         ),
+                                        onChanged: (value) {
+                                          if (value.isNotEmpty && index < 5) {
+                                            _focusNodes[index + 1]
+                                                .requestFocus();
+                                          } else if (value.isEmpty &&
+                                              index > 0) {
+                                            _focusNodes[index - 1]
+                                                .requestFocus();
+                                          }
+                                          if (_otpCode.length == 6) {
+                                            FocusScope.of(context).unfocus();
+                                          }
+                                        },
                                       ),
                                     ),
-                                    onChanged: (value) {
-                                      if (value.isNotEmpty && index < 3) {
-                                        _focusNodes[index + 1].requestFocus();
-                                      } else if (value.isEmpty && index > 0) {
-                                        _focusNodes[index - 1].requestFocus();
-                                      }
-                                      if (_otpCode.length == 4) {
-                                        FocusScope.of(context).unfocus();
-                                      }
-                                    },
                                   ),
                                 );
                               }),
                             ),
-
                             const SizedBox(height: 32),
-
                             GradientButton(
                               text: 'Verify',
                               onPressed: _handleVerifyOtp,
@@ -346,16 +351,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               fullWidth: true,
                               icon: Icons.check_circle_outline_rounded,
                             ),
-
                             const SizedBox(height: 24),
-
                             Center(
                               child: GestureDetector(
                                 onTap: _resendOtp,
                                 child: Text(
                                   _resendCooldown > 0
-                                      ? 'Resend code in ${_resendCooldown}s'
-                                      : 'Resend OTP',
+                                      ? 'Kirim ulang dalam ${_resendCooldown}s'
+                                      : 'Kirim Ulang OTP',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,

@@ -83,6 +83,7 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 				forms.GET("", cfg.FormHandler.ListForms)
 				forms.POST("", cfg.FormHandler.CreateForm)
 				forms.POST("/import-docx", cfg.FormHandler.ImportDocx)
+				forms.POST("/import-excel", cfg.FormHandler.ImportExcel)
 				forms.GET("/:form_id", cfg.FormHandler.GetFormByID)
 				forms.PUT("/:form_id", cfg.FormHandler.UpdateForm)
 				forms.DELETE("/:form_id", cfg.FormHandler.DeleteForm)
@@ -116,6 +117,7 @@ func SetupRouter(cfg *RouterConfig) *gin.Engine {
 			// 6. Responses & Grading
 			responses := protected.Group("/responses")
 			{
+				responses.GET("/me", cfg.ResponseHandler.GetMySubmissions)
 				responses.GET("/:response_id", cfg.ResponseHandler.GetResponseByID)
 				responses.PUT("/:response_id/grade", cfg.ResponseHandler.GradeResponse)
 			}

@@ -11,6 +11,8 @@ import '../providers/response_provider.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
 import '../services/question_image_renderer.dart';
+import '../services/exam_security_service.dart';
+import '../widgets/secure_question_canvas.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/math_formula_widget.dart';
 import '../widgets/code_block_widget.dart';
@@ -29,7 +31,7 @@ class FillFormScreen extends StatefulWidget {
   State<FillFormScreen> createState() => _FillFormScreenState();
 }
 
-class _FillFormScreenState extends State<FillFormScreen> {
+class _FillFormScreenState extends State<FillFormScreen> with WidgetsBindingObserver {
   late List<QuestionModel> _questions;
 
   final Map<String, dynamic> _answers = {};
@@ -42,6 +44,8 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
   bool _submitted = false;
   bool _isSubmitting = false;
+  int _violationCount = 0;
+  bool _isOverlayBlocked = false;
 
   final TransformationController _zoomController = TransformationController();
   double _zoomScale = 1.0;
@@ -70,16 +74,35 @@ class _FillFormScreenState extends State<FillFormScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!widget.form.isActive && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Form ini sudah ditutup dan tidak dapat diisi.'),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    });
+
+    if (widget.form.isExam) {
+      WidgetsBinding.instance.addObserver(this);
+      ExamSecurityService.enableSecureScreen();
+    }
 
     _questions = List<QuestionModel>.from(
       widget.form.questions,
     );
 
-    // Warm the local question-image index so published questions can be
+    // Warm the local question-image index so published exam questions can be
     // displayed as images instead of live-rendered rich content.
-    QuestionImageRenderer.warmup().then((_) {
-      if (mounted) setState(() {});
-    });
+    if (widget.form.isExam) {
+      QuestionImageRenderer.warmup().then((_) {
+        if (mounted) setState(() {});
+      });
+    }
 
     if (widget.form.shuffleQuestions) {
       _questions.shuffle();
@@ -125,7 +148,63 @@ class _FillFormScreenState extends State<FillFormScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!widget.form.isExam || _submitted || _isSubmitting) return;
+
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _violationCount++;
+      setState(() {
+        _isOverlayBlocked = true;
+      });
+
+      if (_violationCount >= 3) {
+        _autoSubmit();
+      } else {
+        _showViolationWarningDialog();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      setState(() {
+        _isOverlayBlocked = false;
+      });
+    }
+  }
+
+  void _showViolationWarningDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 10),
+            Text('Deteksi Kecurangan!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'Anda terdeteksi meninggalkan aplikasi ujian! '
+          'Peringatan ke-$_violationCount dari 3. Jika Anda melanggar 3 kali, ujian akan otomatis dikumpulkan.',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Saya Mengerti & Kembali Ujian'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   void dispose() {
+    if (widget.form.isExam) {
+      WidgetsBinding.instance.removeObserver(this);
+      ExamSecurityService.disableSecureScreen();
+    }
     _timer?.cancel();
     _zoomController.dispose();
 
@@ -315,6 +394,8 @@ class _FillFormScreenState extends State<FillFormScreen> {
       return;
     }
 
+    ExamSecurityService.disableSecureScreen();
+
     setState(() {
       _isSubmitting = false;
       _submitted = true;
@@ -417,11 +498,13 @@ class _FillFormScreenState extends State<FillFormScreen> {
         widget.form.hasTimer &&
         _remaining < 60;
 
-    return Scaffold(
-      backgroundColor:
-          isDark
-              ? AppTheme.darkBg
-              : AppTheme.surfaceLight,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor:
+              isDark
+                  ? AppTheme.darkBg
+                  : AppTheme.surfaceLight,
 
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -607,7 +690,7 @@ class _FillFormScreenState extends State<FillFormScreen> {
 
                   const SizedBox(height: 18),
 
-                  if (questionImagePath != null) ...[
+                  if (widget.form.isExam && questionImagePath != null) ...[
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -717,8 +800,11 @@ class _FillFormScreenState extends State<FillFormScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+    SecurityOverlayWidget(isVisible: _isOverlayBlocked),
+  ],
+);
+}
 
   Widget _buildAnswer(
     QuestionModel q,

@@ -121,6 +121,24 @@ class QuestionModel {
     this.score = 0,
   }) : options = options ?? [];
 
+  /// Whether this question type CAN participate in scoring at all.
+  /// Rating is purely a survey/feedback type — it is NEVER counted towards
+  /// a form's total score or a respondent's percentage.
+  bool get isScorable => type != QuestionType.rating;
+
+  /// Whether this question is auto-scored (i.e. has correct answers set
+  /// by the creator and a non-zero point value, and is not manually graded).
+  bool get isAutoScorable {
+    // Manually-graded types are never auto-scored
+    const manualTypes = {
+      QuestionType.longText,
+      QuestionType.shortText,
+      QuestionType.codeInput,
+      QuestionType.mathFormula,
+    };
+    return isScorable && !manualTypes.contains(type) && (hasScore || score > 0);
+  }
+
   QuestionModel copyWith({
     String? text,
     String? content,
@@ -298,10 +316,16 @@ class OptionModel {
   }
 
   Map<String, dynamic> toOptionJson({int orderIndex = 1}) {
-    return {
+    final map = <String, dynamic>{
       'option_text': text,
       'is_correct': isCorrect || score > 0,
       'order_index': orderIndex,
     };
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      map['img_url'] = imageUrl;
+      // fallback: encode image as dataUrl in text if backend doesn't persist img_url
+      // keep option_text as is, backend may ignore img_url
+    }
+    return map;
   }
 }

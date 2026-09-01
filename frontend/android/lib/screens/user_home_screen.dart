@@ -7,6 +7,7 @@ import '../providers/form_provider.dart';
 import '../models/form_model.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/hidocs_logo.dart';
+import '../l10n/app_localizations.dart';
 
 import 'link_input_screen.dart';
 import 'scan_form_screen.dart';
@@ -28,10 +29,14 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<FormProvider>().loadForms();
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final fp = context.read<FormProvider>();
+      final rp = context.read<ResponseProvider>();
+      await Future.wait([
+        fp.loadForms(),
+        rp.loadMySubmissions(),
+      ]);
     });
   }
 
@@ -39,6 +44,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final formProvider = Provider.of<FormProvider>(context);
+    final l10n = AppLocalizations.of(context);
 
     final List<Widget> screens = [
       _DashboardTab(auth: auth),
@@ -56,25 +62,22 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           setState(() {
             _tab = index;
           });
-          if (mounted) {
-            context.read<FormProvider>().loadForms();
-          }
         },
-        items: const [
+        items: [
           _NavItem(
             icon: Icons.home_outlined,
             activeIcon: Icons.home_rounded,
-            label: 'Home',
+            label: l10n.home,
           ),
           _NavItem(
             icon: Icons.history_outlined,
             activeIcon: Icons.history_rounded,
-            label: 'History',
+            label: l10n.history,
           ),
           _NavItem(
             icon: Icons.settings_outlined,
             activeIcon: Icons.settings_rounded,
-            label: 'Profile',
+            label: l10n.profile,
           ),
         ],
       ),
@@ -89,21 +92,35 @@ class _DashboardTab extends StatelessWidget {
     required this.auth,
   });
 
+  Future<void> _refreshData(BuildContext context) async {
+    final formProvider = context.read<FormProvider>();
+    final responseProvider = context.read<ResponseProvider>();
+    await Future.wait([
+      formProvider.loadForms(forceRefresh: true),
+      responseProvider.loadMySubmissions(forceRefresh: true),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final responseProvider = Provider.of<ResponseProvider>(context);
     final formProvider = Provider.of<FormProvider>(context);
+    final l10n = AppLocalizations.of(context);
 
     final Map<String, ResponseModel> responseMap = {};
     final currentId = (auth.currentUser?.id ?? '').trim().toLowerCase();
     final currentEmail = (auth.currentUser?.email ?? '').trim().toLowerCase();
 
     for (final r in responseProvider.responses) {
+      if (formProvider.isFormDeleted(r.formId)) continue;
+
       final rId = r.respondentId.trim().toLowerCase();
       final rEmail = r.respondentEmail.trim().toLowerCase();
 
       final matchesUser = (currentId.isNotEmpty && rId == currentId) ||
-          (currentEmail.isNotEmpty && rEmail == currentEmail);
+          (currentEmail.isNotEmpty && rEmail == currentEmail) ||
+          (rId.isEmpty && rEmail.isEmpty) ||
+          (currentId.isEmpty && currentEmail.isEmpty);
 
       if (matchesUser) {
         responseMap[r.formId] = r;
@@ -118,128 +135,151 @@ class _DashboardTab extends StatelessWidget {
         Theme.of(context).brightness ==
             Brightness.dark;
 
+    final isLoading = formProvider.isLoading;
+
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            backgroundColor: AppTheme.primary,
-            elevation: 0,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _HeaderBg(
-                auth: auth,
+      body: RefreshIndicator(
+        onRefresh: () => _refreshData(context),
+        color: AppTheme.primary,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 220,
+              pinned: true,
+              backgroundColor: AppTheme.primary,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _HeaderBg(
+                  auth: auth,
+                ),
               ),
-            ),
-            title: const Row(
-              children: [
-                HiDocsLogo(
-                  size: 28,
-                  showShadow: false,
-                ),
-                SizedBox(width: 10),
-                Text(
-                  'HiDocs!',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              title: Row(
                 children: [
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _QuickAccessCard(
-                          icon: Icons.qr_code_scanner_rounded,
-                          title: 'Scan Barcode / QR',
-                          subtitle: 'Scan kode form',
-                          color: AppTheme.primary,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const ScanFormScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _QuickAccessCard(
-                          icon: Icons.link_rounded,
-                          title: 'Enter Link',
-                          subtitle: 'Paste link form',
-                          color: AppTheme.info,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const LinkInputScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                  const HiDocsLogo(
+                    size: 28,
+                    showShadow: false,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(width: 10),
                   Text(
-                    'Recent Forms',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppTheme.darkTextPrimary
-                          : AppTheme.textPrimary,
+                    l10n.appName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  if (recentResponses.isEmpty)
-                    const _EmptyState(
-                      icon: Icons.history_rounded,
-                      title: 'No recent forms',
-                      subtitle: 'Forms you fill out will appear here',
-                    )
-                  else
-                    ...recentResponses
-                        .where((r) =>
-                            formProvider.getFormById(r.formId) != null ||
-                            r.formTitle.isNotEmpty)
-                        .map((response) {
-                      final form = formProvider.getFormById(response.formId) ??
-                          FormModel(
-                            id: response.formId,
-                            title: response.formTitle,
-                            creatorId: '',
-                            scheduledOpen: response.submittedAt,
-                            scheduledClose: response.submittedAt,
-                            createdAt: response.submittedAt,
-                          );
-                      return _HistoryCard(
-                        form: form,
-                        response: response,
-                      );
-                    }),
                 ],
               ),
             ),
-          ),
-        ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _QuickAccessCard(
+                            icon: Icons.qr_code_scanner_rounded,
+                            title: l10n.scanQR,
+                            subtitle: l10n.scanQRSubtitle,
+                            color: AppTheme.primary,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ScanFormScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _QuickAccessCard(
+                            icon: Icons.link_rounded,
+                            title: l10n.enterLink,
+                            subtitle: l10n.enterLinkSubtitle,
+                            color: AppTheme.info,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const LinkInputScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Text(
+                          l10n.recentForms,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? AppTheme.darkTextPrimary
+                                : AppTheme.textPrimary,
+                          ),
+                        ),
+                        if (isLoading) ...[
+                          const SizedBox(width: 10),
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppTheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (recentResponses.isEmpty)
+                      _EmptyState(
+                        icon: Icons.history_rounded,
+                        title: l10n.noRecentForms,
+                        subtitle: l10n.noRecentFormsDesc,
+                      )
+                    else
+                      ...recentResponses
+                          .where((r) =>
+                              formProvider.getFormById(r.formId) != null ||
+                              r.formTitle.isNotEmpty)
+                          .map((response) {
+                        final form = formProvider.getFormById(response.formId) ??
+                            FormModel(
+                              id: response.formId,
+                              title: response.formTitle,
+                              creatorId: '',
+                              scheduledOpen: response.submittedAt,
+                              scheduledClose: response.submittedAt,
+                              createdAt: response.submittedAt,
+                            );
+                        return _HistoryCard(
+                          form: form,
+                          response: response,
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -255,6 +295,7 @@ class _HeaderBg extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = auth.currentUser?.name ?? 'User';
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       decoration: const BoxDecoration(
@@ -305,7 +346,7 @@ class _HeaderBg extends StatelessWidget {
                     MainAxisAlignment.end,
                 children: [
                   Text(
-                    'Hello, ${name.split(' ').first}! 👋',
+                    '${l10n.hello}, ${name.split(' ').first}! 👋',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -315,7 +356,7 @@ class _HeaderBg extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Fill out forms and submit your answers',
+                    l10n.userHomeSubtitle(name),
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.white.withValues(
@@ -354,21 +395,35 @@ class _HistoryTab extends StatelessWidget {
     required this.formProvider,
   });
 
+  Future<void> _refreshData(BuildContext context) async {
+    final formProv = context.read<FormProvider>();
+    final responseProv = context.read<ResponseProvider>();
+    await Future.wait([
+      formProv.loadForms(forceRefresh: true),
+      responseProv.loadMySubmissions(forceRefresh: true),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final responseProvider = Provider.of<ResponseProvider>(context);
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final l10n = AppLocalizations.of(context);
 
     final Map<String, ResponseModel> responseMap = {};
     final currentId = (auth.currentUser?.id ?? '').trim().toLowerCase();
     final currentEmail = (auth.currentUser?.email ?? '').trim().toLowerCase();
 
     for (final r in responseProvider.responses) {
+      if (formProvider.isFormDeleted(r.formId)) continue;
+
       final rId = r.respondentId.trim().toLowerCase();
       final rEmail = r.respondentEmail.trim().toLowerCase();
 
       final matchesUser = (currentId.isNotEmpty && rId == currentId) ||
-          (currentEmail.isNotEmpty && rEmail == currentEmail);
+          (currentEmail.isNotEmpty && rEmail == currentEmail) ||
+          (rId.isEmpty && rEmail.isEmpty) ||
+          (currentId.isEmpty && currentEmail.isEmpty);
 
       if (matchesUser) {
         responseMap[r.formId] = r;
@@ -378,49 +433,77 @@ class _HistoryTab extends StatelessWidget {
     final myResponses = responseMap.values.toList();
     myResponses.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
+    final isLoading = formProvider.isLoading;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'History',
+        title: Text(
+          l10n.history,
         ),
-      ),
-      body: myResponses.isEmpty
-          ? const _EmptyState(
-              icon: Icons.history_rounded,
-              title: 'No submission history',
-              subtitle:
-                  'Forms you have submitted will appear here',
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                16,
-                20,
-                100,
+        actions: [
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.only(right: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppTheme.primary,
+                    ),
+                  ),
+                ),
               ),
-              itemCount: myResponses.length,
-              itemBuilder: (_, index) {
-                final response = myResponses[index];
-                final form = formProvider.getFormById(response.formId);
-                if (form == null && response.formTitle.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                final displayForm = form ??
-                    FormModel(
-                      id: response.formId,
-                      title: response.formTitle,
-                      creatorId: '',
-                      scheduledOpen: response.submittedAt,
-                      scheduledClose: response.submittedAt,
-                      createdAt: response.submittedAt,
-                    );
-
-                return _HistoryCard(
-                  form: displayForm,
-                  response: response,
-                );
-              },
             ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => _refreshData(context),
+        color: AppTheme.primary,
+        child: myResponses.isEmpty
+            ? ListView(
+                children: [
+                  const SizedBox(height: 100),
+                  _EmptyState(
+                    icon: Icons.history_rounded,
+                    title: l10n.noSubmissionHistory,
+                    subtitle: l10n.noSubmissionHistoryDesc,
+                  ),
+                ],
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  100,
+                ),
+                itemCount: myResponses.length,
+                itemBuilder: (_, index) {
+                  final response = myResponses[index];
+                  final form = formProvider.getFormById(response.formId);
+                  if (form == null && response.formTitle.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  final displayForm = form ??
+                      FormModel(
+                        id: response.formId,
+                        title: response.formTitle,
+                        creatorId: '',
+                        scheduledOpen: response.submittedAt,
+                        scheduledClose: response.submittedAt,
+                        createdAt: response.submittedAt,
+                      );
+
+                  return _HistoryCard(
+                    form: displayForm,
+                    response: response,
+                  );
+                },
+              ),
+      ),
     );
   }
 }
@@ -439,6 +522,7 @@ class _HistoryCard extends StatelessWidget {
     final isDark =
         Theme.of(context).brightness ==
             Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     final primaryTextColor = isDark
         ? AppTheme.darkTextPrimary
@@ -449,7 +533,7 @@ class _HistoryCard extends StatelessWidget {
         : AppTheme.textSecondary;
 
     final subDate = response.submittedAt;
-    final dateStr = '${subDate.day} ${_monthName(subDate.month)} ${subDate.year}';
+    final dateStr = '${subDate.day} ${_monthName(subDate.month, l10n.isIndonesian)} ${subDate.year}';
     final timeStr = '${subDate.hour.toString().padLeft(2, '0')}:${subDate.minute.toString().padLeft(2, '0')}';
 
     return CustomCard(
@@ -510,7 +594,7 @@ class _HistoryCard extends StatelessWidget {
                 const SizedBox(height: 6),
 
                 Text(
-                  'You have submitted this form',
+                  l10n.youHaveSubmitted,
                   style: TextStyle(
                     fontSize: 12,
                     color: secondaryTextColor,
@@ -567,20 +651,20 @@ class _HistoryCard extends StatelessWidget {
                     borderRadius:
                         BorderRadius.circular(10),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize:
                         MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.check_circle_outline,
                         size: 15,
                         color:
                             AppTheme.success,
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Text(
-                        'Submitted',
-                        style: TextStyle(
+                        l10n.submitted,
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight:
                               FontWeight.w700,
@@ -604,11 +688,16 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 
-  static String _monthName(int month) {
-    const months = [
+  static String _monthName(int month, bool isIndonesian) {
+    final monthsId = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    final monthsEn = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
+    final months = isIndonesian ? monthsId : monthsEn;
     return (month >= 1 && month <= 12) ? months[month - 1] : '';
   }
 }

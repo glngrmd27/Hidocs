@@ -52,6 +52,20 @@ func (r *responseRepository) GetResponsesByFormID(ctx context.Context, formID uu
 	return responses, err
 }
 
+func (r *responseRepository) GetResponsesByEmail(ctx context.Context, email string) ([]domain.FormResponse, error) {
+	var responses []domain.FormResponse
+	err := r.db.WithContext(ctx).
+		Preload("Form").
+		Preload("Answers").
+		Preload("Answers.Question").
+		Preload("Answers.SelectedOption").
+		Where("respondent_email = ?", email).
+		Order("submitted_at desc").
+		Find(&responses).Error
+
+	return responses, err
+}
+
 func (r *responseRepository) CheckUserAlreadySubmitted(ctx context.Context, formID uuid.UUID, email string) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).

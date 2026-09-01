@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,11 +7,14 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/form_provider.dart';
+import '../providers/response_provider.dart';
 import '../models/form_model.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/hidocs_logo.dart';
+import '../l10n/app_localizations.dart';
 import 'create_form_screen.dart';
 import 'form_detail_screen.dart';
+import 'import_guide_screen.dart';
 import 'qr_generator_screen.dart';
 import 'settings_screen.dart';
 
@@ -20,23 +25,49 @@ class CreatorHomeScreen extends StatefulWidget {
   State<CreatorHomeScreen> createState() => _CreatorHomeScreenState();
 }
 
-class _CreatorHomeScreenState extends State<CreatorHomeScreen> {
+class _CreatorHomeScreenState extends State<CreatorHomeScreen>
+    with WidgetsBindingObserver {
   int _tab = 0;
+  Timer? _autoCloseTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<FormProvider>().loadForms();
       }
     });
+    // Periodically re-evaluate isExpired -> isActive (getter uses DateTime.now)
+    // agar pill Aktif/Tutup otomatis berubah tanpa perlu hot restart / buka detail.
+    _autoCloseTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      context.read<FormProvider>().syncExpiredForms();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Saat kembali dari background / hot restart selesai, force re-check
+      context.read<FormProvider>().syncExpiredForms();
+      context.read<FormProvider>().loadForms(forceRefresh: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoCloseTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final auth         = Provider.of<AuthProvider>(context);
     final formProvider = Provider.of<FormProvider>(context);
+    final l10n = AppLocalizations.of(context);
 
     final List<Widget> screens = [
       _DashboardTab(
@@ -64,8 +95,8 @@ class _CreatorHomeScreenState extends State<CreatorHomeScreen> {
               backgroundColor: AppTheme.primary,
               elevation: 3,
               icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const Text('Form Baru',
-                  style: TextStyle(
+              label: Text(l10n.isIndonesian ? 'Form Baru' : 'New Form',
+                  style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.w700)),
             )
           : null,
@@ -77,19 +108,19 @@ class _CreatorHomeScreenState extends State<CreatorHomeScreen> {
             context.read<FormProvider>().loadForms();
           }
         },
-        items: const [
+        items: [
           _NavItem(
               icon: Icons.space_dashboard_outlined,
               activeIcon: Icons.space_dashboard_rounded,
-              label: 'Beranda'),
+              label: l10n.home),
           _NavItem(
               icon: Icons.article_outlined,
               activeIcon: Icons.article_rounded,
-              label: 'Form'),
+              label: l10n.isIndonesian ? 'Form' : 'Forms'),
           _NavItem(
               icon: Icons.settings_outlined,
               activeIcon: Icons.settings_rounded,
-              label: 'Profil'),
+              label: l10n.profile),
         ],
       ),
     );
@@ -136,19 +167,10 @@ class _DashboardTab extends StatelessWidget {
               flexibleSpace: FlexibleSpaceBar(
                 background: _HeaderBg(auth: auth),
               ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                tooltip: 'Kembali',
-                onPressed: () {
-                  // Kembali ke pemilihan peran (role selection) hapus stack
-                  Navigator.pushNamedAndRemoveUntil(
-                      context, '/role-select', (_) => false);
-                },
-              ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.logout_rounded, color: Colors.white),
-                  tooltip: 'Keluar',
+                  tooltip: AppLocalizations.of(context).signOut,
                   onPressed: () async {
                     final nav = Navigator.of(context);
                     final a = Provider.of<AuthProvider>(context, listen: false);
@@ -157,11 +179,11 @@ class _DashboardTab extends StatelessWidget {
                   },
                 ),
               ],
-              title: const Row(children: [
-                HiDocsLogo(size: 28, showShadow: false),
-                SizedBox(width: 10),
-                Text('HiDocs!',
-                    style: TextStyle(
+              title: Row(children: [
+                const HiDocsLogo(size: 28, showShadow: false),
+                const SizedBox(width: 10),
+                Text(AppLocalizations.of(context).appName,
+                    style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -194,13 +216,22 @@ class _DashboardTab extends StatelessWidget {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: _QuickAction(
-                        icon: Icons.upload_file_rounded,
+                        icon: Icons.description_rounded,
                         label: 'Impor Word',
                         color: AppTheme.info,
-                        onTap: () => _showImportDialog(context),
+                        onTap: () => _showImportDialog(context, isExcel: false),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _QuickAction(
+                        icon: Icons.table_chart_rounded,
+                        label: 'Impor Excel',
+                        color: AppTheme.success,
+                        onTap: () => _showImportDialog(context, isExcel: true),
                       ),
                     ),
                   ]),
@@ -257,29 +288,84 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  void _showImportDialog(BuildContext context) {
+  void _showImportDialog(BuildContext context, {bool isExcel = false}) {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
-        title: const Row(children: [
-          Icon(Icons.upload_file_rounded, color: AppTheme.primary),
-          SizedBox(width: 10),
-          Text('Impor Word', style: TextStyle(fontSize: 18)),
+        title: Row(children: [
+          Icon(
+            isExcel ? Icons.table_chart_rounded : Icons.description_rounded,
+            color: isExcel ? AppTheme.success : AppTheme.primary,
+          ),
+          const SizedBox(width: 10),
+          Text(
+            isExcel ? 'Impor Excel' : 'Impor Word',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ]),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Ubah dokumen Word (.docx) menjadi template form secara otomatis.',
-              style: TextStyle(height: 1.5),
+              isExcel
+                  ? 'Ubah berkas spreadsheet Excel (.xlsx) menjadi form secara otomatis.'
+                  : 'Ubah dokumen Word (.docx) menjadi template form secara otomatis.',
+              style: const TextStyle(height: 1.5),
             ),
-            SizedBox(height: 12),
-            Text(
-              'Format yang didukung:\n• .docx (Word 2007+)\n• Soal diawali nomor: 1. / Q1 / Soal 1\n• Opsi: A. / (a) / A)  —  beri tanda * atau [correct] untuk kunci jawaban\n• Baris "Kunci Jawaban: B" juga terbaca',
-              style: TextStyle(fontSize: 12, color: AppTheme.textMuted, height: 1.4),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () {
+                Navigator.pop(dialogCtx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ImportGuideScreen(
+                      initialTab: isExcel ? 'excel' : 'word',
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: (isExcel ? AppTheme.success : AppTheme.primary)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: (isExcel ? AppTheme.success : AppTheme.primary)
+                        .withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.help_outline_rounded,
+                      size: 18,
+                      color: isExcel ? AppTheme.success : AppTheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Lihat Panduan Format ${isExcel ? "Excel" : "Word"}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isExcel ? AppTheme.success : AppTheme.primary,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: isExcel ? AppTheme.success : AppTheme.primary,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -290,21 +376,28 @@ class _DashboardTab extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              _handlePickAndImport(context);
+              _handlePickAndImport(context, isExcel: isExcel);
             },
             icon: const Icon(Icons.folder_open_rounded, size: 16),
             label: const Text('Pilih File'),
+            style: isExcel
+                ? ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.success,
+                    foregroundColor: Colors.white,
+                  )
+                : null,
           ),
         ],
       ),
     );
   }
 
-  Future<void> _handlePickAndImport(BuildContext context) async {
+  Future<void> _handlePickAndImport(BuildContext context, {bool isExcel = false}) async {
     try {
+      final ext = isExcel ? ['xlsx', 'csv'] : ['docx'];
       final picked = await FilePicker.pickFile(
         type: FileType.custom,
-        allowedExtensions: ['docx'],
+        allowedExtensions: ext,
       );
 
       if (picked == null) {
@@ -312,12 +405,20 @@ class _DashboardTab extends StatelessWidget {
       }
 
       // Validate extension
-      final fileName = picked.name;
-      if (!fileName.toLowerCase().endsWith('.docx')) {
+      final fileName = picked.name.toLowerCase();
+      final valid = isExcel
+          ? (fileName.endsWith('.xlsx') || fileName.endsWith('.csv'))
+          : fileName.endsWith('.docx');
+
+      if (!valid) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Hanya file .docx yang didukung.'),
+              content: Text(
+                isExcel
+                    ? 'Hanya file .xlsx atau .csv yang didukung.'
+                    : 'Hanya file .docx yang didukung.',
+              ),
               backgroundColor: AppTheme.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -406,9 +507,9 @@ class _DashboardTab extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Parsing dokumen Word…',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                Text(
+                  isExcel ? 'Parsing spreadsheet Excel…' : 'Parsing dokumen Word…',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -419,11 +520,17 @@ class _DashboardTab extends StatelessWidget {
 
       final formProvider = Provider.of<FormProvider>(context, listen: false);
 
-      final imported = await formProvider.importDocx(
-        filePath: filePath,
-        fileBytes: fileBytes,
-        fileName: fileName,
-      );
+      final imported = isExcel
+          ? await formProvider.importExcel(
+              filePath: filePath,
+              fileBytes: fileBytes,
+              fileName: fileName,
+            )
+          : await formProvider.importDocx(
+              filePath: filePath,
+              fileBytes: fileBytes,
+              fileName: fileName,
+            );
 
       if (!context.mounted) return;
       Navigator.of(context, rootNavigator: true).pop(); // close loading
@@ -448,10 +555,15 @@ class _DashboardTab extends StatelessWidget {
           ),
         );
 
-        // Navigate to detail so user can review/edit immediately
+        // Open CreateFormScreen with pre-populated questions without saving to database yet
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => FormDetailScreen(form: imported)),
+          MaterialPageRoute(
+            builder: (_) => CreateFormScreen(
+              initialQuestions: imported.questions,
+              initialTabIndex: 1, // Tab 1: Questions Focus
+            ),
+          ),
         );
       } else {
         final errMsg = formProvider.error ?? 'Gagal mengimport dokumen.';
@@ -588,17 +700,12 @@ class _FormsTabState extends State<_FormsTab> {
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
       appBar: AppBar(
-        title: const Text('Form Saya'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Kembali',
-          onPressed: () => Navigator.pushNamedAndRemoveUntil(
-              context, '/role-select', (_) => false),
-        ),
+        title: Text(AppLocalizations.of(context).isIndonesian ? 'Form Saya' : 'My Forms'),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.search_rounded),
-            tooltip: 'Cari',
+            tooltip: AppLocalizations.of(context).isIndonesian ? 'Cari' : 'Search',
             onPressed: () async {
               await showSearch(
                 context: context,
@@ -608,7 +715,7 @@ class _FormsTabState extends State<_FormsTab> {
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Keluar',
+            tooltip: AppLocalizations.of(context).signOut,
             onPressed: () async {
               final nav = Navigator.of(context);
               final a = Provider.of<AuthProvider>(context, listen: false);
@@ -786,9 +893,11 @@ class _FormCard extends StatelessWidget {
               Navigator.pop(dialogCtx);
 
               final fp = Provider.of<FormProvider>(context, listen: false);
+              final rp = Provider.of<ResponseProvider>(context, listen: false);
               final ok = await fp.deleteForm(form.id);
 
               if (ok) {
+                rp.removeResponsesByForm(form.id);
                 messenger.showSnackBar(
                   SnackBar(
                     content: const Row(

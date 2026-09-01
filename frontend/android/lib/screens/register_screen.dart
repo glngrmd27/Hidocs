@@ -91,14 +91,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _handleResendOtp() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
-    await auth.resendOtp();
+    final success = await auth.resendOtp();
 
     if (!mounted) return;
 
-    if (auth.error != null) {
+    if (!success || auth.error != null) {
       _showSnack(auth.error!, AppTheme.warning);
       auth.clearError();
+      return;
     }
+
+    _showSnack('Kode OTP baru telah dikirim ke email Anda.', AppTheme.success);
   }
 
   void _showSnack(String message, Color backgroundColor) {
@@ -265,7 +268,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Colors.white.withValues(alpha: 0.25),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -282,7 +284,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
                           24,
@@ -337,9 +338,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 28),
-
                       Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -351,9 +350,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           28,
                         ),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? AppTheme.darkCard
-                              : Colors.white,
+                          color: isDark ? AppTheme.darkCard : Colors.white,
                           borderRadius: BorderRadius.circular(28),
                           border: isDark
                               ? Border.all(
@@ -373,173 +370,151 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: showOtp
                             ? _buildOtpStep(auth, isDark)
                             : Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.stretch,
-                            children: [
-
-                              Text(
-                                'Create Account',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark
-                                      ? AppTheme.darkTextPrimary
-                                      : AppTheme.textPrimary,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-
-                              const SizedBox(height: 4),
-
-                              Text(
-                                'Sign up to start using HiDocs!',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? AppTheme.darkTextMuted
-                                      : AppTheme.textMuted,
-                                ),
-                              ),
-
-                              const SizedBox(height: 26),
-
-                              CustomInput(
-                                controller: _emailCtrl,
-                                label: 'Email Address',
-                                hint: 'example@hidocs.com',
-                                prefixIcon:
-                                    Icons.mail_outline_rounded,
-                                keyboardType:
-                                    TextInputType.emailAddress,
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Email is required';
-                                  }
-
-                                  if (!RegExp(
-                                    r'^[^@]+@[^@]+\.[^@]+',
-                                  ).hasMatch(v)) {
-                                    return 'Invalid email format';
-                                  }
-
-                                  return null;
-                                },
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              CustomInput(
-                                controller: _usernameCtrl,
-                                label: 'Username',
-                                hint: 'Choose a username',
-                                prefixIcon:
-                                    Icons.badge_outlined,
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Username is required';
-                                  }
-
-                                  if (v.length < 3) {
-                                    return 'Minimum 3 characters';
-                                  }
-
-                                  return null;
-                                },
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              CustomInput(
-                                controller: _passwordCtrl,
-                                label: 'Password',
-                                hint: 'Minimum 6 characters',
-                                prefixIcon:
-                                    Icons.lock_outline_rounded,
-                                obscureText: _obscure,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscure
-                                        ? Icons.visibility_off_rounded
-                                        : Icons.visibility_rounded,
-                                    color: isDark
-                                        ? AppTheme.darkTextMuted
-                                        : AppTheme.textMuted,
-                                    size: 20,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscure = !_obscure;
-                                    });
-                                  },
-                                ),
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Password is required';
-                                  }
-
-                                  if (v.length < 6) {
-                                    return 'Minimum 6 characters';
-                                  }
-
-                                  return null;
-                                },
-                              ),
-
-                              const SizedBox(height: 28),
-
-                              GradientButton(
-                                text: 'Create Account',
-                                onPressed: _handleRegister,
-                                isLoading: auth.isLoading,
-                                fullWidth: true,
-                                icon: Icons.how_to_reg_rounded,
-                              ),
-
-                              const SizedBox(height: 20),
-
-                              Center(
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      Navigator.pop(context),
-                                  child: RichText(
-                                    text: TextSpan(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      'Create Account',
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDark
+                                            ? AppTheme.darkTextPrimary
+                                            : AppTheme.textPrimary,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Sign up to start using HiDocs!',
+                                      style: TextStyle(
+                                        fontSize: 13,
                                         color: isDark
                                             ? AppTheme.darkTextMuted
                                             : AppTheme.textMuted,
                                       ),
-                                      children: const [
-                                        TextSpan(
-                                          text:
-                                              'Already have an account? ',
+                                    ),
+                                    const SizedBox(height: 26),
+                                    CustomInput(
+                                      controller: _emailCtrl,
+                                      label: 'Email Address',
+                                      hint: 'example@hidocs.com',
+                                      prefixIcon: Icons.mail_outline_rounded,
+                                      keyboardType: TextInputType.emailAddress,
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Email is required';
+                                        }
+
+                                        if (!RegExp(
+                                          r'^[^@]+@[^@]+\.[^@]+',
+                                        ).hasMatch(v)) {
+                                          return 'Invalid email format';
+                                        }
+
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    CustomInput(
+                                      controller: _usernameCtrl,
+                                      label: 'Username',
+                                      hint: 'Choose a username',
+                                      prefixIcon: Icons.badge_outlined,
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Username is required';
+                                        }
+
+                                        if (v.length < 3) {
+                                          return 'Minimum 3 characters';
+                                        }
+
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    CustomInput(
+                                      controller: _passwordCtrl,
+                                      label: 'Password',
+                                      hint: 'Minimum 6 characters',
+                                      prefixIcon: Icons.lock_outline_rounded,
+                                      obscureText: _obscure,
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscure
+                                              ? Icons.visibility_off_rounded
+                                              : Icons.visibility_rounded,
+                                          color: isDark
+                                              ? AppTheme.darkTextMuted
+                                              : AppTheme.textMuted,
+                                          size: 20,
                                         ),
-                                        TextSpan(
-                                          text: 'Sign in',
-                                          style: TextStyle(
-                                            color:
-                                                AppTheme.primary,
-                                            fontWeight:
-                                                FontWeight.w700,
-                                            decoration:
-                                                TextDecoration
-                                                    .underline,
-                                            decorationColor:
-                                                AppTheme.primary,
+                                        onPressed: () {
+                                          setState(() {
+                                            _obscure = !_obscure;
+                                          });
+                                        },
+                                      ),
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Password is required';
+                                        }
+
+                                        if (v.length < 6) {
+                                          return 'Minimum 6 characters';
+                                        }
+
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 28),
+                                    GradientButton(
+                                      text: 'Create Account',
+                                      onPressed: _handleRegister,
+                                      isLoading: auth.isLoading,
+                                      fullWidth: true,
+                                      icon: Icons.how_to_reg_rounded,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Center(
+                                      child: GestureDetector(
+                                        onTap: () => Navigator.pop(context),
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: isDark
+                                                  ? AppTheme.darkTextMuted
+                                                  : AppTheme.textMuted,
+                                            ),
+                                            children: const [
+                                              TextSpan(
+                                                text:
+                                                    'Already have an account? ',
+                                              ),
+                                              TextSpan(
+                                                text: 'Sign in',
+                                                style: TextStyle(
+                                                  color: AppTheme.primary,
+                                                  fontWeight: FontWeight.w700,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  decorationColor:
+                                                      AppTheme.primary,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
                       ),
-
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -552,7 +527,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-
 
 class _Blob extends StatelessWidget {
   final double size;

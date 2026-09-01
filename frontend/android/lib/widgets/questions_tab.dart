@@ -9,7 +9,9 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../app_theme.dart';
+import '../l10n/app_localizations.dart';
 import '../models/question_model.dart';
+import '../services/api_client.dart';
 import 'quill_embeds.dart';
 
 class QuestionsTab extends StatefulWidget {
@@ -42,6 +44,7 @@ class _QuestionsTabState extends State<QuestionsTab> {
   }
 
   void _showAddMenu() {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
@@ -53,11 +56,11 @@ class _QuestionsTabState extends State<QuestionsTab> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Add Question',
-                      style: TextStyle(
+                      l10n.addQuestionLabel,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                       ),
@@ -66,8 +69,8 @@ class _QuestionsTabState extends State<QuestionsTab> {
                   const SizedBox(height: 16),
                   _questionTypeTile(
                     icon: Icons.radio_button_checked,
-                    title: 'Multiple Choice',
-                    subtitle: 'Choose one answer',
+                    title: l10n.qMultipleChoice,
+                    subtitle: l10n.qMultipleChoiceSub,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       widget.addQuestion(QuestionType.multipleChoice);
@@ -75,8 +78,8 @@ class _QuestionsTabState extends State<QuestionsTab> {
                   ),
                   _questionTypeTile(
                     icon: Icons.image_outlined,
-                    title: 'Image Choice',
-                    subtitle: 'Answer choices using images',
+                    title: l10n.qImageChoice,
+                    subtitle: l10n.qImageChoiceSub,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       widget.addQuestion(QuestionType.imageChoice);
@@ -84,8 +87,8 @@ class _QuestionsTabState extends State<QuestionsTab> {
                   ),
                   _questionTypeTile(
                     icon: Icons.subject_rounded,
-                    title: 'Essay',
-                    subtitle: 'Long-form answer',
+                    title: l10n.qEssay,
+                    subtitle: l10n.qEssaySub,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       widget.addQuestion(QuestionType.longText);
@@ -93,8 +96,8 @@ class _QuestionsTabState extends State<QuestionsTab> {
                   ),
                   _questionTypeTile(
                     icon: Icons.short_text_rounded,
-                    title: 'Short Answer',
-                    subtitle: 'Brief written answer',
+                    title: l10n.qShortAnswer,
+                    subtitle: l10n.qShortAnswerSub,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       widget.addQuestion(QuestionType.shortText);
@@ -102,8 +105,8 @@ class _QuestionsTabState extends State<QuestionsTab> {
                   ),
                   _questionTypeTile(
                     icon: Icons.check_circle_outline,
-                    title: 'Yes / No',
-                    subtitle: 'Yes or no question',
+                    title: l10n.qYesNo,
+                    subtitle: l10n.qYesNoSub,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       widget.addQuestion(QuestionType.yesNo);
@@ -111,29 +114,29 @@ class _QuestionsTabState extends State<QuestionsTab> {
                   ),
                   _questionTypeTile(
                     icon: Icons.star_outline_rounded,
-                    title: 'Rating',
-                    subtitle: 'Rating using stars',
+                    title: l10n.qRating,
+                    subtitle: l10n.qRatingSub,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       widget.addQuestion(QuestionType.rating);
                     },
                   ),
                   _questionTypeTile(
-                    icon: Icons.code_rounded,
-                    title: 'Code Input',
-                    subtitle: 'Answer using program code',
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      widget.addQuestion(QuestionType.codeInput);
-                    },
-                  ),
-                  _questionTypeTile(
                     icon: Icons.functions_rounded,
-                    title: 'Math Formula',
-                    subtitle: 'Question with a LaTeX formula',
+                    title: l10n.qMathFormula,
+                    subtitle: l10n.qMathFormulaSub,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       widget.addQuestion(QuestionType.mathFormula);
+                    },
+                  ),
+                  _questionTypeTile(
+                    icon: Icons.code_rounded,
+                    title: l10n.qCodeInput,
+                    subtitle: l10n.qCodeInputSub,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      widget.addQuestion(QuestionType.codeInput);
                     },
                   ),
                 ],
@@ -175,6 +178,7 @@ class _QuestionsTabState extends State<QuestionsTab> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     if (widget.questions.isEmpty) {
       return Center(
@@ -198,7 +202,7 @@ class _QuestionsTabState extends State<QuestionsTab> {
               ),
               const SizedBox(height: 20),
               Text(
-                'No questions yet',
+                l10n.noQuestionsYetTitle,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -207,7 +211,7 @@ class _QuestionsTabState extends State<QuestionsTab> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Add your first question to start building this form.',
+                l10n.noQuestionsYetSub,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -221,7 +225,7 @@ class _QuestionsTabState extends State<QuestionsTab> {
                 child: ElevatedButton.icon(
                   onPressed: _showAddMenu,
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add Question'),
+                  label: Text(l10n.addQuestionLabel),
                 ),
               ),
             ],
@@ -266,7 +270,7 @@ class _QuestionsTabState extends State<QuestionsTab> {
             child: ElevatedButton.icon(
               onPressed: _showAddMenu,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Add Question'),
+              label: Text(l10n.addQuestionLabel),
             ),
           ),
         ),
@@ -402,12 +406,20 @@ class _QuestionCardState extends State<_QuestionCard> {
     bool? hasScore,
     double? score,
   }) {
+    String? resolvedImageUrl;
+    if (imageUrl == null) {
+      resolvedImageUrl = q.imageUrl;
+    } else if (imageUrl.isEmpty) {
+      resolvedImageUrl = null;
+    } else {
+      resolvedImageUrl = imageUrl;
+    }
     return QuestionModel(
       id: q.id,
       type: type ?? q.type,
       text: text ?? q.text,
       content: content ?? q.content,
-      imageUrl: imageUrl ?? q.imageUrl,
+      imageUrl: resolvedImageUrl,
       mathFormula: mathFormula ?? q.mathFormula,
       codeSnippet: codeSnippet ?? q.codeSnippet,
       options: options ?? q.options,
@@ -418,6 +430,97 @@ class _QuestionCardState extends State<_QuestionCard> {
       hasScore: hasScore ?? q.hasScore,
       score: score ?? q.score,
     );
+  }
+
+  Future<void> _pickQuestionImage() async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final XFile? picked = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (bytes.length > 1 * 1024 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.isIndonesian ? 'Ukuran gambar maksimal 1 MB' : 'Image max 1 MB'), backgroundColor: AppTheme.error));
+        return;
+      }
+      // Show uploading indicator
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.isIndonesian ? 'Mengupload gambar...' : 'Uploading image...')));
+      final fileName = picked.name.isNotEmpty ? picked.name : 'question_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String? uploadedUrl;
+      try {
+        uploadedUrl = await ApiClient.uploadQuestionImage(bytes, fileName);
+      } catch (_) {}
+      String finalUrl;
+      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+        // Backend returns /uploads/... need full baseUrl prefix if relative
+        if (uploadedUrl.startsWith('/')) {
+          final base = ApiClient.baseUrl.replaceAll(RegExp(r'/api/v1$'), '');
+          finalUrl = '$base$uploadedUrl';
+          // alternative: keep relative, Image.network will fail without base, so use base+path
+          // If backend already returns full URL, keep as is
+          if (uploadedUrl.startsWith('http')) finalUrl = uploadedUrl;
+        } else {
+          finalUrl = uploadedUrl;
+        }
+      } else {
+        // Fallback base64 dataUrl for preview (will not persist if server ignores, but shows)
+        final ext = fileName.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+        finalUrl = 'data:image/$ext;base64,${base64Encode(bytes)}';
+      }
+      widget.onChanged(_copy(widget.question, imageUrl: finalUrl));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.failedToInsertImage}: $e'), backgroundColor: AppTheme.error));
+    }
+  }
+
+  void _removeQuestionImage() {
+    widget.onChanged(_copy(widget.question, imageUrl: ''));
+  }
+
+  Future<void> _pickOptionImage(int index) async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final XFile? picked = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (bytes.length > 1 * 1024 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.isIndonesian ? 'Ukuran gambar maksimal 1 MB' : 'Image max 1 MB'), backgroundColor: AppTheme.error));
+        return;
+      }
+      String? uploadedUrl;
+      try {
+        final fileName = picked.name.isNotEmpty ? picked.name : 'option_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        uploadedUrl = await ApiClient.uploadQuestionImage(bytes, fileName);
+        if (uploadedUrl != null && uploadedUrl.startsWith('/')) {
+          final base = ApiClient.baseUrl.replaceAll(RegExp(r'/api/v1$'), '');
+          uploadedUrl = '$base$uploadedUrl';
+        }
+      } catch (_) {}
+      final ext = picked.path.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+      final dataUrl = 'data:image/$ext;base64,${base64Encode(bytes)}';
+      final finalUrl = (uploadedUrl != null && uploadedUrl.isNotEmpty) ? uploadedUrl : dataUrl;
+      final opts = List<OptionModel>.from(widget.question.options);
+      opts[index] = opts[index].copyWith(imageUrl: finalUrl);
+      widget.onChanged(_copy(widget.question, options: opts));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.failedToInsertImage}: $e'), backgroundColor: AppTheme.error));
+    }
+  }
+
+  void _removeOptionImage(int index) {
+    final opts = List<OptionModel>.from(widget.question.options);
+    opts[index] = OptionModel(
+      id: opts[index].id,
+      text: opts[index].text,
+      content: opts[index].content,
+      imageUrl: null,
+      score: opts[index].score,
+      isCorrect: opts[index].isCorrect,
+    );
+    widget.onChanged(_copy(widget.question, options: opts));
   }
 
   void _changeType(QuestionType type) {
@@ -545,6 +648,7 @@ class _QuestionCardState extends State<_QuestionCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _buildQuestionImage(isDark),
                 _buildEditor(isDark),
                 const SizedBox(height: 12),
                 ..._buildBody(isDark),
@@ -559,6 +663,7 @@ class _QuestionCardState extends State<_QuestionCard> {
   }
 
   Widget _buildHeader(bool isDark) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 4),
       child: Row(
@@ -589,21 +694,21 @@ class _QuestionCardState extends State<_QuestionCard> {
             ),
           ),
           IconButton(
-            tooltip: 'Move up',
+            tooltip: l10n.moveUp,
             onPressed: widget.onMoveUp,
             icon: const Icon(Icons.arrow_upward_rounded, size: 18),
             color: AppTheme.textMuted,
             visualDensity: VisualDensity.compact,
           ),
           IconButton(
-            tooltip: 'Move down',
+            tooltip: l10n.moveDown,
             onPressed: widget.onMoveDown,
             icon: const Icon(Icons.arrow_downward_rounded, size: 18),
             color: AppTheme.textMuted,
             visualDensity: VisualDensity.compact,
           ),
           IconButton(
-            tooltip: 'Delete question',
+            tooltip: l10n.deleteQuestionTooltip,
             onPressed: widget.onDelete,
             icon: const Icon(Icons.delete_outline_rounded, size: 18),
             color: AppTheme.error,
@@ -614,7 +719,87 @@ class _QuestionCardState extends State<_QuestionCard> {
     );
   }
 
+  Widget _buildQuestionImage(bool isDark) {
+    final q = widget.question;
+    final l10n = AppLocalizations.of(context);
+    final hasImage = q.imageUrl != null && q.imageUrl!.isNotEmpty;
+    final isDataUrl = hasImage && q.imageUrl!.startsWith('data:');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.image_outlined, size: 16, color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted),
+              const SizedBox(width: 6),
+              Text(
+                l10n.isIndonesian ? 'Gambar Soal (Analisis Gambar)' : 'Question Image (Image Analysis)',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary),
+              ),
+              const Spacer(),
+              if (hasImage)
+                TextButton(
+                  onPressed: _removeQuestionImage,
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact, foregroundColor: AppTheme.error),
+                  child: Text(l10n.isIndonesian ? 'Hapus' : 'Remove', style: const TextStyle(fontSize: 12)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (hasImage)
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    color: isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
+                    child: isDataUrl
+                        ? Image.memory(base64Decode(q.imageUrl!.split(',').last), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 80, child: Center(child: Icon(Icons.broken_image_outlined)) ))
+                        : Image.network(q.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) {
+                            // fallback try dataUrl
+                            if (q.imageUrl!.startsWith('data:')) {
+                              try { return Image.memory(base64Decode(q.imageUrl!.split(',').last), fit: BoxFit.cover); } catch (_) {}
+                            }
+                            return const SizedBox(height: 80, child: Center(child: Icon(Icons.broken_image_outlined)));
+                          }),
+                  ),
+                ),
+                Positioned(top: 6, right: 6, child: InkWell(onTap: _pickQuestionImage, child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white)))),
+              ],
+            )
+          else
+            InkWell(
+              onTap: _pickQuestionImage,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.border, style: BorderStyle.solid),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.add_photo_alternate_outlined, size: 28, color: AppTheme.primary.withValues(alpha: 0.7)),
+                    const SizedBox(height: 6),
+                    Text(l10n.isIndonesian ? 'Upload Gambar Soal' : 'Upload Question Image', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primary)),
+                    const SizedBox(height: 2),
+                    Text(l10n.isIndonesian ? 'Untuk soal analisis gambar (maks 1 MB)' : 'For image analysis question (max 1 MB)', style: TextStyle(fontSize: 11, color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEditor(bool isDark) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
@@ -658,17 +843,17 @@ class _QuestionCardState extends State<_QuestionCard> {
               customButtons: [
                 QuillToolbarCustomButtonOptions(
                   icon: const Icon(Icons.image_outlined, size: 18),
-                  tooltip: 'Insert image',
+                  tooltip: l10n.insertImageTooltip,
                   onPressed: _insertImage,
                 ),
                 QuillToolbarCustomButtonOptions(
                   icon: const Icon(Icons.functions_rounded, size: 18),
-                  tooltip: 'Insert math formula',
+                  tooltip: l10n.insertMathTooltip,
                   onPressed: _insertMath,
                 ),
                 QuillToolbarCustomButtonOptions(
                   icon: const Icon(Icons.code_rounded, size: 18),
-                  tooltip: 'Insert code block',
+                  tooltip: l10n.insertCodeTooltip,
                   onPressed: _insertCode,
                 ),
               ],
@@ -683,7 +868,7 @@ class _QuestionCardState extends State<_QuestionCard> {
             focusNode: _focusNode,
             scrollController: _scrollController,
             config: QuillEditorConfig(
-              placeholder: 'Write your question here...',
+              placeholder: l10n.writeQuestionHere,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
               autoFocus: false,
               expands: false,
@@ -700,11 +885,11 @@ class _QuestionCardState extends State<_QuestionCard> {
 
   List<Widget> _buildBody(bool isDark) {
     final q = widget.question;
+    final l10n = AppLocalizations.of(context);
     switch (q.type) {
       case QuestionType.multipleChoice:
-      case QuestionType.imageChoice:
         return [
-          for (var i = 0; i < q.options.length; i++)
+          for (var i = 0; i < q.options.length; i++) ...[
             _OptionEditor(
               key: ValueKey(q.options[i].id),
               option: q.options[i],
@@ -716,6 +901,42 @@ class _QuestionCardState extends State<_QuestionCard> {
                   ? () => _removeOption(i)
                   : null,
             ),
+            const SizedBox(height: 8),
+          ],
+          _buildAddOptionButton(isDark),
+        ];
+      case QuestionType.imageChoice:
+        return [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.image_outlined, size: 14, color: AppTheme.primary),
+                const SizedBox(width: 6),
+                Expanded(child: Text(l10n.isIndonesian ? 'Pilihan Gambar — tap gambar untuk upload, tap lingkaran untuk jawaban benar' : 'Image Choice — tap image to upload, tap circle for correct answer', style: TextStyle(fontSize: 11, color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted))),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (var i = 0; i < q.options.length; i++) ...[
+            _ImageOptionEditor(
+              key: ValueKey(q.options[i].id),
+              option: q.options[i],
+              isCorrect: q.options[i].isCorrect,
+              isDark: isDark,
+              onTextChanged: (text) => _updateOptionText(i, text),
+              onCorrectTap: () => _setCorrectOption(i),
+              onPickImage: () => _pickOptionImage(i),
+              onRemoveImage: () => _removeOptionImage(i),
+              onDelete: q.options.length > 2 ? () => _removeOption(i) : null,
+            ),
+            const SizedBox(height: 10),
+          ],
           _buildAddOptionButton(isDark),
         ];
       case QuestionType.yesNo:
@@ -739,7 +960,7 @@ class _QuestionCardState extends State<_QuestionCard> {
         return [
           _HintNote(
             icon: Icons.short_text_rounded,
-            text: 'Respondents type a one-line answer.',
+            text: l10n.shortTextHintNote,
             isDark: isDark,
           ),
         ];
@@ -747,7 +968,7 @@ class _QuestionCardState extends State<_QuestionCard> {
         return [
           _HintNote(
             icon: Icons.subject_rounded,
-            text: 'Respondents type a long-form answer.',
+            text: l10n.longTextHintNote,
             isDark: isDark,
           ),
         ];
@@ -762,6 +983,12 @@ class _QuestionCardState extends State<_QuestionCard> {
         ];
       case QuestionType.mathFormula:
         return [
+          _HintNote(
+            icon: Icons.functions_rounded,
+            text: l10n.mathHintNote,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
           _MathField(
             key: ValueKey('math_${q.id}'),
             initial: q.mathFormula ?? '',
@@ -773,6 +1000,7 @@ class _QuestionCardState extends State<_QuestionCard> {
   }
 
   Widget _buildAddOptionButton(bool isDark) {
+    final l10n = AppLocalizations.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
@@ -784,9 +1012,9 @@ class _QuestionCardState extends State<_QuestionCard> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
           icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text(
-            'Add option',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          label: Text(
+            l10n.addOptionLabel,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -795,6 +1023,7 @@ class _QuestionCardState extends State<_QuestionCard> {
 
   Widget _buildRatingEditor(bool isDark) {
     final q = widget.question;
+    final l10n = AppLocalizations.of(context);
     final max = (q.ratingMax ?? 5).clamp(1, 10);
 
     return Column(
@@ -803,7 +1032,7 @@ class _QuestionCardState extends State<_QuestionCard> {
         Row(
           children: [
             Text(
-              'Stars',
+              l10n.starsLabel,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -828,7 +1057,7 @@ class _QuestionCardState extends State<_QuestionCard> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Correct answer (optional)',
+          l10n.correctAnswerOptional,
           style: TextStyle(
             fontSize: 12,
             color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -859,6 +1088,7 @@ class _QuestionCardState extends State<_QuestionCard> {
 
   Widget _buildRequiredRow(bool isDark) {
     final q = widget.question;
+    final l10n = AppLocalizations.of(context);
     final isRequired = q.isRequired;
     final hasScore = q.hasScore;
     final score = q.score;
@@ -874,7 +1104,7 @@ class _QuestionCardState extends State<_QuestionCard> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Required',
+              l10n.requiredLabel,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -897,7 +1127,7 @@ class _QuestionCardState extends State<_QuestionCard> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Assign Points',
+              l10n.assignPointsLabel,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -922,7 +1152,7 @@ class _QuestionCardState extends State<_QuestionCard> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  'Points (max 100): ',
+                  l10n.pointsMax100,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -946,6 +1176,7 @@ class _QuestionCardState extends State<_QuestionCard> {
   }
 
   Future<void> _insertImage() async {
+    final l10n = AppLocalizations.of(context);
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -988,23 +1219,24 @@ class _QuestionCardState extends State<_QuestionCard> {
       debugPrint('Image insertion error: $e\n$stackTrace');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to insert image: $e')),
+        SnackBar(content: Text('${l10n.failedToInsertImage}: $e')),
       );
     }
   }
 
   void _insertCode() {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
 
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.code_rounded),
-              SizedBox(width: 8),
-              Text('Insert Code'),
+              const Icon(Icons.code_rounded),
+              const SizedBox(width: 8),
+              Text(l10n.insertCodeTitle),
             ],
           ),
           content: SizedBox(
@@ -1017,7 +1249,7 @@ class _QuestionCardState extends State<_QuestionCard> {
                 fontSize: 13,
               ),
               decoration: InputDecoration(
-                hintText: '// Write or paste your code here...',
+                hintText: l10n.codePlaceholder,
                 filled: true,
                 fillColor: Colors.grey.shade100,
                 border: OutlineInputBorder(
@@ -1029,7 +1261,7 @@ class _QuestionCardState extends State<_QuestionCard> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1061,7 +1293,7 @@ class _QuestionCardState extends State<_QuestionCard> {
 
                 _focusNode.requestFocus();
               },
-              child: const Text('Insert'),
+              child: Text(l10n.insertLabel),
             ),
           ],
         );
@@ -1070,6 +1302,7 @@ class _QuestionCardState extends State<_QuestionCard> {
   }
 
   void _insertMath() {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
 
     showDialog<String>(
@@ -1078,11 +1311,11 @@ class _QuestionCardState extends State<_QuestionCard> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.functions_rounded),
-                  SizedBox(width: 8),
-                  Text('Mathematical Formula'),
+                  const Icon(Icons.functions_rounded),
+                  const SizedBox(width: 8),
+                  Text(l10n.mathFormulaTitle),
                 ],
               ),
               content: SizedBox(
@@ -1104,9 +1337,9 @@ class _QuestionCardState extends State<_QuestionCard> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Preview',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    Text(
+                      l10n.previewLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -1124,7 +1357,7 @@ class _QuestionCardState extends State<_QuestionCard> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -1132,7 +1365,7 @@ class _QuestionCardState extends State<_QuestionCard> {
                     if (raw.isEmpty) return;
                     Navigator.pop(dialogContext, cleanLatex(raw));
                   },
-                  child: const Text('Insert Formula'),
+                  child: Text(l10n.insertFormulaLabel),
                 ),
               ],
             );
@@ -1165,12 +1398,13 @@ class _QuestionCardState extends State<_QuestionCard> {
   }
 
   Widget _buildMathPreview(String input) {
+    final l10n = AppLocalizations.of(context);
     final expression = cleanLatex(input);
     if (expression.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Enter a LaTeX formula',
-          style: TextStyle(fontSize: 13),
+          l10n.enterLatexFormula,
+          style: const TextStyle(fontSize: 13),
         ),
       );
     }
@@ -1179,9 +1413,9 @@ class _QuestionCardState extends State<_QuestionCard> {
       fit: BoxFit.scaleDown,
       child: Math.tex(
         expression,
-        onErrorFallback: (error) => const Text(
-          'Invalid LaTeX formula',
-          style: TextStyle(
+        onErrorFallback: (error) => Text(
+          l10n.invalidLatexFormula,
+          style: const TextStyle(
             fontSize: 13,
             color: AppTheme.error,
           ),
@@ -1202,50 +1436,9 @@ class _TypeDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
-  String _label(QuestionType t) {
-    switch (t) {
-      case QuestionType.multipleChoice:
-        return 'Multiple Choice';
-      case QuestionType.shortText:
-        return 'Short Answer';
-      case QuestionType.longText:
-        return 'Essay';
-      case QuestionType.rating:
-        return 'Rating';
-      case QuestionType.yesNo:
-        return 'Yes / No';
-      case QuestionType.imageChoice:
-        return 'Image Choice';
-      case QuestionType.mathFormula:
-        return 'Math Formula';
-      case QuestionType.codeInput:
-        return 'Code Input';
-    }
-  }
-
-  IconData _icon(QuestionType t) {
-    switch (t) {
-      case QuestionType.multipleChoice:
-        return Icons.radio_button_checked;
-      case QuestionType.shortText:
-        return Icons.short_text_rounded;
-      case QuestionType.longText:
-        return Icons.subject_rounded;
-      case QuestionType.rating:
-        return Icons.star_outline_rounded;
-      case QuestionType.yesNo:
-        return Icons.check_circle_outline;
-      case QuestionType.imageChoice:
-        return Icons.image_outlined;
-      case QuestionType.mathFormula:
-        return Icons.functions_rounded;
-      case QuestionType.codeInput:
-        return Icons.code_rounded;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
@@ -1279,7 +1472,7 @@ class _TypeDropdown extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _label(t),
+                      _label(t, l10n),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -1293,6 +1486,48 @@ class _TypeDropdown extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _label(QuestionType t, AppLocalizations l10n) {
+    switch (t) {
+      case QuestionType.multipleChoice:
+        return l10n.qMultipleChoice;
+      case QuestionType.shortText:
+        return l10n.qShortAnswer;
+      case QuestionType.longText:
+        return l10n.qEssay;
+      case QuestionType.rating:
+        return l10n.qRating;
+      case QuestionType.yesNo:
+        return l10n.qYesNo;
+      case QuestionType.imageChoice:
+        return l10n.qImageChoice;
+      case QuestionType.mathFormula:
+        return l10n.qMathFormula;
+      case QuestionType.codeInput:
+        return l10n.qCodeInput;
+    }
+  }
+
+  IconData _icon(QuestionType t) {
+    switch (t) {
+      case QuestionType.multipleChoice:
+        return Icons.radio_button_checked;
+      case QuestionType.shortText:
+        return Icons.short_text_rounded;
+      case QuestionType.longText:
+        return Icons.subject_rounded;
+      case QuestionType.rating:
+        return Icons.star_outline_rounded;
+      case QuestionType.yesNo:
+        return Icons.check_circle_outline;
+      case QuestionType.imageChoice:
+        return Icons.image_outlined;
+      case QuestionType.mathFormula:
+        return Icons.functions_rounded;
+      case QuestionType.codeInput:
+        return Icons.code_rounded;
+    }
   }
 }
 
@@ -1343,6 +1578,7 @@ class _OptionEditorState extends State<_OptionEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -1382,7 +1618,7 @@ class _OptionEditorState extends State<_OptionEditor> {
                   : AppTheme.textPrimary,
             ),
             decoration: InputDecoration(
-              hintText: 'Option text',
+              hintText: l10n.optionTextHint,
               isDense: true,
               filled: true,
               fillColor:
@@ -1420,7 +1656,7 @@ class _OptionEditorState extends State<_OptionEditor> {
         if (widget.onDelete != null) ...[
           const SizedBox(width: 6),
           IconButton(
-            tooltip: 'Delete option',
+            tooltip: l10n.deleteOptionTooltip,
             onPressed: widget.onDelete,
             icon: const Icon(Icons.close_rounded, size: 18),
             color: AppTheme.textMuted,
@@ -1428,6 +1664,168 @@ class _OptionEditorState extends State<_OptionEditor> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ImageOptionEditor extends StatefulWidget {
+  final OptionModel option;
+  final bool isCorrect;
+  final bool isDark;
+  final void Function(String) onTextChanged;
+  final VoidCallback onCorrectTap;
+  final VoidCallback onPickImage;
+  final VoidCallback onRemoveImage;
+  final VoidCallback? onDelete;
+
+  const _ImageOptionEditor({
+    super.key,
+    required this.option,
+    required this.isCorrect,
+    required this.isDark,
+    required this.onTextChanged,
+    required this.onCorrectTap,
+    required this.onPickImage,
+    required this.onRemoveImage,
+    this.onDelete,
+  });
+
+  @override
+  State<_ImageOptionEditor> createState() => _ImageOptionEditorState();
+}
+
+class _ImageOptionEditorState extends State<_ImageOptionEditor> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.option.text);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ImageOptionEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.option.text != _controller.text) _controller.text = widget.option.text;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _hasImage => widget.option.imageUrl != null && widget.option.imageUrl!.isNotEmpty;
+  bool get _isDataUrl => _hasImage && widget.option.imageUrl!.startsWith('data:');
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: widget.isCorrect ? AppTheme.success.withValues(alpha: 0.06) : (widget.isDark ? AppTheme.darkSurface : Colors.white),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: widget.isCorrect ? AppTheme.success : (widget.isDark ? AppTheme.darkBorder : AppTheme.border), width: widget.isCorrect ? 1.8 : 1),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              InkWell(
+                onTap: widget.onCorrectTap,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.isCorrect ? AppTheme.success : Colors.transparent,
+                    border: Border.all(color: widget.isCorrect ? AppTheme.success : (widget.isDark ? AppTheme.darkBorder : AppTheme.border), width: 2),
+                  ),
+                  child: widget.isCorrect ? const Icon(Icons.check_rounded, size: 14, color: Colors.white) : null,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(widget.isCorrect ? (l10n.isIndonesian ? 'Jawaban Benar' : 'Correct Answer') : (l10n.isIndonesian ? 'Opsi Gambar' : 'Image Option'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: widget.isCorrect ? AppTheme.success : (widget.isDark ? AppTheme.darkTextMuted : AppTheme.textMuted))),
+              ),
+              if (widget.onDelete != null)
+                IconButton(tooltip: l10n.deleteOptionTooltip, onPressed: widget.onDelete, icon: const Icon(Icons.close_rounded, size: 18), color: AppTheme.textMuted, visualDensity: VisualDensity.compact),
+            ],
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: widget.onPickImage,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: double.infinity,
+                height: 140,
+                color: widget.isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
+                child: _hasImage
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _isDataUrl
+                              ? Image.memory(base64Decode(widget.option.imageUrl!.split(',').last), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)))
+                              : Image.network(widget.option.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined))),
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Row(
+                              children: [
+                                InkWell(
+                                  onTap: widget.onPickImage,
+                                  child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white)),
+                                ),
+                                const SizedBox(width: 6),
+                                InkWell(
+                                  onTap: widget.onRemoveImage,
+                                  child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.white)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 6,
+                            left: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: widget.isCorrect ? AppTheme.success : Colors.black54, borderRadius: BorderRadius.circular(8)),
+                              child: Text(widget.isCorrect ? '✓ ${l10n.isIndonesian ? "Benar" : "Correct"}' : l10n.isIndonesian ? 'Tap lingkaran untuk benar' : 'Tap circle for correct', style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_photo_alternate_outlined, size: 32, color: AppTheme.primary.withValues(alpha: 0.6)),
+                          const SizedBox(height: 6),
+                          Text(l10n.isIndonesian ? 'Tap untuk upload gambar' : 'Tap to upload image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary)),
+                          Text(l10n.isIndonesian ? 'JPG/PNG/WEBP maks 1 MB' : 'JPG/PNG/WEBP max 1 MB', style: TextStyle(fontSize: 10, color: widget.isDark ? AppTheme.darkTextMuted : AppTheme.textMuted)),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _controller,
+            onChanged: widget.onTextChanged,
+            style: TextStyle(fontSize: 13, color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary),
+            decoration: InputDecoration(
+              hintText: l10n.isIndonesian ? 'Label opsi (opsional)' : 'Option label (optional)',
+              isDense: true,
+              filled: true,
+              fillColor: widget.isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: widget.isDark ? AppTheme.darkBorder : AppTheme.border)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1511,6 +1909,7 @@ class _CodeFieldState extends State<_CodeField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return TextField(
       controller: _controller,
       maxLines: 6,
@@ -1520,7 +1919,7 @@ class _CodeFieldState extends State<_CodeField> {
         fontSize: 13,
       ),
       decoration: InputDecoration(
-        hintText: '// Write the starter code here...',
+        hintText: l10n.starterCodeHint,
         filled: true,
         fillColor: widget.isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
         border: OutlineInputBorder(
@@ -1681,10 +2080,11 @@ class _MathFieldState extends State<_MathField> {
   }
 
   Widget _buildPreview() {
+    final l10n = AppLocalizations.of(context);
     final expression = cleanLatex(_controller.text);
     if (expression.isEmpty) {
       return Text(
-        'Preview appears here',
+        l10n.previewPlaceholder,
         style: TextStyle(
           fontSize: 13,
           color: widget.isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -1695,9 +2095,9 @@ class _MathFieldState extends State<_MathField> {
       fit: BoxFit.scaleDown,
       child: Math.tex(
         expression,
-        onErrorFallback: (error) => const Text(
-          'Invalid LaTeX formula',
-          style: TextStyle(
+        onErrorFallback: (error) => Text(
+          l10n.invalidLatexFormula,
+          style: const TextStyle(
             fontSize: 13,
             color: AppTheme.error,
           ),

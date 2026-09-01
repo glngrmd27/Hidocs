@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -47,10 +49,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   bool _isManuallyGraded(QuestionModel q) {
-    return q.type == QuestionType.longText ||
-        q.type == QuestionType.shortText ||
-        q.type == QuestionType.codeInput ||
-        q.type == QuestionType.mathFormula;
+    return q.isScorable &&
+        (q.type == QuestionType.longText ||
+            q.type == QuestionType.shortText ||
+            q.type == QuestionType.codeInput ||
+            q.type == QuestionType.mathFormula);
   }
 
   bool _isFullyGraded(ResponseModel r) {
@@ -76,11 +79,22 @@ class _ResultsScreenState extends State<ResultsScreen> {
         .toList()
       ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
+    // Always recalculate percentage using the current form's maxScore
+    // so that non-scorable questions (e.g. rating) are always excluded,
+    // even for responses that were stored before the fix.
+    final formMax = widget.form.maxScore;
+
+    double calcPct(r) {
+      if (formMax <= 0) return 0;
+      final v = r.score / formMax * 100;
+      return v.clamp(0, 100);
+    }
+
     final total = responses.length;
 
     var avgScore = 0.0;
     if (total > 0) {
-      final sum = responses.fold<double>(0, (prev, r) => prev + r.percentage);
+      final sum = responses.fold<double>(0, (prev, r) => prev + calcPct(r));
       avgScore = sum / total;
     }
 
@@ -95,7 +109,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     var countUnder60 = 0;
 
     for (final r in responses) {
-      final p = r.percentage;
+      final p = calcPct(r);
       if (p >= 90) {
         count90_100++;
       } else if (p >= 75) {
@@ -596,11 +610,34 @@ class _ResultsScreenState extends State<ResultsScreen> {
         );
         return;
       }
-      final dir = await getTemporaryDirectory();
       final safeTitle = widget.form.title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
-      final file = File('${dir.path}/${safeTitle}_responses.xlsx');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'Export ${widget.form.title}'));
+      final fileName = '${safeTitle}_responses.xlsx';
+      if (kIsWeb) {
+        // Web: trigger browser download via anchor element
+        final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        html.Url.revokeObjectUrl(url);
+      } else {
+        // Mobile / Desktop: write to temp dir then share
+        String dirPath;
+        try {
+          final dir = await getTemporaryDirectory();
+          dirPath = dir.path;
+        } catch (_) {
+          try {
+            final dir = await getApplicationDocumentsDirectory();
+            dirPath = dir.path;
+          } catch (_) {
+            dirPath = '/sdcard/Download';
+          }
+        }
+        final file = File('$dirPath/$fileName');
+        await file.writeAsBytes(bytes);
+        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'Export ${widget.form.title}'));
+      }
       messenger.showSnackBar(
         SnackBar(
           content: const Row(children: [Icon(Icons.check_circle_rounded, color: Colors.white, size: 18), SizedBox(width: 8), Text('Excel berhasil diexport')]),
@@ -654,7 +691,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
-          header: (ctx) => pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          header: (ctx) => pw.Text(title, style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
           build: (ctx) => [
             pw.SizedBox(height: 8),
             pw.Text('Total Responses: ${responses.length}', style: const pw.TextStyle(fontSize: 10)),
@@ -671,13 +708,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   '${r.submittedAt.day}/${r.submittedAt.month}/${r.submittedAt.year}',
                 ];
               }).toList(),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+              headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
               cellStyle: const pw.TextStyle(fontSize: 7),
               headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
               cellAlignment: pw.Alignment.centerLeft,
             ),
             pw.SizedBox(height: 16),
-            pw.Text('Questions:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+            pw.Text('Questions:', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
             ...widget.form.questions.asMap().entries.map((en) => pw.Padding(
                   padding: const pw.EdgeInsets.only(top: 4),
                   child: pw.Text('${en.key + 1}. ${en.value.text} (${en.value.score.round()} pts)', style: const pw.TextStyle(fontSize: 8)),
@@ -688,11 +725,34 @@ class _ResultsScreenState extends State<ResultsScreen> {
       final Uint8List pdfBytes = await pdf.save();
       if (!context.mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-      final dir = await getTemporaryDirectory();
       final safeTitle = title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
-      final file = File('${dir.path}/${safeTitle}_responses.pdf');
-      await file.writeAsBytes(pdfBytes);
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'Export PDF $title'));
+      final fileName = '${safeTitle}_responses.pdf';
+      if (kIsWeb) {
+        // Web: trigger browser download via anchor element
+        final blob = html.Blob([pdfBytes], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        html.Url.revokeObjectUrl(url);
+      } else {
+        // Mobile / Desktop: write to temp dir then share
+        String dirPath;
+        try {
+          final dir = await getTemporaryDirectory();
+          dirPath = dir.path;
+        } catch (_) {
+          try {
+            final dir = await getApplicationDocumentsDirectory();
+            dirPath = dir.path;
+          } catch (_) {
+            dirPath = '/sdcard/Download';
+          }
+        }
+        final file = File('$dirPath/$fileName');
+        await file.writeAsBytes(pdfBytes);
+        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'Export PDF $title'));
+      }
       messenger.showSnackBar(
         SnackBar(
           content: const Row(children: [Icon(Icons.check_circle_rounded, color: Colors.white, size: 18), SizedBox(width: 8), Text('PDF berhasil diexport')]),

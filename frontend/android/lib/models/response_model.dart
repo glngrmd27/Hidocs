@@ -121,6 +121,8 @@ class ResponseModel {
     }
 
     final email = (json['respondent_email'] ?? '').toString();
+    final respondentId =
+        (json['user_id'] ?? json['respondent_id'] ?? '').toString();
     final submittedAt =
         DateTime.tryParse(json['submitted_at']?.toString() ?? '')
                 ?.toLocal() ??
@@ -134,7 +136,10 @@ class ResponseModel {
       id: (json['id'] ?? '').toString(),
       formId: (json['form_id'] ?? '').toString(),
       formTitle: form?.title ?? (json['form_title'] ?? '').toString(),
-      respondentName: nameFromEmail(email),
+      respondentId: respondentId,
+      respondentName: (json['respondent_name'] ?? '').toString().isNotEmpty
+          ? (json['respondent_name'] as String)
+          : nameFromEmail(email),
       respondentEmail: email,
       startedAt: submittedAt,
       submittedAt: submittedAt,

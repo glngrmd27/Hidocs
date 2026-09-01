@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 class AboutScreen extends StatelessWidget {
   final bool isCreatorMode;
@@ -13,9 +14,11 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("About HiDocs"),
+        title: Text(l10n.aboutTitle),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -55,74 +58,79 @@ class AboutScreen extends StatelessWidget {
 
             const SizedBox(height: 6),
 
-            const _SectionCard(
-              title: "About",
+            _SectionCard(
+              title: l10n.aboutSectionTitle,
               child: Text(
-                "HiDocs! (Form & Exam Maker) is a multi-platform application (Web & Mobile) that provides an efficient solution for creating, managing, and completing digital forms, quizzes, and online exams. The platform features two user modes: Creator Mode for designing forms, managing questions, and analyzing responses, and User Mode for accessing forms via links or QR Codes, submitting answers, and viewing submission history."
+                l10n.aboutDescription,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary,
+                ),
               ),
             ),
 
             const SizedBox(height: 16),
 
             _SectionCard(
-            title: isCreatorMode ? "Creator Features" : "User Features",
-            child: Column(
+              title: isCreatorMode ? l10n.creatorFeatures : l10n.userFeatures,
+              child: Column(
                 children: isCreatorMode
-                    ? const [
+                    ? [
                         _FeatureTile(
-                        Icons.add_box_rounded,
-                        "Create & Manage Forms",
+                          Icons.add_box_rounded,
+                          l10n.featCreateManageForms,
                         ),
                         _FeatureTile(
-                        Icons.quiz_outlined,
-                        "Manage Questions",
+                          Icons.quiz_outlined,
+                          l10n.featManageQuestions,
                         ),
                         _FeatureTile(
-                        Icons.qr_code_rounded,
-                        "Generate Link & QR Code",
+                          Icons.qr_code_rounded,
+                          l10n.featGenerateQr,
                         ),
                         _FeatureTile(
-                        Icons.bar_chart_rounded,
-                        "View Responses",
+                          Icons.bar_chart_rounded,
+                          l10n.featViewResponses,
                         ),
                         _FeatureTile(
-                        Icons.grading_rounded,
-                        "Review & Grade Answers",
+                          Icons.grading_rounded,
+                          l10n.featReviewGrade,
                         ),
                         _FeatureTile(
-                        Icons.download_rounded,
-                        "Export Results",
+                          Icons.download_rounded,
+                          l10n.featExportResults,
                         ),
-                    ]
-                    : const [
+                      ]
+                    : [
                         _FeatureTile(
-                        Icons.qr_code_scanner_rounded,
-                        "Access Forms via Link or QR Code",
-                        ),
-                        _FeatureTile(
-                        Icons.assignment_outlined,
-                        "Fill Out Forms",
+                          Icons.qr_code_scanner_rounded,
+                          l10n.featAccessViaQr,
                         ),
                         _FeatureTile(
-                        Icons.history_rounded,
-                        "View Submission History",
+                          Icons.assignment_outlined,
+                          l10n.featFillForms,
                         ),
                         _FeatureTile(
-                        Icons.check_circle_outline_rounded,
-                        "One-Time Submission",
+                          Icons.history_rounded,
+                          l10n.featViewHistory,
                         ),
                         _FeatureTile(
-                        Icons.dark_mode_rounded,
-                        "Light & Dark Mode",
+                          Icons.check_circle_outline_rounded,
+                          l10n.featOneTimeSubmit,
                         ),
-                    ],
-                ),
+                        _FeatureTile(
+                          Icons.dark_mode_rounded,
+                          l10n.featLightDarkMode,
+                        ),
+                      ],
+              ),
             ),
 
             const SizedBox(height: 16),
 
             Text(
-              "Thank you for using HiDocs!",
+              l10n.thankYouUsing,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: isDark

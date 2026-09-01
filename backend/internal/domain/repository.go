@@ -55,6 +55,7 @@ type ResponseRepository interface {
 	CreateResponse(ctx context.Context, resp *FormResponse) error
 	GetResponseByID(ctx context.Context, id uuid.UUID) (*FormResponse, error)
 	GetResponsesByFormID(ctx context.Context, formID uuid.UUID) ([]FormResponse, error)
+	GetResponsesByEmail(ctx context.Context, email string) ([]FormResponse, error)
 	CheckUserAlreadySubmitted(ctx context.Context, formID uuid.UUID, email string) (bool, error)
 	UpdateResponseGrade(ctx context.Context, responseID uuid.UUID, totalScore float64) error
 	

@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../providers/form_provider.dart';
 import '../providers/response_provider.dart';
 import '../widgets/custom_card.dart';
+import '../l10n/app_localizations.dart';
 import 'history_detail_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
@@ -18,6 +19,7 @@ class HistoryScreen extends StatelessWidget {
     final auth = Provider.of<AuthProvider>(context);
     final formProvider = Provider.of<FormProvider>(context);
     final responseProvider = Provider.of<ResponseProvider>(context);
+    final l10n = AppLocalizations.of(context);
 
     final userId = auth.currentUser?.id ?? '';
 
@@ -26,23 +28,17 @@ class HistoryScreen extends StatelessWidget {
         .toList()
       ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
-    // Visibility is dummy (backend has no column); always show history.
-    // Score badge itself is still guarded by hasScore.
-    final visibleResponses = responses.where((r) {
-      final form = formProvider.getFormById(r.formId);
-      return form != null;
-    }).toList();
+    final visibleResponses = responses;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History'),
+        title: Text(l10n.history),
       ),
       body: visibleResponses.isEmpty
-          ? const _EmptyState(
+          ? _EmptyState(
               icon: Icons.history_rounded,
-              title: 'No submission history',
-              subtitle:
-                  'Forms you have submitted will appear here',
+              title: l10n.noSubmissionHistory,
+              subtitle: l10n.noSubmissionHistoryDesc,
             )
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(
@@ -58,19 +54,29 @@ class HistoryScreen extends StatelessWidget {
                   response.formId,
                 );
 
-                if (form == null) {
+                if (form == null && response.formTitle.isEmpty) {
                   return const SizedBox.shrink();
                 }
 
+                final displayForm = form ??
+                    FormModel(
+                      id: response.formId,
+                      title: response.formTitle,
+                      creatorId: '',
+                      scheduledOpen: response.submittedAt,
+                      scheduledClose: response.submittedAt,
+                      createdAt: response.submittedAt,
+                    );
+
                 return _HistoryCard(
-                  form: form,
+                  form: displayForm,
                   response: response,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => HistoryDetailScreen(
-                          form: form,
+                          form: displayForm,
                           response: response,
                         ),
                       ),
@@ -104,6 +110,7 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark =
         Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     final primaryTextColor = isDark
         ? AppTheme.darkTextPrimary
@@ -191,18 +198,18 @@ class _HistoryCard extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.check_circle_outline,
                             size: 15,
                             color: AppTheme.success,
                           ),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
-                            'Submitted',
-                            style: TextStyle(
+                            l10n.submitted,
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: AppTheme.success,
@@ -225,7 +232,7 @@ class _HistoryCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          'Score ${response.percentage.round()}%',
+                          '${l10n.score} ${response.percentage.round()}%',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,

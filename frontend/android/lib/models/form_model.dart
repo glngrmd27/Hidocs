@@ -6,10 +6,16 @@ enum ResultVisibility {
   resultAndScore,
 }
 
+enum FormType {
+  survey,
+  exam,
+}
+
 class FormModel {
   final String id;
   final String title;
   final String creatorId;
+  final FormType formType;
 
   final String shortLink;
   final String customLinkAlias;
@@ -24,7 +30,7 @@ class FormModel {
   final bool shuffleQuestions;
   final bool shuffleOptions;
   final bool oneTimeOnly;
-  final bool isActive;
+  final bool _rawIsActive;
 
   final ResultVisibility resultVisibility;
 
@@ -37,6 +43,7 @@ class FormModel {
     required this.id,
     required this.title,
     required this.creatorId,
+    this.formType = FormType.survey,
     this.shortLink = '',
     this.customLinkAlias = '',
     required this.scheduledOpen,
@@ -46,12 +53,25 @@ class FormModel {
     this.shuffleQuestions = false,
     this.shuffleOptions = false,
     this.oneTimeOnly = true,
-    this.isActive = true,
+    bool isActive = true,
     this.resultVisibility = ResultVisibility.hidden,
     List<QuestionModel>? questions,
     this.totalResponses = 0,
     required this.createdAt,
-  }) : questions = questions ?? [];
+  })  : _rawIsActive = isActive,
+        questions = questions ?? [];
+
+  bool get rawIsActive => _rawIsActive;
+
+  bool get isExpired => isScheduled && DateTime.now().isAfter(scheduledClose);
+
+  bool get isActive {
+    if (!_rawIsActive) return false;
+    if (isScheduled && DateTime.now().isAfter(scheduledClose)) {
+      return false;
+    }
+    return true;
+  }
 
   String get fullLink => customLinkAlias.isNotEmpty
       ? 'hidocs.app/f/$customLinkAlias'
@@ -62,8 +82,17 @@ class FormModel {
   double get maxScore {
     var total = 0.0;
     for (final q in questions) {
+      if (!q.isScorable) continue;
       if (q.hasScore || q.score > 0) {
         total += q.score;
+      } else if (q.type == QuestionType.longText ||
+          q.type == QuestionType.shortText ||
+          q.type == QuestionType.codeInput ||
+          q.type == QuestionType.mathFormula) {
+        // Essay/manual tanpa poin tetap dihitung 10 poin agar manual grading
+        // bisa dinilai. Tanpa fallback ini maxScore=0 sehingga clamp di
+        // response_detail mengunci total ke 0 dan essai terlihat gak bisa di-grade.
+        total += 10;
       }
     }
     return total;
@@ -75,10 +104,13 @@ class FormModel {
   bool get hasTimer =>
       timerMinutes > 0;
 
+  bool get isExam => formType == FormType.exam || hasTimer || typeForApi == 'EXAM';
+  bool get isSurvey => !isExam;
+
   Duration get scheduleDuration =>
       scheduledClose.difference(scheduledOpen);
 
-  String get typeForApi => hasTimer ? 'EXAM' : 'SURVEY';
+  String get typeForApi => (formType == FormType.exam || hasTimer) ? 'EXAM' : 'SURVEY';
 
   factory FormModel.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic> settings =
@@ -92,11 +124,20 @@ class FormModel {
         DateTime.tryParse(settings['end_time']?.toString() ?? '')?.toLocal();
 
     final now = DateTime.now();
-    // Default window 1 day if backend returns null (new form / import word)
     final defaultOpen = now;
     final defaultClose = now.add(const Duration(days: 1));
 
-    final status = (json['status'] ?? '').toString();
+    final rawStatus = (json['status'] ?? settings['status'] ?? '').toString().toUpperCase();
+    final dynamic isActiveVal = json['is_active'] ?? settings['is_active'];
+    
+    bool parsedIsActive = true;
+    if (isActiveVal is bool) {
+      parsedIsActive = isActiveVal;
+    } else if (rawStatus == 'CLOSED' || rawStatus == 'INACTIVE' || rawStatus == 'FALSE' || rawStatus == '0') {
+      parsedIsActive = false;
+    } else if (isActiveVal == false || isActiveVal == 0 || isActiveVal == 'false' || isActiveVal == '0') {
+      parsedIsActive = false;
+    }
 
     final accessMode = (json['access_mode'] ??
             settings['access_mode'] ??
@@ -105,22 +146,30 @@ class FormModel {
 
     final isPublic = accessMode == 'public';
 
+    final rawType = (json['type'] ?? settings['type'] ?? '').toString().toUpperCase();
+    final parsedDuration = settings['duration_minutes'] is num
+        ? ((settings['duration_minutes'] as num).toInt()).clamp(0, 100000)
+        : 0;
+
+    final parsedFormType = (rawType == 'EXAM' || parsedDuration > 0)
+        ? FormType.exam
+        : FormType.survey;
+
     return FormModel(
       id: (json['id'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
       creatorId: (json['user_id'] ?? '').toString(),
+      formType: parsedFormType,
       shortLink: (json['custom_url'] ?? '').toString(),
       customLinkAlias: (json['custom_url'] ?? '').toString(),
       scheduledOpen: startTime ?? defaultOpen,
       scheduledClose: endTime ?? defaultClose,
-      timerMinutes: settings['duration_minutes'] is num
-          ? ((settings['duration_minutes'] as num).toInt()).clamp(0, 100000)
-          : 0,
+      timerMinutes: parsedDuration,
       isPublic: isPublic,
       shuffleQuestions: settings['randomize_questions'] == true,
       shuffleOptions: settings['randomize_options'] == true,
       oneTimeOnly: settings['is_one_time_submission'] == true,
-      isActive: status == 'ACTIVE',
+      isActive: parsedIsActive,
       questions: json['questions'] is List
           ? (json['questions'] as List)
                 .whereType<Map>()
@@ -141,6 +190,7 @@ class FormModel {
       id: id,
       title: title,
       creatorId: creatorId,
+      formType: formType,
       shortLink: slug,
       customLinkAlias: slug,
       scheduledOpen: scheduledOpen,
@@ -186,10 +236,9 @@ class FormModel {
   }
 
   Map<String, dynamic> toSettingsJson() {
-    // Only send schedule if isScheduled (open != close). Otherwise send null
-    // so backend keeps StartTime/EndTime = nil -> no "time limit has passed"
     final bool hasSchedule = isScheduled && scheduledClose.isAfter(scheduledOpen);
     return {
+      'type': typeForApi,
       'duration_minutes': hasTimer ? timerMinutes : null,
       'auto_active_days': 30,
       'is_active_immediately': true,
@@ -204,6 +253,7 @@ class FormModel {
 
 FormModel copyFormModel(
   FormModel source, {
+  FormType? formType,
   bool? isPublic,
   bool? isActive,
   ResultVisibility? resultVisibility,
@@ -212,6 +262,7 @@ FormModel copyFormModel(
     id: source.id,
     title: source.title,
     creatorId: source.creatorId,
+    formType: formType ?? source.formType,
     shortLink: source.shortLink,
     customLinkAlias: source.customLinkAlias,
     scheduledOpen: source.scheduledOpen,
@@ -221,7 +272,7 @@ FormModel copyFormModel(
     shuffleQuestions: source.shuffleQuestions,
     shuffleOptions: source.shuffleOptions,
     oneTimeOnly: source.oneTimeOnly,
-    isActive: isActive ?? source.isActive,
+    isActive: isActive ?? source.rawIsActive,
     resultVisibility:
         resultVisibility ?? source.resultVisibility,
     questions: source.questions,

@@ -228,3 +228,43 @@ func (h *FormHandler) ImportDocx(c *gin.Context) {
 
 	response.Created(c, "Form imported successfully from Word document", form)
 }
+
+// ImportExcel godoc
+// @Summary Import form from Excel .xlsx or .csv file
+// @Tags Forms
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "Excel Spreadsheet (.xlsx / .csv)"
+// @Success 201 {object} response.APIResponse{data=dto.FormResponseDTO}
+// @Router /api/v1/forms/import-excel [post]
+func (h *FormHandler) ImportExcel(c *gin.Context) {
+	claims := c.MustGet(middleware.UserContextKey).(*security.JWTClaims)
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		response.BadRequest(c, "File is required", err)
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		response.BadRequest(c, "Failed to open file", err)
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		response.BadRequest(c, "Failed to read file", err)
+		return
+	}
+
+	form, err := h.docxService.ImportFormFromExcel(c.Request.Context(), claims.UserID, fileBytes)
+	if err != nil {
+		response.BadRequest(c, err.Error(), err)
+		return
+	}
+
+	response.Created(c, "Form imported successfully from Excel spreadsheet", form)
+}

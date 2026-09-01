@@ -16,5 +16,5 @@ func GenerateSlug(title string) string {
 	if slug == "" {
 		return "form-" + RandomString(6)
 	}
-	return slug
+	return slug + "-" + RandomString(6)
 }

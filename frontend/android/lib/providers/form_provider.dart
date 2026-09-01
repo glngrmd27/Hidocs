@@ -33,11 +33,25 @@ class FormProvider extends ChangeNotifier {
     return _deletedFormIds;
   }
 
+  String _currentUserId = '';
+
+  void updateUser(String userId) {
+    if (_currentUserId != userId) {
+      _currentUserId = userId;
+      _loadSubmitted();
+    }
+  }
+
   Future<void> _loadSubmitted() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final ids = prefs.getStringList('submitted_forms') ?? [];
-      _submittedForms.addAll(ids);
+      final key = _currentUserId.isNotEmpty
+          ? 'submitted_forms_$_currentUserId'
+          : 'submitted_forms';
+      final ids = prefs.getStringList(key) ?? [];
+      _submittedForms
+        ..clear()
+        ..addAll(ids);
       await _getDeletedIds();
       _forms.removeWhere((f) => _deletedFormIds.contains(f.id));
       notifyListeners();
@@ -47,7 +61,10 @@ class FormProvider extends ChangeNotifier {
   Future<void> _saveSubmitted() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('submitted_forms', _submittedForms.toList());
+      final key = _currentUserId.isNotEmpty
+          ? 'submitted_forms_$_currentUserId'
+          : 'submitted_forms';
+      await prefs.setStringList(key, _submittedForms.toList());
     } catch (_) {}
   }
 
@@ -66,7 +83,43 @@ class FormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadForms() async {
+  void clearUserCache() {
+    _currentUserId = '';
+    _submittedForms.clear();
+    _forms.clear();
+    notifyListeners();
+  }
+
+  DateTime? _lastFetchTime;
+  static const Duration _cacheDuration = Duration(seconds: 30);
+  static const Duration _minRefreshInterval = Duration(seconds: 15);
+  Future<void>? _activeLoadFuture;
+
+  Future<void> loadForms({bool forceRefresh = false}) async {
+    if (_activeLoadFuture != null) {
+      return _activeLoadFuture!;
+    }
+
+    final now = DateTime.now();
+    if (_lastFetchTime != null) {
+      final elapsed = now.difference(_lastFetchTime!);
+      if (!forceRefresh && elapsed < _cacheDuration) {
+        return;
+      }
+      if (forceRefresh && elapsed < _minRefreshInterval) {
+        return;
+      }
+    }
+
+    _activeLoadFuture = _performLoadForms();
+    try {
+      await _activeLoadFuture;
+    } finally {
+      _activeLoadFuture = null;
+    }
+  }
+
+  Future<void> _performLoadForms() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -83,6 +136,7 @@ class FormProvider extends ChangeNotifier {
             list.whereType<Map>().map((e) => FormModel.fromJson({...e})));
       _forms.removeWhere((f) => deletedIds.contains(f.id));
 
+      _lastFetchTime = DateTime.now();
       _isLoading = false;
     } on ApiException catch (e) {
       _error = e.message;
@@ -94,6 +148,44 @@ class FormProvider extends ChangeNotifier {
 
     _forms.removeWhere((f) => deletedIds.contains(f.id));
     notifyListeners();
+
+    // Auto-close: jika waktu tutup sudah lewat tapi raw masih aktif,
+    // update lokal langsung dan sinkron ke server (best-effort)
+    await _autoCloseExpiredForms();
+  }
+
+  /// Sinkronisasi form yang sudah expired ke server agar status konsisten.
+  /// Dipanggil setelah loadForms dan juga dari UI lifecycle (resume / periodic).
+  Future<void> syncExpiredForms() async {
+    await _autoCloseExpiredForms();
+    // Rebuild UI even if no server sync needed, karena getter isActive
+    // bergantung pada DateTime.now() dan perlu refresh pill.
+    notifyListeners();
+  }
+
+  Future<void> _autoCloseExpiredForms() async {
+    final expired = _forms.where((f) => f.isExpired && f.rawIsActive).toList();
+    if (expired.isEmpty) return;
+
+    // Update lokal dulu agar Dashboard langsung tampil Tutup
+    for (final f in expired) {
+      final idx = _forms.indexWhere((e) => e.id == f.id);
+      if (idx < 0) continue;
+      _forms[idx] = copyFormModel(f, isActive: false);
+    }
+    notifyListeners();
+
+    // Fire-and-forget sync ke backend (jangan blok UI lama)
+    for (final f in expired) {
+      try {
+        await ApiClient.put(
+          '/forms/${f.id}',
+          body: copyFormModel(f, isActive: false).toUpdateJson(),
+        );
+      } catch (_) {
+        // best-effort; tetap tampil Tutup secara lokal
+      }
+    }
   }
 
   Future<FormModel?> loadFormDetail(String formId) async {
@@ -181,6 +273,8 @@ class FormProvider extends ChangeNotifier {
             (creatorId.isEmpty || f.creatorId.isEmpty || f.creatorId == creatorId))
         .toList();
   }
+
+  bool isFormDeleted(String formId) => _deletedFormIds.contains(formId);
 
   FormModel? getFormById(String formId) {
     if (_deletedFormIds.contains(formId)) return null;
@@ -286,23 +380,55 @@ class FormProvider extends ChangeNotifier {
         body: current.toSettingsJson(),
       );
 
+      // Preserve existing question IDs jika form sudah memiliki respons
+      // agar jawaban user tidak hilang. Jangan delete-recreate semua.
       final existing = await ApiClient.get('/forms/${form.id}/questions');
-
+      final existingById = <String, Map<String, dynamic>>{};
       if (existing is List) {
         for (final q in existing.whereType<Map>()) {
           final qid = (q['id'] ?? '').toString();
-          if (qid.isNotEmpty) {
+          if (qid.isNotEmpty) existingById[qid] = Map<String, dynamic>.from(q);
+        }
+      }
+
+      final currentIds = current.questions.map((q) => q.id).toSet();
+
+      // Hapus hanya yang benar-benar dihapus creator
+      for (final qid in existingById.keys) {
+        if (!currentIds.contains(qid)) {
+          try {
             await ApiClient.delete('/questions/$qid');
-          }
+          } catch (_) {}
         }
       }
 
       var orderIndex = 1;
       for (final question in current.questions) {
-        await ApiClient.post(
-          '/forms/${form.id}/questions',
-          body: question.toQuestionJson(orderIndex: orderIndex),
-        );
+        final isExistingUuid = RegExp(
+          r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+          caseSensitive: false,
+        ).hasMatch(question.id);
+
+        if (isExistingUuid && existingById.containsKey(question.id)) {
+          // Update preserve ID → jawaban lama tetap terhubung
+          try {
+            await ApiClient.put(
+              '/questions/${question.id}',
+              body: question.toQuestionJson(orderIndex: orderIndex),
+            );
+          } catch (_) {
+            // fallback create jika gagal
+            await ApiClient.post(
+              '/forms/${form.id}/questions',
+              body: question.toQuestionJson(orderIndex: orderIndex),
+            );
+          }
+        } else {
+          await ApiClient.post(
+            '/forms/${form.id}/questions',
+            body: question.toQuestionJson(orderIndex: orderIndex),
+          );
+        }
         orderIndex++;
       }
 
@@ -490,35 +616,45 @@ class FormProvider extends ChangeNotifier {
     Uint8List? fileBytes,
     String? fileName,
   }) async {
+    return _importFile(
+      apiCall: () => ApiClient.importDocx(
+        filePath: filePath,
+        fileBytes: fileBytes,
+        fileName: fileName,
+      ),
+    );
+  }
+
+  /// Import form from .xlsx or .csv file. Returns the created [FormModel] on success.
+  Future<FormModel?> importExcel({
+    String? filePath,
+    Uint8List? fileBytes,
+    String? fileName,
+  }) async {
+    return _importFile(
+      apiCall: () => ApiClient.importExcel(
+        filePath: filePath,
+        fileBytes: fileBytes,
+        fileName: fileName,
+      ),
+    );
+  }
+
+  Future<FormModel?> _importFile({
+    required Future<dynamic> Function() apiCall,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final data = await ApiClient.importDocx(
-        filePath: filePath,
-        fileBytes: fileBytes,
-        fileName: fileName,
-      );
+      final data = await apiCall();
 
       if (data is Map) {
         final form = FormModel.fromJson(Map<String, dynamic>.from(data));
 
-        // Add to local list immediately for instant UI feedback.
-        final idx = _forms.indexWhere((f) => f.id == form.id);
-        if (idx >= 0) {
-          _forms[idx] = form;
-        } else {
-          _forms.insert(0, form);
-        }
-
         _isLoading = false;
         notifyListeners();
-
-        // Sync with server list in background.
-        try {
-          await loadForms();
-        } catch (_) {}
 
         return form;
       }

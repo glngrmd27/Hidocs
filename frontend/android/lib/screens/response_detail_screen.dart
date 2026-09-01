@@ -34,13 +34,22 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
 
   bool get _hasGradable => widget.form.questions.any(_isManuallyGraded);
 
+  int get _gradableCount => widget.form.questions.where(_isManuallyGraded).length;
+
+  int get _gradedCount => widget.form.questions
+      .where(_isManuallyGraded)
+      .where((q) => _grades.containsKey(q.id))
+      .length;
+
   double get _maxScore => widget.form.maxScore;
 
   bool _isManuallyGraded(QuestionModel q) {
-    return q.type == QuestionType.longText ||
-        q.type == QuestionType.shortText ||
-        q.type == QuestionType.codeInput ||
-        q.type == QuestionType.mathFormula;
+    // Must be scorable (not a rating/survey-only type) AND require human review
+    return q.isScorable &&
+        (q.type == QuestionType.longText ||
+            q.type == QuestionType.shortText ||
+            q.type == QuestionType.codeInput ||
+            q.type == QuestionType.mathFormula);
   }
 
   double _questionWeight(QuestionModel q) {
@@ -255,11 +264,11 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                _maxScore > 0
-                    ? 'Score saved: ${_total.round()}/${_maxScore.round()}'
-                    : 'Score saved successfully',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
+                  _maxScore > 0
+                      ? 'Score saved: ${_total.round()}/${_maxScore.round()}'
+                      : 'Score saved successfully',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
             ],
           ),
           backgroundColor: AppTheme.success,
@@ -343,12 +352,7 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
                   label: 'Submitted',
                   value: _formatDateTime(widget.response.submittedAt),
                 ),
-                const SizedBox(height: 8),
-                _HeaderRow(
-                  icon: Icons.timer_outlined,
-                  label: 'Duration',
-                  value: widget.response.durationText,
-                ),
+
               ],
             ),
           ),
@@ -376,9 +380,11 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  _maxScore > 0
-                      ? '${_total.toInt()} / ${_maxScore.round()}'
-                      : '${_total.toInt()}',
+                  _gradableCount > 0
+                      ? '$_gradedCount / $_gradableCount'
+                      : (_maxScore > 0
+                          ? '${_total.toInt()} / ${_maxScore.round()}'
+                          : '${_total.toInt()}'),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -475,15 +481,16 @@ class _ResponseDetailScreenState extends State<ResponseDetailScreen> {
             ),
           ],
 
-          const SizedBox(height: 24),
-
-          GradientButton(
-            text: _isSaving ? 'Saving...' : 'Save Score',
-            onPressed: _save,
-            isLoading: _isSaving,
-            fullWidth: true,
-            icon: Icons.save_rounded,
-          ),
+          if (_hasGradable) ...[
+            const SizedBox(height: 24),
+            GradientButton(
+              text: _isSaving ? 'Saving...' : 'Save Score',
+              onPressed: _save,
+              isLoading: _isSaving,
+              fullWidth: true,
+              icon: Icons.save_rounded,
+            ),
+          ],
         ],
       ),
     );

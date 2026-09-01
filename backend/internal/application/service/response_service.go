@@ -12,6 +12,7 @@ import (
 type ResponseService interface {
 	SubmitResponse(ctx context.Context, formID uuid.UUID, req dto.SubmitFormRequest) (*dto.SubmitResponseResult, error)
 	GetFormResponses(ctx context.Context, userID uuid.UUID, formID uuid.UUID) ([]dto.ResponseDetailDTO, error)
+	GetMySubmissions(ctx context.Context, email string) ([]dto.ResponseDetailDTO, error)
 	GetResponseByID(ctx context.Context, userID uuid.UUID, responseID uuid.UUID) (*dto.ResponseDetailDTO, error)
 	GradeResponse(ctx context.Context, userID uuid.UUID, responseID uuid.UUID, req dto.GradeResponseRequest) error
 	GetAnalytics(ctx context.Context, userID uuid.UUID, formID uuid.UUID) (*domain.FormAnalytics, error)
@@ -134,6 +135,19 @@ func (s *responseService) GetFormResponses(ctx context.Context, userID uuid.UUID
 	}
 
 	responses, err := s.responseRepo.GetResponsesByFormID(ctx, formID)
+	if err != nil {
+		return nil, err
+	}
+
+	var dtos []dto.ResponseDetailDTO
+	for _, r := range responses {
+		dtos = append(dtos, *s.mapResponseToDTO(&r))
+	}
+	return dtos, nil
+}
+
+func (s *responseService) GetMySubmissions(ctx context.Context, email string) ([]dto.ResponseDetailDTO, error) {
+	responses, err := s.responseRepo.GetResponsesByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}

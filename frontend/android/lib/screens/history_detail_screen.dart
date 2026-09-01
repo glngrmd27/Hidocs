@@ -11,6 +11,7 @@ import '../providers/response_provider.dart';
 import '../widgets/math_formula_widget.dart';
 import '../widgets/code_block_widget.dart';
 import '../widgets/rich_text_view.dart';
+import '../l10n/app_localizations.dart';
 
 class HistoryDetailScreen extends StatefulWidget {
   final FormModel form;
@@ -137,6 +138,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     final primaryTextColor = isDark
         ? AppTheme.darkTextPrimary
@@ -155,7 +157,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
       appBar: AppBar(
-        title: const Text('History Detail'),
+        title: Text(l10n.historyDetailTitle),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
@@ -185,7 +187,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                 const SizedBox(height: 12),
                 _HeaderRow(
                   icon: Icons.person_outline_rounded,
-                  label: 'Respondent',
+                  label: l10n.respondent,
                   value: _response.respondentName,
                 ),
                 const SizedBox(height: 8),
@@ -197,13 +199,13 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                 const SizedBox(height: 8),
                 _HeaderRow(
                   icon: Icons.calendar_today_outlined,
-                  label: 'Submitted',
+                  label: l10n.submittedAt,
                   value: _formatDateTime(_response.submittedAt),
                 ),
                 const SizedBox(height: 8),
                 _HeaderRow(
                   icon: Icons.timer_outlined,
-                  label: 'Duration',
+                  label: l10n.duration,
                   value: _response.durationText,
                 ),
                 if (showScore && hasScore) ...[
@@ -217,7 +219,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Score: ${_response.percentage.round()}%',
+                        '${l10n.score}: ${_response.percentage.round()}%',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -232,7 +234,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Your Answers',
+            l10n.yourAnswers,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -327,6 +329,7 @@ class _AnswerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final primaryTextColor = isDark
         ? AppTheme.darkTextPrimary
         : AppTheme.textPrimary;
@@ -401,7 +404,7 @@ class _AnswerCard extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           Text(
-            'Answer',
+            l10n.answerLabel,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -448,7 +451,7 @@ class _AnswerCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Graded: ${grade! % 1 == 0 ? grade!.round() : grade!}/100',
+                    '${l10n.gradedLabel}: ${grade! % 1 == 0 ? grade!.round() : grade!}/100',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,

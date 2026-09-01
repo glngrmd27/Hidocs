@@ -40,6 +40,11 @@ func (s *formService) CreateForm(ctx context.Context, userID uuid.UUID, req dto.
 	customURL := req.CustomURL
 	if customURL == "" {
 		customURL = utils.GenerateSlug(req.Title)
+	} else {
+		// If user custom_url is already taken or duplicate, fallback with random suffix
+		if existing, err := s.formRepo.GetByCustomURL(ctx, customURL); err == nil && existing != nil {
+			customURL = customURL + "-" + utils.RandomString(4)
+		}
 	}
 
 	form := &domain.Form{

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../providers/form_provider.dart';
 import '../providers/auth_provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/form_model.dart';
 import '../models/question_model.dart';
 import '../services/question_image_renderer.dart';
@@ -13,8 +14,15 @@ import '../widgets/settings_tab.dart';
 
 class CreateFormScreen extends StatefulWidget {
   final FormModel? existingForm;
+  final List<QuestionModel>? initialQuestions;
+  final int initialTabIndex;
 
-  const CreateFormScreen({this.existingForm, super.key});
+  const CreateFormScreen({
+    this.existingForm,
+    this.initialQuestions,
+    this.initialTabIndex = 0,
+    super.key,
+  });
 
   bool get isEditing => existingForm != null;
 
@@ -43,8 +51,10 @@ class _CreateFormScreenState extends State<CreateFormScreen>
   bool _shuffleO = false;
   bool _oneTime = true;
   bool _isActive = true;
+  int _durationLimitMinutes = 0;
 
   bool _isPublic = true;
+  FormType _formType = FormType.survey;
 
   ResultVisibility _resultVisibility =
       ResultVisibility.hidden;
@@ -94,13 +104,17 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       _oneTime = existing.oneTimeOnly;
       _isActive = existing.isActive;
       _isPublic = existing.isPublic;
+      _formType = existing.formType;
       _resultVisibility = existing.resultVisibility;
       _questions.addAll(existing.questions);
+    } else if (widget.initialQuestions != null && widget.initialQuestions!.isNotEmpty) {
+      _questions.addAll(widget.initialQuestions!);
     }
 
     _tabCtrl = TabController(
       length: 3,
       vsync: this,
+      initialIndex: widget.initialTabIndex,
     );
   }
 
@@ -132,18 +146,10 @@ class _CreateFormScreenState extends State<CreateFormScreen>
     );
   }
 
-  Duration get _timerDuration {
-    final duration = _closeDateTime.difference(
-      _openDateTime,
-    );
 
-    return duration.isNegative
-        ? Duration.zero
-        : duration;
-  }
 
   int get _timerMinutes {
-    return _timerDuration.inMinutes;
+    return _durationLimitMinutes;
   }
 
   void _addQuestion(QuestionType type) {
@@ -305,10 +311,11 @@ class _CreateFormScreenState extends State<CreateFormScreen>
                     const SizedBox(height: 18),
                     Text(
                       total == 0
-                          ? 'Preparing question images...'
+                          ? AppLocalizations.of(context).prepQuestionImages
                           : done >= total
-                              ? 'Finishing up...'
-                              : 'Converting questions to images ($done/$total)',
+                              ? AppLocalizations.of(context).finishingUp
+                              : AppLocalizations.of(context)
+                                  .convertingQuestionsToImages(done, total),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -345,6 +352,8 @@ class _CreateFormScreenState extends State<CreateFormScreen>
   Future<void> _saveForm() async {
     if (_isSaving) return;
 
+    final l10n = AppLocalizations.of(context);
+
     if (!_formKey.currentState!.validate()) {
       _tabCtrl.animateTo(0);
       return;
@@ -352,7 +361,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
 
     if (_questions.isEmpty) {
       _showMessage(
-        'Tambahkan minimal 1 pertanyaan',
+        l10n.addAtLeastOneQuestion,
         backgroundColor: AppTheme.warning,
       );
 
@@ -363,18 +372,42 @@ class _CreateFormScreenState extends State<CreateFormScreen>
     for (var i = 0; i < _questions.length; i++) {
       if (!_hasQuestionContent(_questions[i])) {
         _showMessage(
-          'Pertanyaan ${i + 1} masih kosong. Isi teks pertanyaan terlebih dahulu.',
+          l10n.questionContentEmpty(i + 1),
           backgroundColor: AppTheme.warning,
         );
 
         _tabCtrl.animateTo(2);
         return;
       }
+      final q = _questions[i];
+      final isChoice = q.type == QuestionType.multipleChoice ||
+          q.type == QuestionType.imageChoice ||
+          q.type == QuestionType.yesNo;
+      if (isChoice) {
+        final hasCorrect = q.options.any((o) => o.isCorrect);
+        if (!hasCorrect) {
+          _showMessage(
+            l10n.mcqNeedsCorrectAnswer(i + 1),
+            backgroundColor: AppTheme.warning,
+          );
+          _tabCtrl.animateTo(2);
+          return;
+        }
+      }
+    }
+
+    // Cegah edit yang menghapus jawaban: jika sudah ada responden, tolak edit soal
+    if (widget.isEditing && widget.existingForm!.totalResponses > 0) {
+      _showMessage(
+        l10n.editBlockedHasResponses,
+        backgroundColor: AppTheme.error,
+      );
+      return;
     }
 
     if (_closeDateTime.isBefore(_openDateTime)) {
       _showMessage(
-        'Waktu tutup tidak boleh sebelum waktu buka',
+        l10n.closeTimeBeforeOpenTime,
         backgroundColor: AppTheme.error,
       );
 
@@ -396,7 +429,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
 
     if (currentUser == null) {
       _showMessage(
-        'Anda harus login untuk membuat form',
+        l10n.mustBeLoggedInToCreateForm,
         backgroundColor: AppTheme.error,
       );
       return;
@@ -421,6 +454,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       id: editing?.id ?? 'form${now.millisecondsSinceEpoch}',
       title: title,
       creatorId: currentUser.id,
+      formType: _formType,
       shortLink: slug,
       customLinkAlias: customAlias,
       scheduledOpen: _openDateTime,
@@ -451,8 +485,7 @@ class _CreateFormScreenState extends State<CreateFormScreen>
         _isSaving = false;
       });
 
-      final errorMessage = formProvider.error ??
-          'Gagal menyimpan form. Periksa jaringan Anda.';
+      final errorMessage = formProvider.error ?? l10n.formSaveError;
 
       formProvider.clearError();
 
@@ -476,8 +509,8 @@ class _CreateFormScreenState extends State<CreateFormScreen>
       SnackBar(
         content: Text(
           editing != null
-              ? 'Form berhasil diperbarui!'
-              : 'Form berhasil dibuat!',
+              ? l10n.formUpdatedSuccess
+              : l10n.formCreatedSuccess,
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -486,9 +519,11 @@ class _CreateFormScreenState extends State<CreateFormScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Form' : 'Buat Form'),
+        title: Text(widget.isEditing ? l10n.editForm : l10n.createForm),
         bottom: TabBar(
           controller: _tabCtrl,
           indicatorColor: Colors.white,
@@ -503,18 +538,18 @@ class _CreateFormScreenState extends State<CreateFormScreen>
             fontWeight: FontWeight.w400,
             fontSize: 13,
           ),
-          tabs: const [
-            Tab(text: 'Info'),
-            Tab(text: 'Pengaturan'),
-            Tab(text: 'Pertanyaan'),
+          tabs: [
+            Tab(text: l10n.tabInfo),
+            Tab(text: l10n.tabSettings),
+            Tab(text: l10n.tabQuestions),
           ],
         ),
         actions: [
           TextButton(
             onPressed: _saveForm,
-            child: const Text(
-              'Simpan',
-              style: TextStyle(
+            child: Text(
+              l10n.save,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
@@ -562,8 +597,19 @@ class _CreateFormScreenState extends State<CreateFormScreen>
                   _closeTime = time;
                 });
               },
+              onDurationMinutes: (minutes) {
+                setState(() {
+                  _durationLimitMinutes = minutes;
+                });
+              },
             ),
             SettingsTab(
+              formType: _formType,
+              onFormTypeChanged: (type) {
+                setState(() {
+                  _formType = type;
+                });
+              },
               shuffleQuestion: _shuffleQ,
               shuffleOption: _shuffleO,
               oneTime: _oneTime,

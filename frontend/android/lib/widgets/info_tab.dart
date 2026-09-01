@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_theme.dart';
+import '../l10n/app_localizations.dart';
 import '../utils/constants.dart';
 import 'custom_input.dart';
 
@@ -18,6 +19,7 @@ class InfoTab extends StatefulWidget {
   final ValueChanged<DateTime> onCloseDate;
   final ValueChanged<TimeOfDay> onOpenTime;
   final ValueChanged<TimeOfDay> onCloseTime;
+  final ValueChanged<int>? onDurationMinutes;
 
   const InfoTab({
     super.key,
@@ -34,6 +36,7 @@ class InfoTab extends StatefulWidget {
     required this.onCloseDate,
     required this.onOpenTime,
     required this.onCloseTime,
+    this.onDurationMinutes,
   });
 
   @override
@@ -48,6 +51,7 @@ class _InfoTabState extends State<InfoTab> {
   }
 
   Future<void> _pickDate(DateTime initial, ValueChanged<DateTime> cb) async {
+    final l10n = AppLocalizations.of(context);
     // Clamp initialDate to valid range to avoid assertion when stored date is old
     final safeInitial = initial.isBefore(DateTime(2024))
         ? DateTime(2024)
@@ -59,9 +63,9 @@ class _InfoTabState extends State<InfoTab> {
       initialDate: safeInitial,
       firstDate: DateTime(2024),
       lastDate: DateTime(2035),
-      helpText: 'Pilih tanggal',
-      cancelText: 'Batal',
-      confirmText: 'OK',
+      helpText: l10n.selectDate,
+      cancelText: l10n.cancel,
+      confirmText: l10n.ok,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(primary: AppTheme.primary),
@@ -73,25 +77,252 @@ class _InfoTabState extends State<InfoTab> {
   }
 
   Future<void> _pickTime(TimeOfDay initial, ValueChanged<TimeOfDay> cb) async {
-    final t = await showTimePicker(
+    final l10n = AppLocalizations.of(context);
+    int selectedHour = initial.hour;
+    int selectedMinute = initial.minute;
+
+    final result = await showModalBottomSheet<TimeOfDay>(
       context: context,
-      initialTime: initial,
-      // Force dial mode to prevent manual keyboard entry errors (e.g. 25:00, 9:5)
-      initialEntryMode: TimePickerEntryMode.dial,
-      helpText: 'Pilih waktu',
-      cancelText: 'Batal',
-      confirmText: 'OK',
-      errorInvalidText: 'Format waktu tidak valid',
-      hourLabelText: 'Jam',
-      minuteLabelText: 'Menit',
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppTheme.primary),
-        ),
-        child: child!,
-      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final cardBg = isDark ? AppTheme.darkCard : Colors.white;
+        final txtClr = isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final period = selectedHour >= 12 ? 'PM' : 'AM';
+            final displayHour = selectedHour % 12 == 0 ? 12 : selectedHour % 12;
+
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border.all(
+                  color: isDark ? AppTheme.darkBorder : AppTheme.border,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    l10n.selectTime,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: txtClr,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Digital Time Display Box
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${displayHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.primary,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            period,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Hour & Minute Selectors
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Hour adjusters
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.keyboard_arrow_up_rounded, size: 28),
+                            onPressed: () {
+                              setModalState(() {
+                                selectedHour = (selectedHour + 1) % 24;
+                              });
+                            },
+                          ),
+                          Text(
+                            l10n.hoursLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 28),
+                            onPressed: () {
+                              setModalState(() {
+                                selectedHour = (selectedHour - 1 + 24) % 24;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 24),
+                      Text(
+                        ':',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: txtClr,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      // Minute adjusters
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.keyboard_arrow_up_rounded, size: 28),
+                            onPressed: () {
+                              setModalState(() {
+                                selectedMinute = (selectedMinute + 5) % 60;
+                              });
+                            },
+                          ),
+                          Text(
+                            l10n.minutesLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 28),
+                            onPressed: () {
+                              setModalState(() {
+                                selectedMinute = (selectedMinute - 5 + 60) % 60;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 24),
+                      // AM / PM Toggle
+                      Column(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setModalState(() {
+                                if (selectedHour >= 12) {
+                                  selectedHour -= 12;
+                                } else {
+                                  selectedHour += 12;
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDark ? AppTheme.darkBorder : AppTheme.border,
+                                ),
+                              ),
+                              child: Text(
+                                period,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(l10n.cancel),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx, TimeOfDay(hour: selectedHour, minute: selectedMinute));
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(l10n.save),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
-    if (t != null) cb(t);
+
+    if (result != null) {
+      cb(result);
+    }
   }
 
   String _fmtDate(DateTime d) =>
@@ -99,45 +330,43 @@ class _InfoTabState extends State<InfoTab> {
 
   String _fmtTime(TimeOfDay t) {
     final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-    final m = t.minute.toString().padLeft(2, '0');
+    final hStr = h.toString().padLeft(2, '0');
+    final mStr = t.minute.toString().padLeft(2, '0');
     final p = t.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$h:$m $p';
+    return '$hStr:$mStr $p';
   }
 
-  String _timerLabel() {
-    final m = widget.timerMinutes;
-    if (m <= 0) return 'Tanpa batas waktu';
-    if (m < 60) return '$m menit';
-    final h = m ~/ 60;
-    final rem = m % 60;
-    return rem == 0 ? '${h} jam' : '${h} jam ${rem} menit';
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionLabel('Informasi Form', Icons.info_outline_rounded, isDark),
+          _SectionLabel(l10n.formInformation, Icons.info_outline_rounded, isDark),
           const SizedBox(height: 16),
           CustomInput(
             controller: widget.titleController,
-            label: 'Judul Form',
-            hint: 'mis. Survei Kepuasan Siswa',
+            label: l10n.formTitleLabel,
+            hint: l10n.formTitleHint,
             prefixIcon: Icons.title_rounded,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Judul wajib diisi' : null,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return l10n.formTitleRequired;
+              if (v.trim().length < 3) return l10n.formTitleMinLength;
+              return null;
+            },
           ),
           const SizedBox(height: 24),
 
-          _SectionLabel('Link Form', Icons.link_rounded, isDark),
+          _SectionLabel(l10n.formLinkLabel, Icons.link_rounded, isDark),
           const SizedBox(height: 8),
           Text(
-            'Buat link singkat yang mudah dibagikan untuk form Anda.',
+            l10n.formLinkDesc,
             style: TextStyle(
               fontSize: 13,
               color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -151,8 +380,8 @@ class _InfoTabState extends State<InfoTab> {
               Expanded(
                 child: CustomInput(
                   controller: widget.linkController,
-                  label: 'Link Kustom',
-                  hint: 'mis. survei-saya-2026',
+                  label: l10n.customLinkLabel,
+                  hint: l10n.customLinkHint,
                   prefixIcon: Icons.link_rounded,
                   onChanged: (_) => setState(() {}),
                   inputFormatters: [
@@ -162,7 +391,7 @@ class _InfoTabState extends State<InfoTab> {
               ),
               const SizedBox(width: 10),
               Tooltip(
-                message: 'Buat link acak',
+                message: l10n.randomizeLinkTooltip,
                 child: GestureDetector(
                   onTap: _randomizeLink,
                   child: Container(
@@ -191,11 +420,10 @@ class _InfoTabState extends State<InfoTab> {
           ),
           const SizedBox(height: 28),
 
-          _SectionLabel('Berbagi & Visibilitas', Icons.public_rounded, isDark),
+          _SectionLabel(l10n.sharingVisibilityLabel, Icons.public_rounded, isDark),
           const SizedBox(height: 8),
           Text(
-            'Form publik muncul di halaman pengguna dan dapat dibagikan lewat link '
-            'dan QR code. Form privat hanya bisa diakses dengan scan QR code.',
+            l10n.sharingVisibilityDesc,
             style: TextStyle(
               fontSize: 13,
               color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -208,8 +436,8 @@ class _InfoTabState extends State<InfoTab> {
                 child: _VisibilityCard(
                   selected: widget.isPublic,
                   icon: Icons.public_rounded,
-                  title: 'Publik',
-                  subtitle: 'QR · Link · Halaman pengguna',
+                  title: l10n.publicLabel,
+                  subtitle: l10n.publicSublabel,
                   color: AppTheme.success,
                   isDark: isDark,
                   onTap: () => widget.onIsPublic(true),
@@ -220,8 +448,8 @@ class _InfoTabState extends State<InfoTab> {
                 child: _VisibilityCard(
                   selected: !widget.isPublic,
                   icon: Icons.lock_outline_rounded,
-                  title: 'Privat',
-                  subtitle: 'QR saja',
+                  title: l10n.privateLabel,
+                  subtitle: l10n.privateSublabel,
                   color: AppTheme.warning,
                   isDark: isDark,
                   onTap: () => widget.onIsPublic(false),
@@ -231,10 +459,10 @@ class _InfoTabState extends State<InfoTab> {
           ),
           const SizedBox(height: 28),
 
-          _SectionLabel('Jadwal', Icons.schedule_rounded, isDark),
+          _SectionLabel(l10n.scheduleLabel, Icons.schedule_rounded, isDark),
           const SizedBox(height: 8),
           Text(
-            'Atur kapan form dibuka dan ditutup. Timer dihitung otomatis.',
+            l10n.scheduleDesc,
             style: TextStyle(
               fontSize: 13,
               color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -246,7 +474,7 @@ class _InfoTabState extends State<InfoTab> {
             children: [
               Expanded(
                 child: _DateTimeField(
-                  label: 'Buka',
+                  label: l10n.openLabel,
                   icon: Icons.calendar_today_rounded,
                   value: _fmtDate(widget.openDate),
                   isDark: isDark,
@@ -256,7 +484,7 @@ class _InfoTabState extends State<InfoTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: _DateTimeField(
-                  label: 'At',
+                  label: l10n.timeAtLabel,
                   icon: Icons.access_time_rounded,
                   value: _fmtTime(widget.openTime),
                   isDark: isDark,
@@ -271,7 +499,7 @@ class _InfoTabState extends State<InfoTab> {
             children: [
               Expanded(
                 child: _DateTimeField(
-                  label: 'Tutup',
+                  label: l10n.closeLabel,
                   icon: Icons.calendar_today_rounded,
                   value: _fmtDate(widget.closeDate),
                   isDark: isDark,
@@ -281,7 +509,7 @@ class _InfoTabState extends State<InfoTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: _DateTimeField(
-                  label: 'At',
+                  label: l10n.timeAtLabel,
                   icon: Icons.access_time_rounded,
                   value: _fmtTime(widget.closeTime),
                   isDark: isDark,
@@ -292,76 +520,371 @@ class _InfoTabState extends State<InfoTab> {
           ),
           const SizedBox(height: 16),
 
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: widget.timerMinutes > 0
-                  ? AppTheme.warning.withValues(alpha: 0.08)
-                  : (isDark ? AppTheme.darkSurface : AppTheme.surfaceLight),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: widget.timerMinutes > 0
-                    ? AppTheme.warning.withValues(alpha: 0.35)
-                    : (isDark ? AppTheme.darkBorder : AppTheme.border),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: widget.timerMinutes > 0
-                        ? AppTheme.warning.withValues(alpha: 0.15)
-                        : AppTheme.primaryFaint,
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                    child: Icon(
-                    widget.timerMinutes > 0
-                        ? Icons.timer_rounded
-                        : Icons.timer_off_outlined,
-                    size: 20,
-                    color: widget.timerMinutes > 0
-                        ? AppTheme.warning
-                        : AppTheme.primary,
+          const SizedBox(height: 16),
+
+          // 1. Calculated Schedule Window Box
+          Builder(
+            builder: (context) {
+              final openDt = DateTime(
+                widget.openDate.year,
+                widget.openDate.month,
+                widget.openDate.day,
+                widget.openTime.hour,
+                widget.openTime.minute,
+              );
+              final closeDt = DateTime(
+                widget.closeDate.year,
+                widget.closeDate.month,
+                widget.closeDate.day,
+                widget.closeTime.hour,
+                widget.closeTime.minute,
+              );
+              final diff = closeDt.difference(openDt);
+              String windowLabel = l10n.openUnlimited;
+              if (diff.inMinutes > 0) {
+                if (diff.inHours >= 24) {
+                  final days = diff.inDays;
+                  final remHours = diff.inHours % 24;
+                  windowLabel = remHours > 0
+                      ? l10n.accessDurationDaysHours(days, remHours)
+                      : l10n.accessDurationDays(days);
+                } else if (diff.inHours > 0) {
+                  final mins = diff.inMinutes % 60;
+                  windowLabel = mins > 0
+                      ? l10n.accessDurationHoursMins(diff.inHours, mins)
+                      : l10n.accessDurationHours(diff.inHours);
+                } else {
+                  windowLabel = l10n.accessDurationMins(diff.inMinutes);
+                }
+              } else if (diff.inMinutes < 0) {
+                windowLabel = l10n.closeMustBeAfterOpen;
+              }
+
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: diff.inMinutes > 0
+                      ? AppTheme.primary.withValues(alpha: 0.08)
+                      : (isDark ? AppTheme.darkSurface : AppTheme.surfaceLight),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: diff.inMinutes > 0
+                        ? AppTheme.primary.withValues(alpha: 0.35)
+                        : (isDark ? AppTheme.darkBorder : AppTheme.border),
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: const Icon(
+                        Icons.timelapse_rounded,
+                        size: 20,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.accessRangeLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppTheme.darkTextMuted
+                                  : AppTheme.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            windowLabel,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: diff.inMinutes > 0
+                                  ? AppTheme.primary
+                                  : (isDark
+                                      ? AppTheme.darkTextSecondary
+                                      : AppTheme.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // 2. Duration Limit (Maksimal Waktu Pengerjaan Soal - Max 60 Mins)
+          if (widget.onDurationMinutes != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: widget.timerMinutes > 0
+                    ? AppTheme.warning.withValues(alpha: 0.08)
+                    : (isDark ? AppTheme.darkCard : AppTheme.surfaceCard),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: widget.timerMinutes > 0
+                      ? AppTheme.warning.withValues(alpha: 0.35)
+                      : (isDark ? AppTheme.darkBorder : AppTheme.border),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text(
-                        'Batas Waktu • Otomatis',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppTheme.darkTextMuted
-                              : AppTheme.textMuted,
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppTheme.warning.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.timer_outlined,
+                          size: 18,
+                          color: AppTheme.warning,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        _timerLabel(),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: widget.timerMinutes > 0
-                              ? AppTheme.warning
-                              : (isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.textSecondary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.examDurationLabel,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? AppTheme.darkTextPrimary
+                                    : AppTheme.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              l10n.examDurationHintText,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? AppTheme.darkTextMuted
+                                    : AppTheme.textMuted,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  _DurationInputField(
+                    initialMinutes: widget.timerMinutes,
+                    isDark: isDark,
+                    onChanged: (minutes) {
+                      widget.onDurationMinutes?.call(minutes);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
+    );
+  }
+}
+
+class _DurationInputField extends StatefulWidget {
+  final int initialMinutes;
+  final bool isDark;
+  final ValueChanged<int> onChanged;
+
+  const _DurationInputField({
+    required this.initialMinutes,
+    required this.isDark,
+    required this.onChanged,
+  });
+
+  @override
+  State<_DurationInputField> createState() => _DurationInputFieldState();
+}
+
+class _DurationInputFieldState extends State<_DurationInputField> {
+  late TextEditingController _controller;
+  late bool _isUnlimited;
+
+  @override
+  void initState() {
+    super.initState();
+    _isUnlimited = widget.initialMinutes <= 0;
+    _controller = TextEditingController(
+      text: widget.initialMinutes > 0 ? '${widget.initialMinutes}' : '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _DurationInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialMinutes != widget.initialMinutes) {
+      _isUnlimited = widget.initialMinutes <= 0;
+      if (!_isUnlimited && _controller.text != '${widget.initialMinutes}') {
+        _controller.text = '${widget.initialMinutes}';
+      } else if (_isUnlimited) {
+        _controller.clear();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleChanged(String val) {
+    if (val.isEmpty) {
+      widget.onChanged(0);
+      return;
+    }
+    final n = int.tryParse(val) ?? 0;
+    if (n > 60) {
+      _controller.value = const TextEditingValue(
+        text: '60',
+        selection: TextSelection.collapsed(offset: 2),
+      );
+      widget.onChanged(60);
+    } else {
+      widget.onChanged(n);
+    }
+  }
+
+  void _toggleUnlimited() {
+    setState(() {
+      _isUnlimited = !_isUnlimited;
+      if (_isUnlimited) {
+        _controller.clear();
+        widget.onChanged(0);
+      } else {
+        _controller.text = '30';
+        widget.onChanged(30);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _isUnlimited ? 0.4 : 1.0,
+                child: AbsorbPointer(
+                  absorbing: _isUnlimited,
+                  child: TextField(
+                    controller: _controller,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    onChanged: _handleChanged,
+                    decoration: InputDecoration(
+                      hintText: _isUnlimited ? l10n.noTimeLimit : '45',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: widget.isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
+                      ),
+                      suffixText: _isUnlimited ? null : '${l10n.minutesLabel} (Max 60)',
+                      suffixStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.warning,
+                      ),
+                      filled: true,
+                      fillColor: widget.isDark ? AppTheme.darkSurface : AppTheme.surfaceLight,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: widget.isDark ? AppTheme.darkBorder : AppTheme.border,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.warning, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            InkWell(
+              onTap: _toggleUnlimited,
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _isUnlimited
+                      ? AppTheme.primary.withValues(alpha: 0.15)
+                      : (widget.isDark ? AppTheme.darkSurface : AppTheme.surfaceLight),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _isUnlimited
+                        ? AppTheme.primary
+                        : (widget.isDark ? AppTheme.darkBorder : AppTheme.border),
+                    width: _isUnlimited ? 1.5 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isUnlimited ? Icons.all_inclusive_rounded : Icons.timer_outlined,
+                      size: 18,
+                      color: _isUnlimited
+                          ? AppTheme.primary
+                          : (widget.isDark ? AppTheme.darkTextMuted : AppTheme.textMuted),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.noTimeLimit,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: _isUnlimited ? FontWeight.w700 : FontWeight.w500,
+                        color: _isUnlimited
+                            ? AppTheme.primary
+                            : (widget.isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

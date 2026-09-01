@@ -5,6 +5,7 @@ import '../app_theme.dart';
 import '../providers/form_provider.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/user_form_detail_screen.dart';
+import '../l10n/app_localizations.dart';
 import 'scan_form_screen.dart';
 
 class LinkInputScreen extends StatefulWidget {
@@ -72,9 +73,19 @@ class _LinkInputScreenState extends State<LinkInputScreen> {
       return;
     }
 
+    if (!form.isActive) {
+      _showMessage(
+        'Form ini sudah ditutup dan tidak bisa diisi.',
+        isError: true,
+      );
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context);
+
     if (formProvider.hasSubmitted(form.id)) {
       _showMessage(
-        "You've already submitted this form",
+        l10n.alreadySubmittedForm,
         isError: false,
       );
       return;
@@ -128,10 +139,11 @@ class _LinkInputScreenState extends State<LinkInputScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enter Link'),
+        title: Text(l10n.enterLink),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -155,7 +167,7 @@ class _LinkInputScreenState extends State<LinkInputScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Enter Form Link',
+                l10n.enterFormLinkTitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 20,
@@ -165,7 +177,7 @@ class _LinkInputScreenState extends State<LinkInputScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Paste the form link to open and fill it out.',
+                l10n.enterFormLinkDesc,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -222,7 +234,7 @@ class _LinkInputScreenState extends State<LinkInputScreen> {
               SizedBox(
                 height: 52,
                 child: CustomButton(
-                  text: 'Open Form',
+                  text: l10n.openForm,
                   icon: Icons.arrow_forward_rounded,
                   isLoading: _isResolving,
                   onPressed: _resolveLink,

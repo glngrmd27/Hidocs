@@ -37,10 +37,11 @@ class _GradingScreenState extends State<GradingScreen> {
   }
 
   bool _isManuallyGraded(QuestionModel q) {
-    return q.type == QuestionType.longText ||
-        q.type == QuestionType.shortText ||
-        q.type == QuestionType.codeInput ||
-        q.type == QuestionType.mathFormula;
+    return q.isScorable &&
+        (q.type == QuestionType.longText ||
+            q.type == QuestionType.shortText ||
+            q.type == QuestionType.codeInput ||
+            q.type == QuestionType.mathFormula);
   }
 
   List<QuestionModel> get _manualQuestions =>

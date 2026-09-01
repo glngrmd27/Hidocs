@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/app_localizations.dart';
 import '../models/form_model.dart';
 
 class SettingsTab extends StatelessWidget {
+  final FormType formType;
   final bool shuffleQuestion;
   final bool shuffleOption;
   final bool oneTime;
@@ -10,6 +12,7 @@ class SettingsTab extends StatelessWidget {
   final ResultVisibility visibility;
   final int timerMinutes;
 
+  final ValueChanged<FormType>? onFormTypeChanged;
   final ValueChanged<bool> onShuffleQuestion;
   final ValueChanged<bool> onShuffleOption;
   final ValueChanged<bool> onOneTime;
@@ -18,6 +21,8 @@ class SettingsTab extends StatelessWidget {
 
   const SettingsTab({
     super.key,
+    this.formType = FormType.survey,
+    this.onFormTypeChanged,
     required this.shuffleQuestion,
     required this.shuffleOption,
     required this.oneTime,
@@ -34,11 +39,37 @@ class SettingsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
       children: [
-        _SectionLabel('Form Behavior', Icons.tune_rounded, isDark),
+        _SectionLabel(l10n.formTypeSecurityMode, Icons.security_rounded, isDark),
+        const SizedBox(height: 12),
+
+        _FormTypeRadioCard(
+          icon: Icons.assignment_outlined,
+          iconColor: AppTheme.info,
+          title: l10n.surveyModeTitle,
+          subtitle: l10n.surveyModeSub,
+          value: FormType.survey,
+          groupValue: formType,
+          onChanged: onFormTypeChanged ?? (_) {},
+          isDark: isDark,
+        ),
+        _FormTypeRadioCard(
+          icon: Icons.shield_rounded,
+          iconColor: AppTheme.error,
+          title: l10n.examModeTitle,
+          subtitle: l10n.examModeSub,
+          value: FormType.exam,
+          groupValue: formType,
+          onChanged: onFormTypeChanged ?? (_) {},
+          isDark: isDark,
+        ),
+        const SizedBox(height: 24),
+
+        _SectionLabel(l10n.formBehaviorLabel, Icons.tune_rounded, isDark),
         const SizedBox(height: 16),
 
         _SwitchCard(
@@ -46,8 +77,8 @@ class SettingsTab extends StatelessWidget {
           icon: Icons.shuffle_rounded,
           iconColor: AppTheme.primary,
           iconBg: AppTheme.primaryFaint,
-          title: 'Shuffle question order',
-          subtitle: 'Each respondent gets questions in a different order',
+          title: l10n.shuffleQuestionsTitle,
+          subtitle: l10n.shuffleQuestionsSub,
           value: shuffleQuestion,
           onChanged: onShuffleQuestion,
           isDark: isDark,
@@ -57,8 +88,8 @@ class SettingsTab extends StatelessWidget {
           icon: Icons.swap_vert_rounded,
           iconColor: const Color(0xFF7B2FBE),
           iconBg: const Color(0xFF7B2FBE).withValues(alpha: 0.10),
-          title: 'Shuffle answer options',
-          subtitle: 'Multiple-choice options are randomized each time',
+          title: l10n.shuffleOptionsTitle,
+          subtitle: l10n.shuffleOptionsSub,
           value: shuffleOption,
           onChanged: onShuffleOption,
           isDark: isDark,
@@ -68,8 +99,8 @@ class SettingsTab extends StatelessWidget {
           icon: Icons.lock_outline_rounded,
           iconColor: AppTheme.error,
           iconBg: AppTheme.error.withValues(alpha: 0.10),
-          title: 'One-time submission only',
-          subtitle: 'Each person can only submit once',
+          title: l10n.oneTimeSubmitTitle,
+          subtitle: l10n.oneTimeSubmitSub,
           value: oneTime,
           onChanged: onOneTime,
           isDark: isDark,
@@ -79,18 +110,18 @@ class SettingsTab extends StatelessWidget {
           icon: Icons.play_circle_outline_rounded,
           iconColor: AppTheme.success,
           iconBg: AppTheme.success.withValues(alpha: 0.10),
-          title: 'Activate immediately',
-          subtitle: 'Form goes live right after you save',
+          title: l10n.activateImmediatelyTitle,
+          subtitle: l10n.activateImmediatelySub,
           value: active,
           onChanged: onActive,
           isDark: isDark,
         ),
         const SizedBox(height: 28),
 
-        _SectionLabel('Result Visibility', Icons.bar_chart_rounded, isDark),
+        _SectionLabel(l10n.resultVisibilityLabel, Icons.bar_chart_rounded, isDark),
         const SizedBox(height: 8),
         Text(
-          'Choose what respondents see after submitting.',
+          l10n.resultVisibilityDesc,
           style: TextStyle(
             fontSize: 13,
             color: isDark ? AppTheme.darkTextMuted : AppTheme.textMuted,
@@ -101,8 +132,8 @@ class SettingsTab extends StatelessWidget {
         _RadioCard(
           icon: Icons.visibility_off_outlined,
           iconColor: AppTheme.textMuted,
-          title: 'Hide results',
-          subtitle: 'Respondents see nothing after submission',
+          title: l10n.hideResultsTitle,
+          subtitle: l10n.hideResultsSub,
           value: ResultVisibility.hidden,
           groupValue: visibility,
           onChanged: onVisibility,
@@ -111,8 +142,8 @@ class SettingsTab extends StatelessWidget {
         _RadioCard(
           icon: Icons.visibility_outlined,
           iconColor: AppTheme.info,
-          title: 'Show result only',
-          subtitle: 'They can see which answers were correct/incorrect',
+          title: l10n.showResultOnlyTitle,
+          subtitle: l10n.showResultOnlySub,
           value: ResultVisibility.resultOnly,
           groupValue: visibility,
           onChanged: onVisibility,
@@ -121,8 +152,8 @@ class SettingsTab extends StatelessWidget {
         _RadioCard(
           icon: Icons.leaderboard_outlined,
           iconColor: AppTheme.success,
-          title: 'Show result + score',
-          subtitle: 'They can see both their answers and final score',
+          title: l10n.showResultAndScoreTitle,
+          subtitle: l10n.showResultAndScoreSub,
           value: ResultVisibility.resultAndScore,
           groupValue: visibility,
           onChanged: onVisibility,
@@ -336,6 +367,124 @@ class _RadioCard extends StatelessWidget {
   final bool isDark;
 
   const _RadioCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = value == groupValue;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: GestureDetector(
+        onTap: () => onChanged(value),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.fastOutSlowIn,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.darkCard : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected
+                  ? AppTheme.primary
+                  : (isDark ? AppTheme.darkBorder : AppTheme.border),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.fastOutSlowIn,
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppTheme.primary.withValues(alpha: 0.10)
+                      : (isDark
+                          ? AppTheme.darkSurface
+                          : AppTheme.surfaceLight),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: selected ? AppTheme.primary : iconColor,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppTheme.darkTextMuted
+                            : AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.fastOutSlowIn,
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected
+                        ? AppTheme.primary
+                        : (isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    width: selected ? 6 : 2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FormTypeRadioCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final FormType value;
+  final FormType groupValue;
+  final ValueChanged<FormType> onChanged;
+  final bool isDark;
+
+  const _FormTypeRadioCard({
     required this.icon,
     required this.iconColor,
     required this.title,

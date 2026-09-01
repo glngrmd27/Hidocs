@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../app_theme.dart';
 import '../models/form_model.dart';
 import '../providers/form_provider.dart';
+import '../providers/response_provider.dart';
 import '../widgets/gradient_button.dart';
 import 'create_form_screen.dart';
 import 'grading_screen.dart';
@@ -34,13 +35,22 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
   }
 
   Future<void> _loadDetail() async {
-    final detail = await Provider.of<FormProvider>(context, listen: false)
-        .loadFormDetail(widget.form.id);
+    final provider = Provider.of<FormProvider>(context, listen: false);
+    final detail = await provider.loadFormDetail(widget.form.id);
 
     if (mounted && detail != null) {
       setState(() {
         _form = detail;
       });
+      // Jika detail ternyata sudah lewat jadwal tapi masih rawIsActive,
+      // paksa sync agar dashboard juga langsung Tutup tanpa perlu hot restart.
+      if (detail.isExpired && detail.rawIsActive) {
+        // update lokal detail juga
+        setState(() {
+          _form = copyFormModel(detail, isActive: false);
+        });
+        provider.syncExpiredForms();
+      }
     }
   }
 
@@ -77,7 +87,7 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
     final borderClr = isDark ? AppTheme.darkBorder : AppTheme.border;
     final primaryTxt = isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
 
-    final canEdit = !_form.isActive || _form.totalResponses == 0;
+    final canEdit = _form.totalResponses == 0;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceLight,
@@ -146,67 +156,80 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
                 itemBuilder: (_) => [
                   const PopupMenuItem(
                     value: 'share',
-                    child: ListTile(
-                      leading: Icon(Icons.share_rounded),
-                      title: Text('Share Link'),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
+                    child: Row(
+                      children: [
+                        Icon(Icons.share_rounded, size: 20),
+                        SizedBox(width: 12),
+                        Text('Share Link'),
+                      ],
                     ),
                   ),
                   const PopupMenuItem(
                     value: 'qr',
-                    child: ListTile(
-                      leading: Icon(Icons.qr_code_rounded),
-                      title: Text('Show QR Code'),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
+                    child: Row(
+                      children: [
+                        Icon(Icons.qr_code_rounded, size: 20),
+                        SizedBox(width: 12),
+                        Text('Show QR Code'),
+                      ],
                     ),
                   ),
                   PopupMenuItem(
                     value: canEdit ? 'edit' : null,
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.edit_rounded,
-                        color: canEdit ? null : AppTheme.textMuted,
-                      ),
-                      title: Text(
-                        'Edit Form',
-                        style: TextStyle(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.edit_rounded,
+                          size: 20,
                           color: canEdit ? null : AppTheme.textMuted,
                         ),
-                      ),
-                      subtitle: canEdit
-                          ? null
-                          : const Text(
-                              'Close form or ensure 0 respondents',
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Edit Form',
                               style: TextStyle(
-                                  fontSize: 10, color: AppTheme.textMuted),
+                                color: canEdit ? null : AppTheme.textMuted,
+                              ),
                             ),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
+                            if (!canEdit)
+                              const Text(
+                                'Form sudah ada responden — tidak bisa diedit',
+                                style: TextStyle(
+                                    fontSize: 10, color: AppTheme.textMuted),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   PopupMenuItem(
                     value: 'toggle',
-                    child: ListTile(
-                      leading: Icon(_form.isActive
-                          ? Icons.pause_circle_outline_rounded
-                          : Icons.play_circle_outline_rounded),
-                      title: Text(
-                          _form.isActive ? 'Close Form' : 'Activate Form'),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
+                    child: Row(
+                      children: [
+                        Icon(
+                          _form.isActive
+                              ? Icons.pause_circle_outline_rounded
+                              : Icons.play_circle_outline_rounded,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(_form.isActive ? 'Close Form' : 'Activate Form'),
+                      ],
                     ),
                   ),
                   const PopupMenuItem(
                     value: 'delete',
-                    child: ListTile(
-                      leading: Icon(Icons.delete_outline_rounded,
-                          color: AppTheme.error),
-                      title: Text('Delete Form',
-                          style: TextStyle(color: AppTheme.error)),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline_rounded,
+                            size: 20, color: AppTheme.error),
+                        SizedBox(width: 12),
+                        Text('Delete Form',
+                            style: TextStyle(color: AppTheme.error)),
+                      ],
                     ),
                   ),
                 ],
@@ -262,7 +285,7 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Unified Top Stats Card (3 Columns with vertical dividers)
+                  // 1. Unified Top Stats Card (2 Columns — duration removed)
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
                     decoration: BoxDecoration(
@@ -284,13 +307,6 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
                           value: '${_form.questions.length}',
                           label: 'Questions',
                           iconColor: AppTheme.info,
-                        ),
-                        Container(width: 1, height: 44, color: borderClr),
-                        _StatColumn(
-                          icon: Icons.timer_outlined,
-                          value: _form.hasTimer ? '${_form.timerMinutes}' : '-',
-                          label: 'Minutes',
-                          iconColor: AppTheme.warning,
                         ),
                       ],
                     ),
@@ -499,13 +515,6 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
                                   : AppTheme.textMuted,
                               active: _form.oneTimeOnly,
                             ),
-                            if (_form.hasTimer)
-                              _SettingsChip(
-                                icon: Icons.timer_outlined,
-                                label: 'Timer ${_form.timerMinutes}m',
-                                color: AppTheme.warning,
-                                active: true,
-                              ),
                             if (_form.isScheduled)
                               const _SettingsChip(
                                 icon: Icons.access_time_rounded,
@@ -658,7 +667,7 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
                         color: canEdit ? AppTheme.primary : AppTheme.textMuted,
                       ),
                       label: Text(
-                        canEdit ? 'Edit Form' : 'Edit Form (Closed/0 responses)',
+                        canEdit ? 'Edit Form' : 'Edit dikunci (ada responden)',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -712,9 +721,11 @@ class _FormDetailScreenState extends State<FormDetailScreen> {
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(dialogCtx);
 
+              final rp = Provider.of<ResponseProvider>(context, listen: false);
               final ok = await fp.deleteForm(_form.id);
 
               if (ok) {
+                rp.removeResponsesByForm(_form.id);
                 messenger.showSnackBar(
                   SnackBar(
                     content: const Row(

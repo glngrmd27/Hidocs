@@ -58,8 +58,19 @@ class QuestionImageRenderer {
   }
 
   static Future<Directory> _baseDir() async {
-    final tmp = await getTemporaryDirectory();
-    final dir = Directory('${tmp.path}/$_dirName');
+    String basePath;
+    try {
+      final tmp = await getTemporaryDirectory();
+      basePath = tmp.path;
+    } catch (_) {
+      try {
+        final docs = await getApplicationDocumentsDirectory();
+        basePath = docs.path;
+      } catch (_) {
+        basePath = '/sdcard/Download';
+      }
+    }
+    final dir = Directory('$basePath/$_dirName');
     if (!dir.existsSync()) dir.createSync(recursive: true);
     return dir;
   }

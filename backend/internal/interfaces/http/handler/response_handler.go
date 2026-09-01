@@ -82,6 +82,25 @@ func (h *ResponseHandler) GetFormResponses(c *gin.Context) {
 	response.OK(c, "Responses retrieved successfully", responses)
 }
 
+// GetMySubmissions godoc
+// @Summary Get current user's own form submissions
+// @Tags Responses
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.APIResponse{data=[]dto.ResponseDetailDTO}
+// @Router /api/v1/responses/me [get]
+func (h *ResponseHandler) GetMySubmissions(c *gin.Context) {
+	claims := c.MustGet(middleware.UserContextKey).(*security.JWTClaims)
+
+	submissions, err := h.responseService.GetMySubmissions(c.Request.Context(), claims.Email)
+	if err != nil {
+		response.BadRequest(c, err.Error(), err)
+		return
+	}
+
+	response.OK(c, "Submissions retrieved successfully", submissions)
+}
+
 // GetResponseByID godoc
 // @Summary Get individual response details
 // @Tags Responses

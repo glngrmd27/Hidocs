@@ -19,10 +19,13 @@ class ResponseProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _error;
+  DateTime? _lastFetchTime;
+  static const Duration _cacheDuration = Duration(seconds: 30);
 
   ResponseProvider() {
-    _loadSubmissions();
     _loadGrades();
+    // Submissions are loaded on startup via loadMySubmissions() from UserHomeScreen,
+    // which calls GET /responses/me. The constructor only loads persisted grades.
   }
 
   List<ResponseModel> get responses => List.unmodifiable(_responses);
@@ -59,10 +62,72 @@ class ResponseProvider extends ChangeNotifier {
     }
   }
 
+  static const Duration _minRefreshInterval = Duration(seconds: 15);
+  Future<void>? _activeLoadFuture;
+
+  Future<void> loadMySubmissions({bool forceRefresh = false}) async {
+    if (_activeLoadFuture != null) {
+      return _activeLoadFuture!;
+    }
+
+    final now = DateTime.now();
+    if (_lastFetchTime != null) {
+      final elapsed = now.difference(_lastFetchTime!);
+      if (!forceRefresh && elapsed < _cacheDuration) {
+        return;
+      }
+      if (forceRefresh && elapsed < _minRefreshInterval) {
+        return;
+      }
+    }
+
+    _activeLoadFuture = _performLoadMySubmissions();
+    try {
+      await _activeLoadFuture;
+    } finally {
+      _activeLoadFuture = null;
+    }
+  }
+
+  Future<void> _performLoadMySubmissions() async {
+    try {
+      final data = await ApiClient.get('/responses/me');
+      if (data is List) {
+        final existing = <String, ResponseModel>{};
+        for (final r in _responses) {
+          existing[r.id] = r;
+        }
+        for (final e in data.whereType<Map>()) {
+          final parsed = ResponseModel.fromApiJson(
+            Map<String, dynamic>.from(e),
+          );
+          existing[parsed.id] = parsed;
+        }
+        _responses
+          ..clear()
+          ..addAll(existing.values);
+        _responses.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+        _lastFetchTime = DateTime.now();
+        _saveSubmissions();
+        notifyListeners();
+      }
+    } catch (_) {
+      // Offline fallback: load from local cache
+      await _loadSubmissions();
+    }
+  }
+
+  Future<void> reloadSubmissions() async {
+    await _loadSubmissions();
+  }
+
   Future<void> _loadSubmissions() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getStringList(_storageKey) ?? [];
+
+      _responses.clear();
+      _submissionIds.clear();
 
       for (final raw in stored) {
         try {
@@ -83,7 +148,6 @@ class ResponseProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final stored = _responses
-          .where((r) => _submissionIds.contains(r.id))
           .map((r) => jsonEncode(r.toJson()))
           .toList();
       await prefs.setStringList(_storageKey, stored);
@@ -165,6 +229,7 @@ class ResponseProvider extends ChangeNotifier {
 
   void removeResponsesByForm(String formId) {
     _responses.removeWhere((r) => r.formId == formId);
+    _saveSubmissions();
     notifyListeners();
   }
 
@@ -213,6 +278,7 @@ class ResponseProvider extends ChangeNotifier {
             return parsed;
           }),
         );
+        _saveSubmissions();
       }
 
       _isLoading = false;

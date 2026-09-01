@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../providers/form_provider.dart';
 import '../widgets/user_form_detail_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class ScanFormScreen extends StatefulWidget {
   const ScanFormScreen({super.key});
@@ -61,9 +62,19 @@ class _ScanFormScreenState extends State<ScanFormScreen> {
       return;
     }
 
+    if (!form.isActive) {
+      _showMessage(
+        'Form ini sudah ditutup dan tidak bisa diisi.',
+        isError: true,
+      );
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context);
+
     if (formProvider.hasSubmitted(form.id)) {
       _showMessage(
-        "You've already submitted this form",
+        l10n.alreadySubmittedForm,
         isError: false,
       );
       return;
@@ -116,9 +127,11 @@ class _ScanFormScreenState extends State<ScanFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: Text(l10n.scanQR),
       ),
       body: Stack(
         children: [

@@ -114,10 +114,14 @@ class UserFormDetailScreen extends StatelessWidget {
                       value: form.title,
                     ),
                     const SizedBox(height: 16),
-                    const _InfoRow(
-                      icon: Icons.info_outline_rounded,
+                    _InfoRow(
+                      icon: form.isActive
+                          ? Icons.info_outline_rounded
+                          : Icons.lock_clock_outlined,
                       title: 'Status',
-                      value: 'Available to fill',
+                      value: form.isActive
+                          ? 'Available to fill'
+                          : 'Form Closed / Expired',
                     ),
                     const SizedBox(height: 16),
                     const _InfoRow(
@@ -135,14 +139,14 @@ class UserFormDetailScreen extends StatelessWidget {
                 padding:
                     const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.warning
+                  color: (form.isActive ? AppTheme.warning : AppTheme.error)
                       .withValues(
                     alpha: 0.08,
                   ),
                   borderRadius:
                       BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppTheme.warning
+                    color: (form.isActive ? AppTheme.warning : AppTheme.error)
                         .withValues(
                       alpha: 0.20,
                     ),
@@ -152,16 +156,19 @@ class UserFormDetailScreen extends StatelessWidget {
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      color:
-                          AppTheme.warning,
+                    Icon(
+                      form.isActive
+                          ? Icons.info_outline_rounded
+                          : Icons.error_outline_rounded,
+                      color: form.isActive ? AppTheme.warning : AppTheme.error,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Make sure you are ready before starting. Once you submit your answers, you will not be able to fill out this form again.',
+                        form.isActive
+                            ? 'Make sure you are ready before starting. Once you submit your answers, you will not be able to fill out this form again.'
+                            : 'This form is no longer accepting responses because it has expired or has been closed.',
                         style: TextStyle(
                           fontSize: 12,
                           height: 1.5,
@@ -178,23 +185,37 @@ class UserFormDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            FillFormScreen(
-                          form: form,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.play_arrow_rounded,
+                  onPressed: form.isActive
+                      ? () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  FillFormScreen(
+                                form: form,
+                              ),
+                            ),
+                          );
+                        }
+                      : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Form ini sudah ditutup dan tidak dapat diisi.',
+                              ),
+                              backgroundColor: AppTheme.error,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                  icon: Icon(
+                    form.isActive
+                        ? Icons.play_arrow_rounded
+                        : Icons.lock_outline_rounded,
                   ),
-                  label: const Text(
-                    'Start Filling Form',
-                    style: TextStyle(
+                  label: Text(
+                    form.isActive ? 'Start Filling Form' : 'Form Closed',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight:
                           FontWeight.w700,
@@ -203,7 +224,7 @@ class UserFormDetailScreen extends StatelessWidget {
                   style:
                       ElevatedButton.styleFrom(
                     backgroundColor:
-                        AppTheme.primary,
+                        form.isActive ? AppTheme.primary : AppTheme.error,
                     foregroundColor:
                         Colors.white,
                     elevation: 0,
