@@ -11,7 +11,6 @@ import {
   FaArrowLeft,
   FaArrowRight,
   FaCheckCircle,
-  FaChevronDown,
   FaEnvelope,
   FaEye,
   FaEyeSlash,
@@ -35,17 +34,13 @@ function Register() {
     setEmail,
   ] = useState("");
   const [
-    username,
-    setUsername,
+    name,
+    setName,
   ] = useState("");
   const [
     password,
     setPassword,
   ] = useState("");
-  const [
-    role,
-    setRole,
-  ] = useState("User");
   const [
     showPassword,
     setShowPassword,
@@ -69,10 +64,10 @@ function Register() {
     );
     setError("");
   };
-  const handleUsernameChange = (
+  const handleNameChange = (
     event
   ) => {
-    setUsername(
+    setName(
       event.target.value
     );
     setError("");
@@ -81,14 +76,6 @@ function Register() {
     event
   ) => {
     setPassword(
-      event.target.value
-    );
-    setError("");
-  };
-  const handleRoleChange = (
-    event
-  ) => {
-    setRole(
       event.target.value
     );
     setError("");
@@ -110,7 +97,6 @@ function Register() {
   const handleRegister = async (
     event
   ) => {
-    
     event.preventDefault();
     if (isLoading) {
       return;
@@ -118,14 +104,14 @@ function Register() {
     setError("");
     const cleanEmail =
       email.trim();
-    const cleanUsername =
-      username.trim();
+    const cleanName =
+      name.trim();
     // =======================================================
     // REQUIRED VALIDATION
     // =======================================================
     if (
       !cleanEmail ||
-      !cleanUsername ||
+      !cleanName ||
       !password
     ) {
       setError(
@@ -147,21 +133,21 @@ function Register() {
       return;
     }
     // =======================================================
-    // USERNAME VALIDATION
+    // NAME VALIDATION
     // =======================================================
     if (
-      cleanUsername.length < 3
+      cleanName.length < 2
     ) {
       setError(
-        "Username minimal 3 karakter."
+        "Nama minimal 2 karakter."
       );
       return;
     }
     if (
-      cleanUsername.length > 30
+      cleanName.length > 100
     ) {
       setError(
-        "Username maksimal 30 karakter."
+        "Nama maksimal 100 karakter."
       );
       return;
     }
@@ -177,6 +163,33 @@ function Register() {
       return;
     }
 
+    setIsLoading(true);
+
+    try {
+      await registerUser({
+        name: cleanName,
+        email: cleanEmail,
+        password: password,
+      });
+
+      navigate("/verify-otp", {
+        state: {
+          registrationData: {
+            name: cleanName,
+            email: cleanEmail,
+          },
+          email: cleanEmail,
+        },
+      });
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.errors ||
+        "Gagal melakukan registrasi. Silakan coba lagi."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
   // =========================================================
   // CLEAR FORM WITH ESCAPE
@@ -188,9 +201,8 @@ function Register() {
       event.key === "Escape"
     ) {
       setEmail("");
-      setUsername("");
+      setName("");
       setPassword("");
-      setRole("User");
       setError("");
       setIsLoading(false);
     }
@@ -373,7 +385,7 @@ function Register() {
               <p>
                 Complete the information below.
                 After registration, verify your
-                email using the four-digit OTP code.
+                email using the 6-digit OTP code.
               </p>
             </div>
             {/* =================================================
@@ -410,27 +422,27 @@ function Register() {
                   />
                 </div>
               </div>
-              {/* USERNAME */}
+              {/* NAME */}
               <div className="register-form-group">
-                <label htmlFor="register-username">
-                  Username
+                <label htmlFor="register-name">
+                  Full Name
                 </label>
                 <div className="register-input-wrapper">
                   <FaUser className="register-input-icon" />
                   <input
-                    id="register-username"
-                    name="username"
+                    id="register-name"
+                    name="name"
                     type="text"
                     value={
-                      username
+                      name
                     }
                     onChange={
-                      handleUsernameChange
+                      handleNameChange
                     }
-                    placeholder="Choose a username"
-                    autoComplete="username"
-                    minLength={3}
-                    maxLength={30}
+                    placeholder="Enter your full name"
+                    autoComplete="name"
+                    minLength={2}
+                    maxLength={100}
                     disabled={
                       isLoading
                     }
@@ -498,36 +510,6 @@ function Register() {
                       : <FaEyeSlash />
                     }
                   </button>
-                </div>
-              </div>
-              {/* ROLE */}
-              <div className="register-form-group">
-                <label htmlFor="register-role">
-                  Role
-                </label>
-                <div className="register-select-wrapper">
-                  <FaShieldAlt className="register-input-icon" />
-                  <select
-                    id="register-role"
-                    name="role"
-                    value={
-                      role
-                    }
-                    onChange={
-                      handleRoleChange
-                    }
-                    disabled={
-                      isLoading
-                    }
-                  >
-                    <option value="User">
-                      User
-                    </option>
-                    <option value="Admin">
-                      Admin
-                    </option>
-                  </select>
-                  <FaChevronDown className="register-select-arrow" />
                 </div>
               </div>
               {/* ERROR MESSAGE */}
@@ -600,7 +582,7 @@ function Register() {
               <span>
                 After creating your account,
                 you will be asked to enter a
-                four-digit OTP verification code.
+                6-digit OTP verification code.
               </span>
             </div>
           </div>

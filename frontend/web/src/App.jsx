@@ -35,16 +35,26 @@ import SubmitSuccess from "./pages/SubmitSuccess";
 import FormResult from "./pages/FormResult";
 
 // =========================================
-// ADMIN PAGES
+// CREATOR PAGES
 // =========================================
 
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminFormDetails from "./pages/AdminFormDetails";
-import AdminResults from "./pages/AdminResults";
+import CreatorDashboard from "./pages/CreatorDashboard";
+import CreatorFormDetails from "./pages/CreatorFormDetails";
+import CreatorResults from "./pages/CreatorResults";
 import ManageForms from "./pages/ManageForms";
 import CreateForm from "./pages/CreateForm";
 import EditForm from "./pages/EditForm";
 import ImportWord from "./pages/ImportWord";
+import CreatorProfile from "./pages/CreatorProfile";
+
+// =========================================
+// ADMIN PAGES
+// =========================================
+
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminCreators from "./pages/AdminCreators";
+import AdminForms from "./pages/AdminForms";
+import AdminMonitoring from "./pages/AdminMonitoring";
 import AdminProfile from "./pages/AdminProfile";
 
 // =========================================================
@@ -276,11 +286,45 @@ function AppRoutes() {
           element={<SubmitSuccess />}
         />
 
+        {/* =========================================
+            CREATOR PAGES
+        ========================================= */}
         <Route
-          path="/form-result/:id"
-          element={<FormResult />}
+          path="/creator"
+          element={<CreatorDashboard />}
+        />
+        <Route
+          path="/creator/profile"
+          element={<CreatorProfile />}
+        />
+        <Route
+          path="/creator/forms"
+          element={<ManageForms />}
+        />
+        <Route
+          path="/creator/create-form"
+          element={<CreateForm />}
+        />
+        <Route
+          path="/creator/import-word"
+          element={<ImportWord />}
+        />
+        <Route
+          path="/creator/forms/:id/edit"
+          element={<EditForm />}
+        />
+        <Route
+          path="/creator/forms/:id/results"
+          element={<CreatorResults />}
+        />
+        <Route
+          path="/creator/forms/:id"
+          element={<CreatorFormDetails />}
         />
 
+        {/* =========================================
+            ADMIN PAGES
+        ========================================= */}
         <Route
           path="/admin"
           element={<AdminDashboard />}
@@ -292,34 +336,18 @@ function AppRoutes() {
         />
 
         <Route
+          path="/admin/creators"
+          element={<AdminCreators />}
+        />
+
+        <Route
           path="/admin/forms"
-          element={<ManageForms />}
+          element={<AdminForms />}
         />
 
         <Route
-          path="/create-form"
-          element={<CreateForm />}
-        />
-
-        <Route
-          path="/admin/import-word"
-          element={<ImportWord />}
-        />
-
-        {/* IMPORTANT: taruh route edit sebelum detail agar jelas */}
-        <Route
-          path="/admin/forms/:id/edit"
-          element={<EditForm />}
-        />
-
-        <Route
-          path="/admin/forms/:id/results"
-          element={<AdminResults />}
-        />
-
-        <Route
-          path="/admin/forms/:id"
-          element={<AdminFormDetails />}
+          path="/admin/monitoring"
+          element={<AdminMonitoring />}
         />
 
         <Route

@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import {
+  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -736,9 +737,19 @@ const findRawForm = (
     null
   );
 };
-function AdminFormDetails() {
+function CreatorFormDetails() {
   const navigate =
     useNavigate();
+  const location =
+    useLocation();
+
+  const basePath =
+    "/creator";
+
+  useEffect(() => {
+    localStorage.setItem("activeMode", "creator");
+  }, [location.pathname]);
+
   const {
     id,
   } = useParams();
@@ -1201,7 +1212,7 @@ function AdminFormDetails() {
         alert(
           `Form "${form.title}" berhasil dihapus.`
         );
-        navigate("/admin/forms");
+        navigate(`${basePath}/forms`);
       } catch (error) {
         console.error(
           "Gagal menghapus form:",
@@ -1532,13 +1543,13 @@ function AdminFormDetails() {
   const viewResults =
     () => {
       navigate(
-        `/admin/forms/${id}/results`
+        `${basePath}/forms/${id}/results`
       );
   };
   const goBack =
     () => {
       navigate(
-        "/admin/forms"
+        `${basePath}/forms`
       );
   };
   if (!form) {
@@ -1565,7 +1576,7 @@ function AdminFormDetails() {
             type="button"
             onClick={() =>
               navigate(
-                "/admin/forms"
+                `${basePath}/forms`
               )
             }
           >
@@ -1731,7 +1742,7 @@ function AdminFormDetails() {
                   className="detail-more-menu-item edit"
                   onClick={() => {
                     setShowMoreMenu(false);
-                    navigate(`/admin/forms/${form.id}/edit`);
+                    navigate(`${basePath}/forms/${form.id}/edit`);
                   }}
                 >
                   <span className="detail-menu-icon edit">
@@ -2420,4 +2431,4 @@ function AdminFormDetails() {
     </div>
   );
 }
-export default AdminFormDetails;
+export default CreatorFormDetails;

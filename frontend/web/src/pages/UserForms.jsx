@@ -28,6 +28,7 @@ import {
 } from "html5-qrcode";
 import {
   getFormById,
+  getForms,
   getPublicForm,
 } from "../api/formApi";
 import {
@@ -711,8 +712,34 @@ function UserForms() {
   // =========================================================
   const loadForms =
     useCallback(
-      () => {
+      async () => {
         try {
+          let apiForms = [];
+          try {
+            const res = await getForms();
+            const fetched = res?.data?.data || res?.data || [];
+            if (Array.isArray(fetched)) {
+              apiForms = fetched.map((form) => ({
+                id: form.id,
+                title: form.title,
+                description: form.description,
+                category: form.type || "Form",
+                type: form.type || "Form",
+                questions: form.questions?.length || form.response_count || 0,
+                duration: form.form_settings?.duration_minutes ? `${form.form_settings.duration_minutes} min` : "20 min",
+                active: form.status === "ACTIVE",
+                customLink: form.custom_url,
+                link: form.custom_url ? `hidocs.app/r/${form.custom_url}` : "",
+                createdAt: form.created_at,
+                accessMode: "public",
+                showInUserList: true,
+                qrOnly: false,
+              }));
+            }
+          } catch (apiErr) {
+            console.warn("Backend API getForms in UserForms fallback to local:", apiErr);
+          }
+
           const storedForms =
             getStoredArray(
               FORMS_STORAGE_KEY
@@ -740,12 +767,12 @@ function UserForms() {
                 )
             );
           // ===================================================
-          // MERGE DEFAULT + DATA ADMIN
+          // MERGE DEFAULT + DATA ADMIN + BACKEND API
           // ===================================================
           const combinedForms =
             mergeForms(
               defaultForms,
-              storedForms
+              [...storedForms, ...apiForms]
             );
           // ===================================================
           // REMOVE DELETED

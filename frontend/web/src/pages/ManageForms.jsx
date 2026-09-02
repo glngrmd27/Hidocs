@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import {
+  useLocation,
   useNavigate,
 } from "react-router-dom";
 import {
@@ -91,6 +92,16 @@ const defaultForms = [
 function ManageForms() {
   const navigate =
     useNavigate();
+  const location =
+    useLocation();
+
+  const basePath =
+    "/creator";
+
+  useEffect(() => {
+    localStorage.setItem("activeMode", "creator");
+  }, [location.pathname]);
+
   const {
     darkMode,
   } = useContext(
@@ -1014,7 +1025,7 @@ function ManageForms() {
     id
   ) => {
     navigate(
-      `/admin/forms/${id}`
+      `${basePath}/forms/${id}`
     );
   };
   // =========================================================
@@ -1023,7 +1034,7 @@ function ManageForms() {
   const createNewForm =
     () => {
       navigate(
-        "/create-form"
+        `${basePath}/create-form`
       );
     };
   // =========================================================
@@ -1039,19 +1050,19 @@ function ManageForms() {
   const goHome =
     () => {
       navigate(
-        "/admin"
+        basePath
       );
     };
   const goForms =
     () => {
       navigate(
-        "/admin/forms"
+        `${basePath}/forms`
       );
     };
   const goProfile =
     () => {
       navigate(
-        "/admin/profile"
+        `${basePath}/profile`
       );
     };
   // =========================================================

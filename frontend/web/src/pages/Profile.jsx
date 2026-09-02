@@ -159,7 +159,7 @@ function Profile() {
   const handleSwitchToCreator =
     () => {
       navigate(
-        "/admin"
+        "/creator"
       );
     };
   // =========================================================

@@ -3873,7 +3873,7 @@ function CreateForm() {
           className="create-back-btn"
           onClick={() =>
             navigate(
-              "/admin"
+              "/creator"
             )
           }
           title="Back"

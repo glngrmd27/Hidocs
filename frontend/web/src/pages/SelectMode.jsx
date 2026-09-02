@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FaUser, FaTh, FaSignOutAlt, FaChevronRight } from "react-icons/fa";
+import { FaUser, FaTh, FaSignOutAlt, FaChevronRight, FaShieldAlt } from "react-icons/fa";
 import logo from "../assets/images/logo.png";
 import "../assets/css/SelectMode.css";
 
@@ -8,6 +8,9 @@ function SelectMode() {
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const username = currentUser.name || currentUser.username || "User";
   const role = currentUser.role || "user";
+
+  const isAdmin =
+    role === "admin" || role === "superadmin";
 
   const handleLogout = () => {
     localStorage.clear();
@@ -44,7 +47,10 @@ function SelectMode() {
         <button
           type="button"
           className="select-mode-option"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => {
+            localStorage.setItem("activeMode", "user");
+            navigate("/dashboard");
+          }}
         >
           <div className="select-mode-icon user">
             <FaUser />
@@ -59,7 +65,10 @@ function SelectMode() {
         <button
           type="button"
           className="select-mode-option"
-          onClick={() => navigate("/admin")}
+          onClick={() => {
+            localStorage.setItem("activeMode", "creator");
+            navigate("/creator");
+          }}
         >
           <div className="select-mode-icon creator">
             <FaTh />
@@ -70,6 +79,26 @@ function SelectMode() {
           </div>
           <FaChevronRight className="select-mode-arrow" />
         </button>
+
+        {isAdmin && (
+          <button
+            type="button"
+            className="select-mode-option"
+            onClick={() => {
+              localStorage.setItem("activeMode", "admin");
+              navigate("/admin");
+            }}
+          >
+            <div className="select-mode-icon admin">
+              <FaShieldAlt />
+            </div>
+            <div className="select-mode-option-content">
+              <h2>Mode Admin</h2>
+              <p>Kelola pengguna, form, dan pantau performa platform.</p>
+            </div>
+            <FaChevronRight className="select-mode-arrow" />
+          </button>
+        )}
 
         <span className="select-mode-footnote">
           Akun Anda terdaftar sebagai{" "}

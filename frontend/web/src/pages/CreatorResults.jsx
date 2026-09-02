@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import {
+  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -771,9 +772,19 @@ const escapeHtml = (
 // =========================================================
 // ADMIN RESULTS
 // =========================================================
-function AdminResults() {
+function CreatorResults() {
   const navigate =
     useNavigate();
+  const location =
+    useLocation();
+
+  const basePath =
+    "/creator";
+
+  useEffect(() => {
+    localStorage.setItem("activeMode", "creator");
+  }, [location.pathname]);
+
   const {
     id,
   } = useParams();
@@ -2804,7 +2815,7 @@ const saveManualGrades = async () => {
   const goBack =
     () => {
       navigate(
-        `/admin/forms/${id}`
+        `${basePath}/forms/${id}`
       );
   };
   // =========================================================
@@ -2833,7 +2844,7 @@ const saveManualGrades = async () => {
             type="button"
             onClick={() =>
               navigate(
-                "/admin/forms"
+                `${basePath}/forms`
               )
             }
           >
@@ -3788,4 +3799,4 @@ const saveManualGrades = async () => {
     </div>
   );
 }
-export default AdminResults;
+export default CreatorResults;

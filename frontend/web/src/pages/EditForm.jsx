@@ -2063,7 +2063,7 @@ function EditForm() {
         );
         alert("Perubahan form berhasil disimpan.");
         navigate(
-          `/admin/forms/${id}`,
+          `/creator/forms/${id}`,
           { replace: true }
         );
       } catch (error) {
@@ -3484,7 +3484,7 @@ function EditForm() {
           <p>The form may have been deleted or is no longer available.</p>
           <button
             type="button"
-            onClick={() => navigate("/admin/forms")}
+            onClick={() => navigate("/creator/forms")}
           >
             Back to Forms
           </button>
@@ -3509,7 +3509,7 @@ function EditForm() {
           className="create-back-btn"
           onClick={() =>
             navigate(
-              `/admin/forms/${id}`
+              `/creator/forms/${id}`
             )
           }
           title="Back"

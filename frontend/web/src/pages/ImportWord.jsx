@@ -3346,7 +3346,7 @@ function ImportWord() {
             : "Form Word berhasil diimport sebagai QR Code Only."
         );
         navigate(
-          "/admin/forms",
+          "/creator/forms",
           {
             replace: true,
           }
@@ -4578,7 +4578,7 @@ Poin: 3
           className="import-back-btn"
           onClick={() =>
             navigate(
-              "/admin"
+              "/creator"
             )
           }
         >

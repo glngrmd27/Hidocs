@@ -665,7 +665,7 @@ function VerifyOtp() {
     ) {
 
       setError(
-        "Masukkan kode OTP 4 digit."
+        "Masukkan kode OTP 6 digit."
       );
 
       return;

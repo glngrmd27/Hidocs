@@ -263,23 +263,25 @@ input {
 ========================================================= */
 .verify-otp-inputs {
     width: 100%;
-    max-width: 310px;
+    max-width: 440px;
     margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
 }
 .verify-otp-inputs input {
+    flex: 1 1 0;
     width: 100%;
     min-width: 0;
-    height: 64px;
+    max-width: none;
+    height: 60px;
     border: 1px solid #d6e0eb;
-    border-radius: 15px;
+    border-radius: 14px;
     outline: none;
     background: #f8fafc;
     color: #26425e;
     text-align: center;
-    font-size: 25px;
+    font-size: 24px;
     font-weight: 800;
     caret-color: #2d78c2;
     transition: border-color .2s ease, box-shadow .2s ease, background .2s ease, transform .2s ease;
@@ -570,13 +572,13 @@ input {
         margin-top: 21px;
     }
     .verify-otp-inputs {
-        max-width: 285px;
-        gap: 9px;
+        max-width: 380px;
+        gap: 6px;
     }
     .verify-otp-inputs input {
-        height: 57px;
-        border-radius: 13px;
-        font-size: 22px;
+        height: 52px;
+        border-radius: 11px;
+        font-size: 20px;
     }
 }
 /* =========================================================
@@ -591,12 +593,13 @@ input {
         padding-right: 14px;
     }
     .verify-otp-inputs {
-        gap: 7px;
+        max-width: 100%;
+        gap: 4px;
     }
     .verify-otp-inputs input {
-        height: 53px;
-        border-radius: 12px;
-        font-size: 20px;
+        height: 46px;
+        border-radius: 9px;
+        font-size: 18px;
     }
     .verify-resend-section {
         flex-direction: column;
